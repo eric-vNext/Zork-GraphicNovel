@@ -24,6 +24,8 @@ Create a playable browser-based, illustrated text adventure faithful to Zork I:
 - Zero Combat Redesign: Combat, death, and puzzle logic remain exactly as in the original game (including the thief, the troll, and grues) — we are not softening or removing mechanical friction, since that friction is Zork's actual design.
 - Save/Restore Fidelity: Preserve the classic save/restore/verbose/score/diagnose commands players expect from Zork.
 - Legible Text Always: Illustration supports the prose; the full room/parser text is always visible and readable, never obscured by artwork.
+- Playable in portrait or landscape mode.
+- Since it will be text-base commands, research ways to minimize the impact to user experience with the keyboard constantly flying in on a mobile device.
 
 Design pillars (in priority order):
 1. **Fidelity to the source.** Room graph, objects, verbs, puzzle logic, scoring, and text come from the historicalsource/zork1 repository. We are porting, not reimagining.
@@ -202,6 +204,28 @@ Do not create the game code yet.
 Only create the documentation and asset plan first.
 
 ==================================================
+APPROVAL STOP
+==================================================
+
+After creating documents and folder structure, stop.
+
+Do not create the visual assets yet.
+
+Show me:
+1. Research summary (including the native-port vs. interpreter recommendation)
+2. Presentation concept summary
+3. Region/room plan summary
+4. Asset list
+
+Then ask for my approval.
+
+Use this exact message:
+
+"The research and region plan are ready. Please review and confirm if I should continue to generate assets for the playable graphic novel edition of Zork."
+
+Do not continue until I explicitly approve.
+
+==================================================
 PHASE 5 — GENERATE VISUAL ASSETS WITH MEDIA-GEN
 ==================================================
 
@@ -274,12 +298,9 @@ After generating and organizing all visual assets, stop.
 Do not build the game yet.
 
 Show me:
-1. Research summary (including the native-port vs. interpreter recommendation)
-2. Presentation concept summary
-3. Region/room plan summary
-4. Asset list
-5. Generated media preview / file paths
-6. Any issues or missing assets
+1. Asset list
+2. Generated media preview / file paths
+3. Any issues or missing assets
 
 Then ask for my approval.
 
@@ -297,7 +318,6 @@ After I approve, build the playable game.
 
 Technical requirements:
 - Browser-based game
-- TypeScript + Vite + React
 - Framer Motion (or equivalent) for panel fade/fly-in transitions
 - Howler.js (or equivalent) for layered/crossfaded audio
 - Lightweight state store (e.g., Zustand) for game/world state
@@ -354,6 +374,7 @@ Show:
 - Score/moves indicator
 - Inventory quick-view
 - Mute/volume and save/restore controls
+- Health indicator
 
 8. Game states
 Implement:
