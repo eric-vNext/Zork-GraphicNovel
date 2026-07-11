@@ -3174,7 +3174,7 @@
 "action": "BLACK-BOOK",
 "fdesc": "On the altar is a large black book, open to page 569.",
 "size": 10,
-"text": "Commandment #12592|\n|\nOh ye who go about saying unto each:  \"Hello sailor\":|\nDost thou know the magnitude of thy sin before the gods?|\nYea, verily, thou shalt be ground between two stones.|\nShall the angry gods cast thy body into the whirlpool?|\nSurely, thy eye shall be put out with a sharp stick!|\nEven unto the ends of the earth shalt thou wander and|\nUnto the land of the dead shalt thou be sent at last.|\nSurely thou shalt repent of thy cunning."
+"text": "Commandment #12592\n\nOh ye who go about saying unto each:  \"Hello sailor\":\n\nDost thou know the magnitude of thy sin before the gods?\n\nYea, verily, thou shalt be ground between two stones.\n\nShall the angry gods cast thy body into the whirlpool?\n\nSurely, thy eye shall be put out with a sharp stick!\n\nEven unto the ends of the earth shalt thou wander and\n\nUnto the land of the dead shalt thou be sent at last.\n\nSurely thou shalt repent of thy cunning."
 },
 "BROKEN-LAMP": {
 "flags": [
@@ -3854,7 +3854,7 @@
 "in": "MAILBOX",
 "desc": "leaflet",
 "ldesc": "A small leaflet is on the ground.",
-"text": "\"WELCOME TO ZORK!|\n|\nZORK is a game of adventure, danger, and low cunning. In it you\nwill explore some of the most amazing territory ever seen by mortals.\nNo computer should be without one!\"",
+"text": "\"WELCOME TO ZORK!\n\nZORK is a game of adventure, danger, and low cunning. In it you\nwill explore some of the most amazing territory ever seen by mortals.\nNo computer should be without one!\"",
 "size": 2
 },
 "LEAK": {
@@ -3948,7 +3948,7 @@
 "action": "MATCH-FUNCTION",
 "ldesc": "There is a matchbook whose cover says \"Visit Beautiful FCD#3\" here.",
 "size": 2,
-"text": "|\n(Close cover before striking)|\n|\nYOU too can make BIG MONEY in the exciting field of PAPER SHUFFLING!|\n|\nMr. Anderson of Muddle, Mass. says: \"Before I took this course I\nwas a lowly bit twiddler. Now with what I learned at GUE Tech\nI feel really important and can obfuscate and confuse with the best.\"|\n|\nDr. Blank had this to say: \"Ten short days ago all I could look\nforward to was a dead-end job as a doctor. Now I have a promising\nfuture and make really big Zorkmids.\"|\n|\nGUE Tech can't promise these fantastic results to everyone. But when\nyou earn your degree from GUE Tech, your future will be brighter."
+"text": "\n\n(Close cover before striking)\n\nYOU too can make BIG MONEY in the exciting field of PAPER SHUFFLING!\n\nMr. Anderson of Muddle, Mass. says: \"Before I took this course I\nwas a lowly bit twiddler. Now with what I learned at GUE Tech\nI feel really important and can obfuscate and confuse with the best.\"\n\nDr. Blank had this to say: \"Ten short days ago all I could look\nforward to was a dead-end job as a doctor. Now I have a promising\nfuture and make really big Zorkmids.\"\n\nGUE Tech can't promise these fantastic results to everyone. But when\nyou earn your degree from GUE Tech, your future will be brighter."
 },
 "MIRROR-2": {
 "flags": [
@@ -4541,7 +4541,7 @@
 "in": "INFLATED-BOAT",
 "desc": "tan label",
 "size": 2,
-"text": "  !!!!FROBOZZ MAGIC BOAT COMPANY!!!!|\n|\nHello, Sailor!|\n|\nInstructions for use:|\n|\nTo get into a body of water, say \"Launch\".|\nTo get to shore, say \"Land\" or the direction in which you want\nto maneuver the boat.|\n|\nWarranty:|\n|\nThis boat is guaranteed against all defects for a period of 76\nmilliseconds from date of purchase or until first used, whichever comes first.|\n|\nWarning:|\nThis boat is made of thin plastic.|\nGood Luck!"
+"text": "  !!!!FROBOZZ MAGIC BOAT COMPANY!!!!\n\nHello, Sailor!\n\nInstructions for use:\n\nTo get into a body of water, say \"Launch\".\n\nTo get to shore, say \"Land\" or the direction in which you want\nto maneuver the boat.\n\nWarranty:\n\nThis boat is guaranteed against all defects for a period of 76\nmilliseconds from date of purchase or until first used, whichever comes first.\n\nWarning:\n\nThis boat is made of thin plastic.\n\nGood Luck!"
 },
 "THIEF": {
 "flags": [
@@ -4630,7 +4630,7 @@
 "in": "DAM-LOBBY",
 "desc": "tour guidebook",
 "fdesc": "Some guidebooks entitled \"Flood Control Dam #3\" are on the reception\ndesk.",
-"text": "\"\tFlood Control Dam #3|\n|\nFCD#3 was constructed in year 783 of the Great Underground Empire to\nharness the mighty Frigid River. This work was supported by a grant of\n37 million zorkmids from your omnipotent local tyrant Lord Dimwit\nFlathead the Excessive. This impressive structure is composed of\n370,000 cubic feet of concrete, is 256 feet tall at the center, and 193\nfeet wide at the top. The lake created behind the dam has a volume\nof 1.7 billion cubic feet, an area of 12 million square feet, and a\nshore line of 36 thousand feet.|\n|\nThe construction of FCD#3 took 112 days from ground breaking to\nthe dedication. It required a work force of 384 slaves, 34 slave\ndrivers, 12 engineers, 2 turtle doves, and a partridge in a pear\ntree. The work was managed by a command team composed of 2345\nbureaucrats, 2347 secretaries (at least two of whom could type),\n12,256 paper shufflers, 52,469 rubber stampers, 245,193 red tape\nprocessors, and nearly one million dead trees.|\n|\nWe will now point out some of the more interesting features\nof FCD#3 as we conduct you on a guided tour of the facilities:|\n|\n1) You start your tour here in the Dam Lobby. You will notice\non your right that...."
+"text": "\"\tFlood Control Dam #3\n\nFCD#3 was constructed in year 783 of the Great Underground Empire to\nharness the mighty Frigid River. This work was supported by a grant of\n37 million zorkmids from your omnipotent local tyrant Lord Dimwit\nFlathead the Excessive. This impressive structure is composed of\n370,000 cubic feet of concrete, is 256 feet tall at the center, and 193\nfeet wide at the top. The lake created behind the dam has a volume\nof 1.7 billion cubic feet, an area of 12 million square feet, and a\nshore line of 36 thousand feet.\n\nThe construction of FCD#3 took 112 days from ground breaking to\nthe dedication. It required a work force of 384 slaves, 34 slave\ndrivers, 12 engineers, 2 turtle doves, and a partridge in a pear\ntree. The work was managed by a command team composed of 2345\nbureaucrats, 2347 secretaries (at least two of whom could type),\n12,256 paper shufflers, 52,469 rubber stampers, 245,193 red tape\nprocessors, and nearly one million dead trees.\n\nWe will now point out some of the more interesting features\nof FCD#3 as we conduct you on a guided tour of the facilities:\n\n1) You start your tour here in the Dam Lobby. You will notice\non your right that...."
 },
 "TROLL": {
 "flags": [
@@ -4691,7 +4691,7 @@
 "ldesc": "There is an object which looks like a tube of toothpaste here.",
 "capacity": 7,
 "size": 5,
-"text": "---> Frobozz Magic Gunk Company <---|\nAll-Purpose Gunk"
+"text": "---> Frobozz Magic Gunk Company <---\n\nAll-Purpose Gunk"
 },
 "PUTTY": {
 "flags": [
@@ -4747,7 +4747,7 @@
 "in": "STUDIO",
 "desc": "ZORK owner's manual",
 "fdesc": "Loosely attached to a wall is a small piece of paper.",
-"text": "Congratulations!|\n|\nYou are the privileged owner of ZORK I: The Great Underground Empire,\na self-contained and self-maintaining universe. If used and maintained\nin accordance with normal operating practices for small universes, ZORK\nwill provide many months of trouble-free operation."
+"text": "Congratulations!\n\nYou are the privileged owner of ZORK I: The Great Underground Empire,\na self-contained and self-maintaining universe. If used and maintained\nin accordance with normal operating practices for small universes, ZORK\nwill provide many months of trouble-free operation."
 },
 "CLIMBABLE-CLIFF": {
 "flags": [
