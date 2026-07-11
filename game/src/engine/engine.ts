@@ -6,6 +6,7 @@ import type { Ctx } from './ctx';
 import { parse, completePending, type PendingParse, type Command } from '../parser/parse';
 import { perform, goTo, enterRoom } from './verbs';
 import { clocker, DAEMONS } from './daemons';
+import { fightStrength } from './melee';
 import { jigsUp } from './death';
 import { describeRoom } from './describe';
 
@@ -142,10 +143,19 @@ export class Game {
     switch (cmd.verb) {
       case 'score': this.reportScore(out); return out.events;
       case 'diagnose': {
-        const w = s.counters.wounds;
-        out.tell(w === 0 ? 'You are in perfect health.' :
-          w === 1 ? 'You have a light wound, which will be cured after some rest.' :
-          'You have serious wounds, which will be cured only after a long rest.');
+        // ports V-DIAGNOSE
+        const cure = s.daemons['I-CURE'];
+        const wd = cure?.enabled ? s.counters.wounds : 0;
+        const rs = fightStrength(s, false) - wd;
+        if (wd === 0) out.tell('You are in perfect health.');
+        else {
+          const sev = wd === 1 ? 'a light wound' : wd === 2 ? 'a serious wound' : wd === 3 ? 'several wounds' : 'serious wounds';
+          out.tell(`You have ${sev}, which will be cured after ${30 * (wd - 1) + Math.max(0, cure?.tick ?? 30)} moves.`);
+        }
+        out.tell(`You can ${rs <= 0 ? 'expect death soon' :
+          rs === 1 ? 'be killed by one more light wound' :
+          rs === 2 ? 'be killed by a serious wound' :
+          rs === 3 ? 'survive one serious wound' : 'survive several wounds'}.`);
         if (s.counters.deaths > 0) out.tell(`You have been killed ${s.counters.deaths === 1 ? 'once' : 'twice'}.`);
         return out.events;
       }
@@ -187,13 +197,14 @@ export class Game {
       perform(ctx);
     }
 
-    if (!s.dead && !s.won) this.tick(out);
+    if (!s.dead && !s.won) this.tick(out, cmd);
     out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
     return out.events;
   }
 
-  private tick(out: Out): void {
-    const ctx = this.makeCtx(out, { verb: 'wait' });
+  private tick(out: Out, cmd?: Partial<Command>): void {
+    // daemons see the turn's command — I-FIGHT reads its weapon like ZIL reads PRSI
+    const ctx = this.makeCtx(out, cmd ?? { verb: 'wait' });
     clocker(ctx);
     this.s.justArrived = false; // only the tick immediately after entry gets the reprieve
     // darkness grue pressure while standing still

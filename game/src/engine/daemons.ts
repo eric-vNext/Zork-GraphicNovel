@@ -1,13 +1,12 @@
 // The clock (gclock.zil) and all daemons/timers from 1actions.zil,
 // including combat (I-FIGHT), the thief (I-THIEF), lamp/candle fuel, and the river.
 import type { Ctx } from './ctx';
-import type { WorldState } from './types';
 import { prob, pickOne } from './ctx';
 import { jigsUp } from './death';
-import { HERO_MELEE, TROLL_MELEE, THIEF_MELEE, meleeLine, type Outcome } from './combatText';
+import { fightDaemon } from './melee';
 import {
   fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, roomOf,
-  roomLit, PLAYER, roomDef, aName, DATA,
+  roomLit, PLAYER, roomDef, DATA,
 } from './world';
 
 type Daemon = (ctx: Ctx) => void;
@@ -144,10 +143,14 @@ export const DAEMONS: Record<string, Daemon> = {
   'I-THIEF': thiefDaemon,
   'I-FIGHT': fightDaemon,
   'I-CURE': (ctx) => {
+    // ports I-CURE: one wound heals per interval, carrying capacity recovers with it
     const { s } = ctx;
+    if (s.counters.wounds > 0) s.counters.wounds -= 1;
     if (s.counters.wounds > 0) {
-      s.counters.wounds -= 1;
-      if (s.counters.wounds > 0) ctx.queue('I-CURE', 30);
+      if (s.counters.loadAllowed < 100) s.counters.loadAllowed = Math.min(100, s.counters.loadAllowed + 10);
+      ctx.queue('I-CURE', 30);
+    } else {
+      s.counters.loadAllowed = 100;
     }
   },
   'I-RIVER': (ctx) => {
@@ -188,132 +191,8 @@ export function checkNowDark(ctx: Ctx): void {
   if (!roomLit(ctx.s)) ctx.out.tell('It is now pitch black.');
 }
 
-// ---------------- combat (I-FIGHT / villain melee) ----------------
-// All flavor text below is ported verbatim from the TROLL-MELEE / THIEF-MELEE /
-// HERO-MELEE tables in 1actions.zil — see combatText.ts. Nothing here is
-// paraphrased; only the outcome-selection probabilities are our own (the
-// original's full DEF1/DEF2/DEF3 relative-strength tables aren't ported).
-
-function currentWeaponName(s: WorldState): string {
-  const held = contents(s, PLAYER).find((o) => fset$(s, o, 'WEAPONBIT'));
-  return held ? (DATA.objects[held]?.desc ?? 'weapon') : 'hands';
-}
-
-function fightDaemon(ctx: Ctx): void {
-  const { s, out } = ctx;
-  if (s.justArrived) return; // let the player see the room before a villain gets a free swing
-  // troll
-  if (s.here === 'TROLL-ROOM' && !s.gflags['TROLL-DEAD'] && !fset$(s, 'TROLL', 'INVISIBLE') && !s.gflags['TROLL-UNCONSCIOUS']) {
-    if (prob(ctx, 65)) villainStrike(ctx, 'TROLL');
-  }
-  // thief in treasure room is aggressive
-  if (s.here === 'TREASURE-ROOM' && !s.gflags['THIEF-DEAD'] && !s.thiefEngrossed) {
-    if (prob(ctx, 60)) villainStrike(ctx, 'THIEF');
-  }
-}
-
-function villainStrike(ctx: Ctx, villain: string): void {
-  const { s, out } = ctx;
-  const roll = ctx.rng() * 100;
-  const table = villain === 'TROLL' ? TROLL_MELEE : THIEF_MELEE;
-  const wep = currentWeaponName(s);
-  out.emit({ type: 'sfx', name: villain === 'TROLL' ? 'troll-grunt' : 'thief-snicker' });
-  out.emit({ type: 'panel', key: villain === 'TROLL' ? 'events/troll-fight' : 'events/thief-encounter' });
-
-  let outcome: Outcome;
-  let woundDelta = 0;
-  if (roll < 30) outcome = 'MISSED';
-  else if (roll < 55) outcome = 'STAGGER';
-  else if (roll < 75) { outcome = 'LIGHT_WOUND'; woundDelta = 1; }
-  else { outcome = ctx.rng() < 0.5 ? 'UNCONSCIOUS' : 'SERIOUS_WOUND'; woundDelta = 2; }
-
-  out.tell(meleeLine(ctx.rng, table, outcome, wep, villain === 'TROLL' ? 'troll' : 'thief'));
-  if (woundDelta > 0) { s.counters.wounds += woundDelta; ctx.queue('I-CURE', 30); }
-
-  const strength = 4 + Math.floor(s.counters.score / 100) - s.counters.wounds;
-  if (strength <= 0) {
-    const killLine = meleeLine(ctx.rng, table, 'KILLED', wep, villain === 'TROLL' ? 'troll' : 'thief');
-    jigsUp(ctx, killLine, { panel: villain === 'TROLL' ? 'characters/troll' : 'characters/thief' });
-  }
-}
-
-/** Player attacks a villain. Returns true if handled. */
-export function playerAttack(ctx: Ctx, villain: string, weapon?: string): void {
-  const { s, out } = ctx;
-  if (!weapon) {
-    const carried = contents(s, PLAYER);
-    weapon = carried.find((o) => fset$(s, o, 'WEAPONBIT')) ?? undefined;
-    if (!weapon) { out.tell(`Trying to attack ${aName(villain)} with your bare hands is suicidal.`); return; }
-  }
-  const wname = DATA.objects[weapon]?.desc ?? 'weapon';
-  const best = villain === 'TROLL' ? 'SWORD' : villain === 'THIEF' ? 'KNIFE' : 'SWORD';
-  const bonus = weapon === best ? 15 : 0;
-  const roll = ctx.rng() * 100 + bonus + Math.floor(s.counters.score / 35);
-  out.emit({ type: 'sfx', name: pickOne(ctx, ['sword-clash-1', 'sword-clash-2']) });
-
-  if (villain === 'TROLL') {
-    out.emit({ type: 'panel', key: 'events/troll-fight' });
-    const hits = (s.counters.trollHits = (s.counters.trollHits ?? 0) + (roll > 55 ? 1 : 0));
-    if (roll <= 55) out.tell(meleeLine(ctx.rng, HERO_MELEE, 'MISSED', wname, 'troll'));
-    else if (hits < 2) out.tell(meleeLine(ctx.rng, HERO_MELEE, 'STAGGER', wname, 'troll'));
-    else {
-      out.tell(meleeLine(ctx.rng, HERO_MELEE, 'KILLED', wname, 'troll'));
-      out.tell('Almost as soon as the troll breathes his last breath, a cloud of sinister black fog envelops him, and when the fog lifts, the carcass has disappeared.');
-      s.gflags['TROLL-DEAD'] = true;
-      s.gflags['TROLL-FLAG'] = true;
-      removeObj(s, 'TROLL');
-      moveObj(s, 'AXE', 'TROLL-ROOM');
-      fset(s, 'AXE', 'WEAPONBIT');
-      fset(s, 'AXE', 'TAKEBIT');
-      out.emit({ type: 'panel', key: 'rooms/troll-room-empty' });
-    }
-    return;
-  }
-  if (villain === 'THIEF') {
-    out.emit({ type: 'panel', key: 'events/thief-encounter' });
-    const hits = (s.counters.thiefHits = (s.counters.thiefHits ?? 0) + (roll > 60 ? 1 : 0));
-    if (roll <= 60) out.tell(meleeLine(ctx.rng, HERO_MELEE, 'MISSED', wname, 'thief'));
-    else if (hits < 2) out.tell(meleeLine(ctx.rng, HERO_MELEE, 'LIGHT_WOUND', wname, 'thief'));
-    else {
-      killThief(ctx);
-    }
-    return;
-  }
-  if (villain === 'CYCLOPS') {
-    out.tell('The cyclops shrugs but otherwise ignores your pitiful attempt.');
-    return;
-  }
-}
-
-export function killThief(ctx: Ctx): void {
-  const { s, out } = ctx;
-  out.tell(meleeLine(ctx.rng, HERO_MELEE, 'KILLED', currentWeaponName(s), 'thief'));
-  out.tell(
-    'As the thief dies, the power of his magic decreases, and his treasures reappear:',
-  );
-  s.gflags['THIEF-DEAD'] = true;
-  const loot = contents(s, 'LARGE-BAG');
-  const lines: string[] = [];
-  for (const o of loot) {
-    moveObj(s, o, s.here);
-    lines.push(`  A ${DATA.objects[o]?.desc ?? o.toLowerCase()}`);
-  }
-  // the egg: opened by the thief's delicate touch while it was in his bag
-  if (s.gflags['THIEF-HAS-EGG']) {
-    if (roomOf(s, 'EGG') === null) moveObj(s, 'EGG', s.here);
-    fset(s, 'EGG', 'OPENBIT');
-    if (!s.locs['CANARY']) moveObj(s, 'CANARY', 'EGG');
-    lines.push('  A jewel-encrusted egg, now open, with a golden clockwork canary inside');
-  }
-  if (lines.length) out.tell(lines.join('\n'));
-  out.tell('The chalice is now safe to take.');
-  removeObj(s, 'THIEF');
-  s.gflags['THIEF-HERE'] = false;
-  ctx.disable('I-THIEF');
-  out.emit({ type: 'sfx', name: 'treasure-chime' });
-}
-
 // ---------------- thief wanderings (I-THIEF) ----------------
+// Combat itself (I-FIGHT and the melee blows) lives in melee.ts.
 function thiefDaemon(ctx: Ctx): void {
   const { s, out } = ctx;
   if (s.gflags['THIEF-DEAD']) return;

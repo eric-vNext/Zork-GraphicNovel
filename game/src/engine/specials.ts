@@ -3,7 +3,8 @@
 import type { Ctx } from './ctx';
 import { prob, pickOne, YUKS } from './ctx';
 import { jigsUp } from './death';
-import { playerAttack, killThief, checkNowDark } from './daemons';
+import { checkNowDark } from './daemons';
+import { playerAttack, wakeThiefForGift } from './melee';
 import {
   fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, roomOf, roomLit,
   PLAYER, DATA, theName, objDef, inventory,
@@ -553,6 +554,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
     if (ctx.verb === 'give' || ctx.verb === 'throw') {
       const item = ctx.dobj === 'THIEF' ? ctx.iobj : ctx.dobj;
       if (!item || item === 'THIEF') return false;
+      wakeThiefForGift(ctx);
       removeObj(s, item);
       moveObj(s, item, 'LARGE-BAG');
       if (item === 'EGG') {
@@ -700,7 +702,8 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
   },
   CHALICE: (ctx) => {
     const { s, out } = ctx;
-    if (ctx.verb === 'take' && s.here === 'TREASURE-ROOM' && !s.gflags['THIEF-DEAD'] && !s.thiefEngrossed) {
+    if (ctx.verb === 'take' && s.here === 'TREASURE-ROOM' && !s.gflags['THIEF-DEAD'] &&
+        !s.gflags['THIEF-UNCONSCIOUS'] && !s.thiefEngrossed) {
       out.tell('Realizing just in time that the thief is watching you, you relinquish your claim to the chalice.');
       return true;
     }
@@ -904,6 +907,8 @@ export const ROOM_ACTIONS: Record<string, RoomHandler> = {
     if (phase === 'enter' && !s.gflags['THIEF-DEAD']) {
       moveObj(s, 'THIEF', 'TREASURE-ROOM');
       fclear(s, 'THIEF', 'INVISIBLE');
+      fset(s, 'THIEF', 'FIGHTBIT'); // he rushes to its defense
+
       out.tell('You hear a scream of anguish as you violate the robber\'s hideaway. Using passages unknown to you, he rushes to its defense.');
       out.tell('The thief gestures mysteriously, and the treasures in the room suddenly vanish.');
       out.emit({ type: 'panel', key: 'characters/thief' });

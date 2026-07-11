@@ -3,6 +3,23 @@
 import type { WorldState } from './types';
 import { fset$ } from './world';
 
+// Objects whose LDESC the original rewrites at runtime (TROLL-FCN / ROBBER-FUNCTION).
+export function dynamicObjDesc(s: WorldState, obj: string): string | null {
+  switch (obj) {
+    case 'TROLL':
+      if (s.gflags['TROLL-UNCONSCIOUS'])
+        return 'An unconscious troll is sprawled on the floor. All passages out of the room are open.';
+      if (s.locs['AXE'] !== 'TROLL') return 'A pathetically babbling troll is here.';
+      return null;
+    case 'THIEF':
+      if (s.gflags['THIEF-UNCONSCIOUS'])
+        return 'There is a suspicious-looking individual lying unconscious on the ground.';
+      return null;
+    default:
+      return null;
+  }
+}
+
 export function dynamicRoomDesc(s: WorldState, room: string): string | null {
   const open = (o: string) => fset$(s, o, 'OPENBIT');
   switch (room) {

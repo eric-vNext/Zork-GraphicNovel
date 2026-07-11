@@ -33,6 +33,7 @@ export function jigsUp(ctx: Ctx, text: string, opts?: { panel?: string }): void 
   }
   s.gflags['IN-BOAT'] = false;
   s.counters.wounds = 0;
+  s.counters.loadAllowed = 100;
   s.grueTurns = 0;
   s.here = 'FOREST-1';
   s.touched['FOREST-1'] = true;

@@ -1,7 +1,7 @@
 // Room and object description (ports the M-LOOK/describers in gmain.zil).
 import type { WorldState } from './types';
 import { Out, DATA, roomDef, objDef, contents, fset$, roomLit, seeInside, theName, aName } from './world';
-import { dynamicRoomDesc } from './specialDescs';
+import { dynamicRoomDesc, dynamicObjDesc } from './specialDescs';
 
 export function describeRoom(s: WorldState, out: Out, force = false): void {
   const r = roomDef(s.here);
@@ -26,7 +26,9 @@ export function describeObjects(s: WorldState, out: Out): void {
   const plain: string[] = [];
   for (const o of items) {
     const d = objDef(o);
-    if (d.fdesc && !s.fdescGone[o]) out.tell(d.fdesc.replace(/\n/g, ' '));
+    const dyn = dynamicObjDesc(s, o);
+    if (dyn) out.tell(dyn);
+    else if (d.fdesc && !s.fdescGone[o]) out.tell(d.fdesc.replace(/\n/g, ' '));
     else if (d.ldesc) out.tell(d.ldesc.replace(/\n/g, ' '));
     else plain.push(o);
     // visible contents of open/transparent containers (actors don't spill their

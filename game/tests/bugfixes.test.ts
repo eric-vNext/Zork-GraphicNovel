@@ -126,16 +126,18 @@ describe('bug fixes', () => {
     const staggerLines = new Set(HERO_MELEE.STAGGER.map((l) => l.replace('{DEF}', 'troll')));
     let sawStagger = false;
     const snap = g.exportSave();
-    for (let attempt = 0; attempt < 30 && !sawStagger && !g.s.gflags['TROLL-DEAD']; attempt++) {
+    for (let attempt = 0; attempt < 30 && !sawStagger; attempt++) {
       for (let i = 0; i < 30 && !g.s.gflags['TROLL-DEAD'] && !g.s.dead; i++) {
         const t = txt(g, 'attack troll with sword');
-        // a landed, non-killing hit must be exactly one of the authentic
-        // STAGGER lines — never the old invented "knocking you out" mashup
+        // a staggering hit must be exactly one of the authentic STAGGER
+        // lines — never the old invented "knocking you out" mashup.
+        // (With the real melee tables the troll can also be wounded, knocked
+        // out, or killed outright, so retry until a stagger comes up.)
         const line = t.split('\n').find((l) => staggerLines.has(l));
         if (line) { sawStagger = true; break; }
         expect(t).not.toContain('knocking you out — no wait');
       }
-      if (!sawStagger && !g.s.gflags['TROLL-DEAD']) g.importSave(snap, new Out());
+      if (!sawStagger) g.importSave(snap, new Out());
     }
     expect(sawStagger).toBe(true);
   });
