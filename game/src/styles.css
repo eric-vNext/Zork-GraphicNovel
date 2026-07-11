@@ -35,11 +35,10 @@ body {
 }
 .stage {
   position: relative;
-  flex: 0 0 38dvh;
-  min-height: 72px;
+  flex: 0 1 38dvh;
+  min-height: 140px;
   background: var(--bg-panel);
   overflow: hidden;
-  transition: flex-basis 0.3s ease;
 }
 .right-col { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
@@ -49,10 +48,6 @@ body {
   .right-col { flex: 1; height: 100%; }
 }
 
-/* keyboard-open compression on small portrait screens */
-@media (max-height: 500px) and (orientation: portrait) {
-  .stage { flex-basis: 88px; }
-}
 
 /* ---------- panel ---------- */
 .panel-img {
@@ -62,15 +57,6 @@ body {
   height: 100%;
   object-fit: cover;
   object-position: center 35%;
-}
-.panel-frame {
-  position: absolute;
-  inset: -1.5%;
-  width: 103%;
-  height: 103%;
-  pointer-events: none;
-  opacity: 0.9;
-  z-index: 3;
 }
 .room-caption {
   position: absolute;
@@ -89,46 +75,28 @@ body {
 }
 .compass {
   position: absolute;
-  right: 10px;
-  bottom: 8px;
+  right: 8px;
+  bottom: 6px;
   z-index: 5;
-  width: 108px;
-  height: 108px;
-  opacity: 0.92;
-  user-select: none;
-}
-.compass img { width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.7)); }
-.compass button {
-  position: absolute;
-  width: 30px; height: 30px;
-  background: transparent;
+  width: 128px;
+  height: 128px;
+  padding: 0;
   border: none;
-  color: transparent;
+  background: transparent;
+  opacity: 0.94;
   cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.compass button:active { background: rgba(255,255,255,0.12); border-radius: 50%; }
-.c-n { top: -2px; left: 39px; } .c-s { bottom: -2px; left: 39px; }
-.c-e { right: -2px; top: 39px; } .c-w { left: -2px; top: 39px; }
-.c-ne { top: 8px; right: 8px; } .c-nw { top: 8px; left: 8px; }
-.c-se { bottom: 8px; right: 8px; } .c-sw { bottom: 8px; left: 8px; }
-.updown {
-  position: absolute;
-  right: 124px;
-  bottom: 14px;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.compass img {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.7));
+  transition: transform 0.08s ease;
 }
-.updown button {
-  width: 34px; height: 30px;
-  background: rgba(20,18,14,0.8);
-  color: var(--caption-bg);
-  border: 1px solid #4a4234;
-  border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
-  cursor: pointer;
-}
+.compass:active img { transform: scale(0.94); }
 
 /* ---------- status strip ---------- */
 .status {
@@ -162,10 +130,10 @@ body {
 
 /* ---------- log ---------- */
 .log {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 3.2em;
   overflow-y: auto;
   padding: 14px 18px 6px;
-  min-height: 0;
   scroll-behavior: smooth;
 }
 .log::-webkit-scrollbar { width: 8px; }

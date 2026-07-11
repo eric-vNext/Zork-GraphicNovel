@@ -4,9 +4,29 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '../state/store';
 import { audio } from '../audio/audioManager';
 
-const QUICK_CHIPS = ['look', 'inventory', 'take all', 'open', 'examine', 'read', 'wait', 'save'];
+const QUICK_CHIPS = ['look', 'up', 'down', 'inventory', 'take all', 'open', 'examine', 'read', 'wait', 'save'];
 
 export function GameScreen({ onHelp }: { onHelp: () => void }) {
+  // Pin the app to the visual viewport so the soft keyboard overlays instead of
+  // scrolling the page: the panel stays put and only the log compresses.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const app = document.querySelector<HTMLElement>('.app');
+    const sync = () => {
+      if (!app) return;
+      app.style.height = `${vv.height}px`;
+      app.style.transform = `translateY(${vv.offsetTop}px)`;
+      window.scrollTo(0, 0);
+    };
+    vv.addEventListener('resize', sync);
+    vv.addEventListener('scroll', sync);
+    return () => {
+      vv.removeEventListener('resize', sync);
+      vv.removeEventListener('scroll', sync);
+      if (app) { app.style.height = ''; app.style.transform = ''; }
+    };
+  }, []);
   return (
     <div className="game">
       <Stage />
@@ -43,25 +63,23 @@ function Stage() {
           transition={{ duration: dur, ease: [0.22, 1, 0.36, 1] }}
         />
       </AnimatePresence>
-      <img className="panel-frame" src="./art/ui/panel-frame.webp" alt="" />
       {roomName && <div className="room-caption">{roomName}</div>}
-      <div className="updown">
-        <button onPointerDown={(e) => { e.preventDefault(); submit('up'); }}>▲</button>
-        <button onPointerDown={(e) => { e.preventDefault(); submit('down'); }}>▼</button>
-      </div>
-      <div className="compass">
-        <img src="./art/ui/compass-rose.webp" alt="compass" />
-        {(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const).map((d) => (
-          <button
-            key={d}
-            className={`c-${d}`}
-            aria-label={`go ${d}`}
-            onPointerDown={(e) => { e.preventDefault(); submit(d); }}
-          >
-            {d}
-          </button>
-        ))}
-      </div>
+      <button
+        className="compass"
+        aria-label="compass: tap toward a direction to walk"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const dx = e.clientX - rect.left - rect.width / 2;
+          const dy = e.clientY - rect.top - rect.height / 2;
+          if (Math.hypot(dx, dy) < rect.width * 0.1) return; // dead center
+          const deg = (Math.atan2(dx, -dy) * 180) / Math.PI; // 0 = north, clockwise
+          const octant = Math.round(((deg % 360) + 360) % 360 / 45) % 8;
+          submit(['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'][octant]);
+        }}
+      >
+        <img src="./art/ui/compass-rose.webp" alt="" draggable={false} />
+      </button>
     </div>
   );
 }
