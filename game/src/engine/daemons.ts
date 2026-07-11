@@ -332,13 +332,31 @@ function thiefDaemon(ctx: Ctx): void {
   if (!underground || sacred || s.dead) { s.gflags['THIEF-HERE'] = false; return; }
 
   if (s.gflags['THIEF-HERE']) {
-    // thief leaves, possibly robbing the room or player
-    if (prob(ctx, 30)) {
-      robPlayer(ctx);
-    }
-    out.tell(
-      'The thief, finding nothing of value, left disgusted.'
+    // thief leaves this turn; he robs the room first, then the player, then nothing
+    const roomLoot = contents(s, s.here).filter(
+      (o) => (DATA.objects[o]?.tvalue ?? 0) > 0 && !fset$(s, o, 'NDESCBIT') && !fset$(s, o, 'SACREDBIT')
     );
+    const invLoot = contents(s, PLAYER).filter((o) => (DATA.objects[o]?.tvalue ?? 0) > 0);
+    let robbed: 'room' | 'player' | null = null;
+    if (roomLoot.length) {
+      const item = pickOne(ctx, roomLoot);
+      moveObj(s, item, 'LARGE-BAG');
+      if (item === 'EGG') s.gflags['THIEF-HAS-EGG'] = true;
+      robbed = 'room';
+    } else if (invLoot.length) {
+      const item = pickOne(ctx, invLoot);
+      moveObj(s, item, 'LARGE-BAG');
+      if (item === 'EGG') s.gflags['THIEF-HAS-EGG'] = true;
+      robbed = 'player';
+    }
+    if (robbed === 'player') {
+      out.tell('The thief just left, still carrying his large bag. You may not have noticed that he robbed you blind first.');
+      out.emit({ type: 'panel', key: 'events/thief-steals' });
+    } else if (robbed === 'room') {
+      out.tell('The thief just left, still carrying his large bag. You may not have noticed that he appropriated the valuables in the room.');
+    } else {
+      out.tell('The thief, finding nothing of value, left disgusted.');
+    }
     s.gflags['THIEF-HERE'] = false;
     fset(s, 'THIEF', 'INVISIBLE');
     return;
@@ -368,18 +386,6 @@ function thiefDaemon(ctx: Ctx): void {
   }
 }
 
-function robPlayer(ctx: Ctx): void {
-  const { s, out } = ctx;
-  const treasures = contents(s, PLAYER).filter((o) => (DATA.objects[o]?.tvalue ?? 0) > 0);
-  if (!treasures.length) return;
-  const item = pickOne(ctx, treasures);
-  moveObj(s, item, 'LARGE-BAG');
-  if (item === 'EGG') s.gflags['THIEF-HAS-EGG'] = true;
-  out.tell(
-    `The thief just left, still carrying his large bag. You may not have noticed that he robbed you blind first.`
-  );
-  out.emit({ type: 'panel', key: 'events/thief-steals' });
-}
 
 // ---------------- the clock ----------------
 export function clocker(ctx: Ctx): void {

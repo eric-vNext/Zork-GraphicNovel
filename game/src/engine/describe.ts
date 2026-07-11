@@ -29,9 +29,12 @@ export function describeObjects(s: WorldState, out: Out): void {
     if (d.fdesc && !s.fdescGone[o]) out.tell(d.fdesc.replace(/\n/g, ' '));
     else if (d.ldesc) out.tell(d.ldesc.replace(/\n/g, ' '));
     else plain.push(o);
-    // visible contents of open/transparent containers
-    const inner = containerListing(s, o, 0);
-    if (inner) out.tell(inner);
+    // visible contents of open/transparent containers (actors don't spill their
+    // held weapon in the room description — that's revealed only in combat text)
+    if (!fset$(s, o, 'ACTORBIT')) {
+      const inner = containerListing(s, o, 0);
+      if (inner) out.tell(inner);
+    }
   }
   if (plain.length === 1) out.tell(`There is ${aName(plain[0])} here.`);
   else if (plain.length > 1) {

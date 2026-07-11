@@ -1,0 +1,86 @@
+// Regression tests for reported bugs: kitchen take-all/water, troll's axe
+// guard, and thief robbery messaging.
+import { describe, it, expect } from 'vitest';
+import { Game } from '../src/engine/engine';
+import { inPlayer } from '../src/engine/world';
+
+function txt(g: Game, cmd: string): string {
+  return g.execute(cmd).filter((e) => e.type === 'text').map((e: any) => e.text).join('\n');
+}
+
+describe('bug fixes', () => {
+  it('take all in the kitchen does not silently grab bottled water', () => {
+    const g = new Game();
+    g.start();
+    g.s.here = 'KITCHEN';
+    g.s.locs['LAMP'] = 'ADVENTURER';
+    g.s.oflags['LAMP']['ONBIT'] = true;
+    const t = txt(g, 'take all');
+    expect(g.s.locs['WATER']).toBe('BOTTLE'); // still inside the bottle, not lifted out on its own
+    expect(t).toMatch(/bottle/i);
+    // direct take is explicit and correct too
+    const t2 = txt(g, 'take water');
+    expect(t2).toContain("It's in the bottle. Perhaps you should take that instead.");
+    expect(g.s.locs['WATER']).toBe('BOTTLE');
+  });
+
+  it('cannot take the axe out of the live troll\'s hands', () => {
+    const g = new Game();
+    g.start();
+    g.s.here = 'TROLL-ROOM';
+    g.s.locs['LAMP'] = 'ADVENTURER';
+    g.s.oflags['LAMP']['ONBIT'] = true;
+    const t = txt(g, 'take axe');
+    expect(t).toContain("swings it out of your reach");
+    expect(inPlayer(g.s, 'AXE')).toBe(false);
+    expect(g.s.locs['AXE']).toBe('TROLL');
+  });
+
+  it('does not print "troll contains axe" during room look', () => {
+    const g = new Game();
+    g.start();
+    g.s.here = 'TROLL-ROOM';
+    g.s.locs['LAMP'] = 'ADVENTURER';
+    g.s.oflags['LAMP']['ONBIT'] = true;
+    const t = txt(g, 'look');
+    expect(t).not.toMatch(/contains/i);
+  });
+
+  it('axe is free and takable once the troll is dead', () => {
+    const g = new Game();
+    g.start();
+    g.s.here = 'TROLL-ROOM';
+    g.s.locs['LAMP'] = 'ADVENTURER'; g.s.oflags['LAMP']['ONBIT'] = true;
+    g.s.locs['SWORD'] = 'ADVENTURER';
+    for (let i = 0; i < 60 && !g.s.gflags['TROLL-DEAD']; i++) txt(g, 'attack troll with sword');
+    expect(g.s.gflags['TROLL-DEAD']).toBe(true);
+    const t = txt(g, 'take axe');
+    expect(t).toBe('Taken.');
+    expect(inPlayer(g.s, 'AXE')).toBe(true);
+  });
+
+  it('thief robbery message matches what actually happened', () => {
+    const g = new Game();
+    g.start();
+    g.s.here = 'CELLAR'; // not sacred, not the house — a room the thief can occupy
+    g.s.locs['LAMP'] = 'ADVENTURER'; g.s.oflags['LAMP']['ONBIT'] = true;
+    g.s.gflags['THIEF-HERE'] = true;
+    g.s.locs['THIEF'] = 'CELLAR';
+    // no treasures present anywhere -> must say "nothing of value"
+    const t1 = txt(g, 'wait');
+    expect(t1).toContain('finding nothing of value, left disgusted');
+    expect(t1).not.toContain('robbed you blind');
+
+    const g2 = new Game();
+    g2.start();
+    g2.s.here = 'CELLAR';
+    g2.s.locs['LAMP'] = 'ADVENTURER'; g2.s.oflags['LAMP']['ONBIT'] = true;
+    g2.s.locs['EGG'] = 'ADVENTURER';
+    g2.s.gflags['THIEF-HERE'] = true;
+    g2.s.locs['THIEF'] = 'CELLAR';
+    const t2 = txt(g2, 'wait');
+    expect(t2).toContain('robbed you blind first');
+    expect(t2).not.toContain('finding nothing of value');
+    expect(g2.s.locs['EGG']).toBe('LARGE-BAG');
+  });
+});

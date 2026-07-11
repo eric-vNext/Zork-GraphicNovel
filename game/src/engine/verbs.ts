@@ -6,6 +6,7 @@ import { jigsUp } from './death';
 import { objAction, roomAction, specialExit } from './specials';
 import { describeRoom, listInventory, containerListing, cap } from './describe';
 import { dynamicRoomDesc } from './specialDescs';
+import { ITEM_ART } from '../data/presentation';
 import {
   DATA, roomDef, objDef, fset, fclear, fset$, moveObj, removeObj, contents,
   inPlayer, roomOf, roomLit, reachable, loadWeight, objWeight, theName, aName,
@@ -20,6 +21,10 @@ export function goTo(ctx: Ctx, dir: string): void {
   if (s.here === 'STONE-BARROW' && (dir === 'WEST' || dir === 'IN')) {
     ctx.winGame();
     return;
+  }
+  if (s.here === 'SLIDE-ROOM' && dir === 'DOWN') {
+    out.emit({ type: 'panel', key: 'events/slide-ride' });
+    out.emit({ type: 'sfx', name: 'slide-whoosh' });
   }
   const r = roomDef(s.here);
   let ex = r.exits[dir];
@@ -66,7 +71,9 @@ export function goTo(ctx: Ctx, dir: string): void {
   if ((s.here === 'RESERVOIR-SOUTH' && dir === 'NORTH') || (s.here === 'RESERVOIR-NORTH' && dir === 'SOUTH')) {
     if (!s.gflags['LOW-TIDE'] && !s.gflags['IN-BOAT']) { out.tell('You would drown.'); return; }
   }
+  const throughWindowToKitchen = ex.ifDoor === 'KITCHEN-WINDOW' && ex.to === 'KITCHEN';
   enterRoom(ctx, ex.to!);
+  if (throughWindowToKitchen) out.emit({ type: 'panel', key: 'events/window-entry' });
 }
 
 export function enterRoom(ctx: Ctx, room: string): void {
@@ -135,6 +142,7 @@ export function perform(ctx: Ctx): void {
     case 'look': describeRoom(s, out, true); return;
     case 'examine': {
       if (!d) { out.tell('Examine what?'); return; }
+      if (ITEM_ART[d]) out.emit({ type: 'panel', key: `items/${ITEM_ART[d]}` });
       const od = objDef(d);
       if (od?.text) { out.tell(od.text.replace(/\n/g, ' ')); return; }
       if (fset$(s, d, 'CONTBIT') || fset$(s, d, 'DOORBIT')) {
@@ -179,6 +187,7 @@ export function perform(ctx: Ctx): void {
         out.tell('From the distance the sound of a lone trumpet is heard. The room becomes very bright and you feel disembodied. In a moment, the brightness fades and you find yourself rising as if from a long sleep, deep in the woods. In the distance you can faintly see a songbird and the beginnings of a path.');
         out.emit({ type: 'sfx', name: 'magic-shimmer' });
         ctx.moveTo('FOREST-1', true);
+        out.emit({ type: 'panel', key: 'events/prayer-teleport' });
         return;
       }
       out.tell('If you pray enough, your prayers may be answered.');
@@ -187,6 +196,7 @@ export function perform(ctx: Ctx): void {
     case 'plugh':
       out.tell('A hollow voice says "Fool."');
       out.emit({ type: 'sfx', name: 'hollow-voice' });
+      out.emit({ type: 'panel', key: 'events/xyzzy' });
       return;
     case 'zork': out.tell('At your service!'); return;
     case 'echo':
@@ -195,6 +205,7 @@ export function perform(ctx: Ctx): void {
         fclear(s, 'BAR', 'SACREDBIT');
         out.tell('The acoustics of the room change subtly.');
         out.emit({ type: 'sfx', name: 'echo' });
+        out.emit({ type: 'panel', key: 'events/echo' });
         return;
       }
       out.tell(s.here === 'LOUD-ROOM' ? 'echo echo ...' : 'There is no echo here.');
@@ -205,7 +216,7 @@ export function perform(ctx: Ctx): void {
         s.gflags['CYCLOPS-FLAG'] = true; // the stairs are no longer blocked
         removeObj(s, 'CYCLOPS');
         out.tell('The cyclops, hearing the name of his father\'s deadly nemesis, flees the room by knocking down the wall on the east of the room.');
-        out.emit({ type: 'panel', key: 'rooms/cyclops-room' });
+        out.emit({ type: 'panel', key: 'events/cyclops-odysseus' });
         out.emit({ type: 'sfx', name: 'explosion' });
         return;
       }
@@ -389,6 +400,7 @@ function doTake(ctx: Ctx): void {
     s.counters.score += od.value!;
     out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
     out.emit({ type: 'sfx', name: 'treasure-chime' });
+    out.emit({ type: 'panel', key: 'events/treasure-gleam' });
   } else {
     out.emit({ type: 'sfx', name: 'take' });
   }

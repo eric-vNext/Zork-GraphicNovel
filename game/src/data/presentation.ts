@@ -114,11 +114,21 @@ export const ROOM_PRES: Record<string, RoomPres> = {
 
 /** Dynamic panel overrides based on world flags (room state variants). */
 export function roomArtFor(room: string, gflags: Record<string, boolean>, oflags: (o: string, f: string) => boolean): string {
-  if (room === 'LIVING-ROOM' && (gflags['RUG-MOVED'] || oflags('TRAP-DOOR', 'OPENBIT'))) return 'living-room-trapdoor';
-  if (room === 'TROLL-ROOM' && gflags['TROLL-DEAD']) return 'troll-room';
+  if (room === 'LIVING-ROOM') {
+    if (gflags['WON-FLAG'] && !gflags['RUG-MOVED'] && !oflags('TRAP-DOOR', 'OPENBIT')) return 'living-room-case-full';
+    if (oflags('TRAP-DOOR', 'OPENBIT')) return 'living-room-trapdoor-open';
+    if (gflags['RUG-MOVED']) return 'living-room-trapdoor-closed';
+  }
+  if (room === 'TROLL-ROOM' && gflags['TROLL-DEAD']) return 'troll-room-empty';
   if ((room === 'RESERVOIR' || room === 'RESERVOIR-SOUTH' || room === 'RESERVOIR-NORTH') && gflags['LOW-TIDE']) return 'reservoir-drained';
   if (room === 'END-OF-RAINBOW' && gflags['RAINBOW-FLAG']) return 'rainbow-solid';
-  if (room === 'ENTRANCE-TO-HADES' && gflags['LLD-FLAG']) return 'entrance-to-hades';
+  if (room === 'ENTRANCE-TO-HADES' && gflags['LLD-FLAG']) return 'hades-banished';
+  if (room === 'WEST-OF-HOUSE' && gflags['WON-FLAG']) return 'west-of-house-won';
+  if (room === 'GRATING-CLEARING' && gflags['GRATE-REVEALED'] && oflags('GRATE', 'OPENBIT')) return 'grating-clearing-open';
+  if (room === 'GRATING-ROOM' && gflags['GRUNLOCK'] && oflags('GRATE', 'OPENBIT')) return 'grating-room-open';
+  if (room === 'CYCLOPS-ROOM' && gflags['MAGIC-FLAG']) return 'cyclops-room-hole';
+  if (room === 'DAM-ROOM' && gflags['LOW-TIDE']) return 'dam-open';
+  if (room === 'MAINTENANCE-ROOM' && gflags['MAINT-FLOODED']) return 'maintenance-flooding';
   return ROOM_PRES[room]?.art ?? 'passage';
 }
 
@@ -128,20 +138,20 @@ export const EVENT_PANELS = new Set([
   'events/troll-fight', 'events/thief-encounter', 'events/egg-opened', 'events/case-deposit',
   'events/exorcism', 'events/boat-launch', 'events/falls-death', 'events/flood-death',
   'events/bat-abduction', 'events/gas-explosion', 'events/resurrection', 'events/map-appears',
-  'events/victory-barrow',
+  'events/victory-barrow', 'events/thief-steals', 'events/window-entry', 'events/treasure-gleam',
+  'events/door-slam', 'events/echo', 'events/dam-button', 'events/machine-diamond',
+  'events/slide-ride', 'events/cyclops-odysseus', 'events/prayer-teleport', 'events/xyzzy',
+  'events/sword-glow',
   'characters/troll', 'characters/thief', 'characters/cyclops', 'characters/bat',
-  'rooms/living-room-trapdoor', 'rooms/grating-clearing', 'rooms/dam-room', 'rooms/cyclops-room',
-  'rooms/troll-room', 'rooms/rainbow-solid', 'rooms/reservoir-drained', 'rooms/hades-banished',
-  'rooms/maintenance-flooding',
+  'rooms/living-room-trapdoor-open', 'rooms/living-room-trapdoor-closed', 'rooms/living-room-case-full',
+  'rooms/grating-clearing', 'rooms/grating-clearing-open', 'rooms/grating-room-open',
+  'rooms/dam-room', 'rooms/dam-open', 'rooms/cyclops-room', 'rooms/cyclops-room-hole',
+  'rooms/troll-room', 'rooms/troll-room-empty', 'rooms/rainbow-solid', 'rooms/reservoir-drained',
+  'rooms/hades-banished', 'rooms/maintenance-flooding', 'rooms/west-of-house-won',
 ]);
 
-// Not-generated Tier-2 panels remapped to nearest existing art:
-export const PANEL_FALLBACK: Record<string, string> = {
-  'events/thief-steals': 'characters/thief',
-  'rooms/rainbow-solid': 'rooms/on-rainbow',
-  'rooms/hades-banished': 'rooms/land-of-living-dead',
-  'rooms/maintenance-flooding': 'events/flood-death',
-};
+// Reserved for any future Tier-2 assets that still fall back to related art.
+export const PANEL_FALLBACK: Record<string, string> = {};
 
 export const ITEM_ART: Record<string, string> = {
   LAMP: 'brass-lantern', SWORD: 'elvish-sword', EGG: 'jeweled-egg', CANARY: 'clockwork-canary',
@@ -149,4 +159,7 @@ export const ITEM_ART: Record<string, string> = {
   SKULL: 'crystal-skull', CHALICE: 'silver-chalice', DIAMOND: 'diamond', TRIDENT: 'crystal-trident',
   BELL: 'bell-book-candles', BOOK: 'bell-book-candles', CANDLES: 'bell-book-candles',
   MAP: 'ancient-map', GARLIC: 'garlic-and-sack', 'SANDWICH-BAG': 'garlic-and-sack',
+  TRUNK: 'trunk-of-jewels', BAR: 'platinum-bar', EMERALD: 'emerald-buoy', SCARAB: 'scarab',
+  'POT-OF-GOLD': 'pot-of-gold', JADE: 'jade-figurine', 'BAG-OF-COINS': 'bag-of-coins',
+  'INFLATABLE-BOAT': 'magic-boat', 'INFLATED-BOAT': 'magic-boat',
 };

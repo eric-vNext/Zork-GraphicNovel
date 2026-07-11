@@ -57,6 +57,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       if (!fset$(s, 'KITCHEN-WINDOW', 'OPENBIT')) { out.tell('The window is closed.'); return true; }
       const dest = s.here === 'KITCHEN' ? 'EAST-OF-HOUSE' : 'KITCHEN';
       ctx.moveTo(dest, true);
+      if (dest === 'KITCHEN') out.emit({ type: 'panel', key: 'events/window-entry' });
       return true;
     }
     if (ctx.verb === 'examine' || ctx.verb === 'look-in') {
@@ -74,7 +75,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       s.gflags['RUG-MOVED'] = true;
       fclear(s, 'TRAP-DOOR', 'INVISIBLE');
       out.tell('With a great effort, the rug is moved to one side of the room, revealing the dusty cover of a closed trap door.');
-      out.emit({ type: 'panel', key: 'rooms/living-room-trapdoor' });
+      out.emit({ type: 'panel', key: 'rooms/living-room-trapdoor-closed' });
       return true;
     }
     if (ctx.verb === 'take') { out.tell('The rug is extremely heavy and cannot be carried.'); return true; }
@@ -94,7 +95,10 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
         'The door reluctantly opens to reveal a rickety staircase descending into darkness.',
         'The door swings shut and closes.');
       out.emit({ type: 'sfx', name: 'door-creak' });
-      if (fset$(s, 'TRAP-DOOR', 'OPENBIT')) out.emit({ type: 'panel', key: 'rooms/living-room-trapdoor' });
+      out.emit({
+        type: 'panel',
+        key: fset$(s, 'TRAP-DOOR', 'OPENBIT') ? 'rooms/living-room-trapdoor-open' : 'rooms/living-room-trapdoor-closed',
+      });
       return true;
     }
     if (s.here === 'CELLAR' && (ctx.verb === 'open' || ctx.verb === 'unlock')) {
@@ -333,6 +337,8 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
   },
   WATER: waterHandler,
   'GLOBAL-WATER': waterHandler,
+  AXE: (ctx) => weaponFunction(ctx, 'AXE', 'TROLL', () => ctx.s.gflags['TROLL-FLAG']),
+  STILETTO: (ctx) => weaponFunction(ctx, 'STILETTO', 'THIEF', () => ctx.s.gflags['THIEF-DEAD']),
   GARLIC: (ctx) => {
     if (ctx.verb === 'eat') {
       ctx.out.tell('What the heck! You won\'t make friends this way, but nobody around here is too friendly anyhow. Gulp!');
@@ -500,6 +506,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
         moveObj(s, 'DIAMOND', 'MACHINE');
         out.tell('The machine comes to life (figuratively) with a dazzling display of colored lights and bizarre noises. After a few moments, the excitement abates.');
         out.emit({ type: 'sfx', name: 'machine-diamond' });
+        out.emit({ type: 'panel', key: 'events/machine-diamond' });
       } else if (inside.length) {
         for (const o of inside) { removeObj(s, o); }
         moveObj(s, 'GUNK', 'MACHINE');
@@ -642,8 +649,8 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       if (!dest) { out.tell('You can\'t launch it here.'); return true; }
       moveObj(s, 'INFLATED-BOAT', dest);
       out.emit({ type: 'sfx', name: 'water-splash' });
-      out.emit({ type: 'panel', key: 'events/boat-launch' });
       ctx.moveTo(dest, true);
+      out.emit({ type: 'panel', key: 'events/boat-launch' });
       ctx.queue('I-RIVER', 3);
       return true;
     }
@@ -749,11 +756,29 @@ function waterHandler(ctx: Ctx): boolean {
       return true;
     }
   }
-  if (ctx.verb === 'take' && s.locs['WATER'] !== 'BOTTLE') {
-    out.tell('The water slips through your fingers.');
+  if (ctx.verb === 'take') {
+    if (s.locs['WATER'] === 'BOTTLE') {
+      out.tell("It's in the bottle. Perhaps you should take that instead.");
+    } else {
+      out.tell('The water slips through your fingers.');
+    }
     return true;
   }
   return false;
+}
+
+/** Ports WEAPON-FUNCTION: a villain's held weapon can't be taken/attacked-with while he's alive and holds it. */
+function weaponFunction(ctx: Ctx, weapon: string, villain: string, defeated: () => boolean): boolean {
+  const { s, out } = ctx;
+  if (defeated()) return false; // weapon is free once the villain is dead/fled
+  if (roomOf(s, villain) !== s.here) return false; // villain not here: no guard
+  if (ctx.verb !== 'take') return false;
+  if (s.locs[weapon] === villain) {
+    out.tell(`The ${objDef(villain).desc} swings it out of your reach.`);
+  } else {
+    out.tell(`The ${objDef(weapon).desc} seems white-hot. You can't hold on to it.`);
+  }
+  return true;
 }
 
 function mirrorHandler(ctx: Ctx): boolean {
@@ -783,6 +808,7 @@ function buttonHandler(color: string): Handler {
     if (color === 'YELLOW') {
       if (!s.gflags['GATE-FLAG']) { s.gflags['GATE-FLAG'] = true; out.tell('Click.'); }
       else out.tell('Click.');
+      out.emit({ type: 'panel', key: 'events/dam-button' });
       return true;
     }
     if (color === 'BROWN') { s.gflags['GATE-FLAG'] = false; out.tell('Click.'); return true; }
@@ -840,6 +866,7 @@ export const ROOM_ACTIONS: Record<string, RoomHandler> = {
       fclear(s, 'TRAP-DOOR', 'OPENBIT');
       out.tell('The trap door crashes shut, and you hear someone barring it.');
       out.emit({ type: 'sfx', name: 'trapdoor-slam' });
+      out.emit({ type: 'panel', key: 'events/door-slam' });
     }
     return false;
   },
@@ -854,10 +881,10 @@ export const ROOM_ACTIONS: Record<string, RoomHandler> = {
     const { s, out } = ctx;
     if (phase === 'enter' && !inPlayer(s, 'GARLIC')) {
       out.tell('A large vampire bat, hanging from the ceiling, swoops down at you!\n\nFweep!\nFweep!\nFweep!\n\nThe bat grabs you by the scruff of your neck and lifts you away....');
-      out.emit({ type: 'panel', key: 'events/bat-abduction' });
       out.emit({ type: 'sfx', name: 'bat-screech' });
       const drop = pickOne(ctx, ['MINE-1', 'MINE-2', 'MINE-3', 'MINE-4', 'GAS-ROOM', 'COAL-MINE-DEAD-END']);
       ctx.moveTo(drop === 'COAL-MINE-DEAD-END' ? 'DEAD-END-5' : drop, true);
+      out.emit({ type: 'panel', key: 'events/bat-abduction' });
       return true;
     }
     if (phase === 'enter' && inPlayer(s, 'GARLIC')) {

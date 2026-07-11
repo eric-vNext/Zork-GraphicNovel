@@ -106,9 +106,9 @@ export const useStore = create<GameStore>((set, get) => ({
         }
         case 'panel': {
           const key = PANEL_FALLBACK[e.key] ?? e.key;
-          if (EVENT_PANELS.has(key) || key.startsWith('rooms/')) {
+          if (EVENT_PANELS.has(key) || key.startsWith('rooms/') || key.startsWith('items/')) {
             panel = key;
-            panelIsEvent = key.startsWith('events/') || key.startsWith('characters/');
+            panelIsEvent = key.startsWith('events/') || key.startsWith('characters/') || key.startsWith('items/');
           }
           break;
         }
