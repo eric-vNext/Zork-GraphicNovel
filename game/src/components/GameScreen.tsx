@@ -11,20 +11,35 @@ export function GameScreen({ onHelp }: { onHelp: () => void }) {
   // scrolling the page: the panel stays put and only the log compresses.
   useEffect(() => {
     const vv = window.visualViewport;
-    if (!vv) return;
     const app = document.querySelector<HTMLElement>('.app');
+    if (!vv || !app) return;
+    // On Android, vv fires resize on nearly every keystroke (the predictive-text
+    // bar changes height), so this must coalesce bursts into one frame and skip
+    // writes when nothing changed — otherwise every keystroke forces a reflow
+    // and a scrollTo, which reads as screen flicker while typing.
+    let raf = 0;
+    let lastHeight = -1;
+    let lastTop = -1;
     const sync = () => {
-      if (!app) return;
-      app.style.height = `${vv.height}px`;
-      app.style.transform = `translateY(${vv.offsetTop}px)`;
-      window.scrollTo(0, 0);
+      raf = 0;
+      const height = Math.round(vv.height);
+      const top = Math.round(vv.offsetTop);
+      if (height !== lastHeight) { app.style.height = `${height}px`; lastHeight = height; }
+      if (top !== lastTop) { app.style.transform = top ? `translateY(${top}px)` : ''; lastTop = top; }
+      if (window.scrollY !== 0) window.scrollTo(0, 0);
     };
-    vv.addEventListener('resize', sync);
-    vv.addEventListener('scroll', sync);
+    const onViewportChange = () => {
+      if (!raf) raf = requestAnimationFrame(sync);
+    };
+    sync();
+    vv.addEventListener('resize', onViewportChange);
+    vv.addEventListener('scroll', onViewportChange);
     return () => {
-      vv.removeEventListener('resize', sync);
-      vv.removeEventListener('scroll', sync);
-      if (app) { app.style.height = ''; app.style.transform = ''; }
+      if (raf) cancelAnimationFrame(raf);
+      vv.removeEventListener('resize', onViewportChange);
+      vv.removeEventListener('scroll', onViewportChange);
+      app.style.height = '';
+      app.style.transform = '';
     };
   }, []);
   return (
