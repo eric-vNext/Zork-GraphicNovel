@@ -3,6 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { Game } from '../src/engine/engine';
 import { fset$, inPlayer, Out } from '../src/engine/world';
+import { fightUntilWon } from './testUtils';
 
 function play(g: Game, cmds: string[]): string {
   let text = '';
@@ -11,13 +12,6 @@ function play(g: Game, cmds: string[]): string {
     text += evs.filter((e) => e.type === 'text').map((e: any) => e.text).join('\n') + '\n';
   }
   return text;
-}
-
-function attackUntilDead(g: Game, villainFlag: string, cmd: string, guard = 60): void {
-  for (let i = 0; i < guard; i++) {
-    if (g.s.gflags[villainFlag] || g.s.dead) return;
-    play(g, [cmd]);
-  }
 }
 
 describe('Zork I graphic novel engine', () => {
@@ -53,12 +47,10 @@ describe('Zork I graphic novel engine', () => {
     g.start();
     play(g, ['n', 'e', 'open window', 'in', 'w', 'take lamp', 'take sword', 'move rug', 'open trap door', 'turn on lamp', 'down', 'north']);
     expect(g.s.here).toBe('TROLL-ROOM');
-    attackUntilDead(g, 'TROLL-DEAD', 'attack troll with sword');
-    expect(g.s.gflags['TROLL-DEAD'] || g.s.dead).toBe(true);
-    if (!g.s.dead) {
-      play(g, ['east']);
-      expect(g.s.here).toBe('EW-PASSAGE');
-    }
+    fightUntilWon(g, 'TROLL-ROOM', 'TROLL-DEAD', 'attack troll with sword');
+    expect(g.s.gflags['TROLL-DEAD']).toBe(true);
+    play(g, ['east']);
+    expect(g.s.here).toBe('EW-PASSAGE');
   });
 
   it('scores treasure take and case deposit', () => {

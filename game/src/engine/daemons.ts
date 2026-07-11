@@ -1,11 +1,13 @@
 // The clock (gclock.zil) and all daemons/timers from 1actions.zil,
 // including combat (I-FIGHT), the thief (I-THIEF), lamp/candle fuel, and the river.
 import type { Ctx } from './ctx';
+import type { WorldState } from './types';
 import { prob, pickOne } from './ctx';
 import { jigsUp } from './death';
+import { HERO_MELEE, TROLL_MELEE, THIEF_MELEE, meleeLine, type Outcome } from './combatText';
 import {
   fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, roomOf,
-  roomLit, PLAYER, roomDef, theName, DATA,
+  roomLit, PLAYER, roomDef, aName, DATA,
 } from './world';
 
 type Daemon = (ctx: Ctx) => void;
@@ -187,14 +189,15 @@ export function checkNowDark(ctx: Ctx): void {
 }
 
 // ---------------- combat (I-FIGHT / villain melee) ----------------
-const VILLAIN_MISS = [
-  'The troll swings his axe, but it misses.',
-  'The troll\'s axe barely misses your ear.',
-];
-const THIEF_MISS = [
-  'The thief stabs nonchalantly with his stiletto and misses.',
-  'You dodge as the thief comes in low.',
-];
+// All flavor text below is ported verbatim from the TROLL-MELEE / THIEF-MELEE /
+// HERO-MELEE tables in 1actions.zil — see combatText.ts. Nothing here is
+// paraphrased; only the outcome-selection probabilities are our own (the
+// original's full DEF1/DEF2/DEF3 relative-strength tables aren't ported).
+
+function currentWeaponName(s: WorldState): string {
+  const held = contents(s, PLAYER).find((o) => fset$(s, o, 'WEAPONBIT'));
+  return held ? (DATA.objects[held]?.desc ?? 'weapon') : 'hands';
+}
 
 function fightDaemon(ctx: Ctx): void {
   const { s, out } = ctx;
@@ -212,35 +215,25 @@ function fightDaemon(ctx: Ctx): void {
 function villainStrike(ctx: Ctx, villain: string): void {
   const { s, out } = ctx;
   const roll = ctx.rng() * 100;
-  const name = villain === 'TROLL' ? 'troll' : 'thief';
+  const table = villain === 'TROLL' ? TROLL_MELEE : THIEF_MELEE;
+  const wep = currentWeaponName(s);
   out.emit({ type: 'sfx', name: villain === 'TROLL' ? 'troll-grunt' : 'thief-snicker' });
   out.emit({ type: 'panel', key: villain === 'TROLL' ? 'events/troll-fight' : 'events/thief-encounter' });
-  const armed = villain === 'TROLL' ? 'axe' : 'stiletto';
-  if (roll < 35) {
-    out.tell(pickOne(ctx, villain === 'TROLL' ? VILLAIN_MISS : THIEF_MISS));
-  } else if (roll < 65) {
-    s.counters.wounds += 1;
-    out.tell(villain === 'TROLL'
-      ? 'The axe gets you right in the side. Ouch!'
-      : 'The thief strikes like a snake! The resulting wound is serious.');
-    ctx.queue('I-CURE', 30);
-  } else if (roll < 80) {
-    out.tell(villain === 'TROLL'
-      ? 'The troll hits you with a glancing blow, and you are momentarily stunned.'
-      : 'The thief rams the haft of his blade into your stomach, leaving you out of breath.');
-  } else {
-    s.counters.wounds += 2;
-    out.tell(villain === 'TROLL'
-      ? `The troll's ${armed} stroke lands squarely. It hurts a lot.`
-      : 'The stiletto severs your jugular. It looks like the end.');
-    ctx.queue('I-CURE', 30);
-  }
+
+  let outcome: Outcome;
+  let woundDelta = 0;
+  if (roll < 30) outcome = 'MISSED';
+  else if (roll < 55) outcome = 'STAGGER';
+  else if (roll < 75) { outcome = 'LIGHT_WOUND'; woundDelta = 1; }
+  else { outcome = ctx.rng() < 0.5 ? 'UNCONSCIOUS' : 'SERIOUS_WOUND'; woundDelta = 2; }
+
+  out.tell(meleeLine(ctx.rng, table, outcome, wep, villain === 'TROLL' ? 'troll' : 'thief'));
+  if (woundDelta > 0) { s.counters.wounds += woundDelta; ctx.queue('I-CURE', 30); }
+
   const strength = 4 + Math.floor(s.counters.score / 100) - s.counters.wounds;
   if (strength <= 0) {
-    jigsUp(ctx, villain === 'TROLL'
-      ? 'The troll\'s axe removes your head, which was, after all, in the way. Your adventuring days appear to be over.'
-      : 'The thief, forgetting his essentially genteel upbringing, cuts your throat.',
-      { panel: villain === 'TROLL' ? 'characters/troll' : 'characters/thief' });
+    const killLine = meleeLine(ctx.rng, table, 'KILLED', wep, villain === 'TROLL' ? 'troll' : 'thief');
+    jigsUp(ctx, killLine, { panel: villain === 'TROLL' ? 'characters/troll' : 'characters/thief' });
   }
 }
 
@@ -250,7 +243,7 @@ export function playerAttack(ctx: Ctx, villain: string, weapon?: string): void {
   if (!weapon) {
     const carried = contents(s, PLAYER);
     weapon = carried.find((o) => fset$(s, o, 'WEAPONBIT')) ?? undefined;
-    if (!weapon) { out.tell(`Attacking ${theName(villain)} with your bare hands is suicidal.`); return; }
+    if (!weapon) { out.tell(`Trying to attack ${aName(villain)} with your bare hands is suicidal.`); return; }
   }
   const wname = DATA.objects[weapon]?.desc ?? 'weapon';
   const best = villain === 'TROLL' ? 'SWORD' : villain === 'THIEF' ? 'KNIFE' : 'SWORD';
@@ -261,11 +254,10 @@ export function playerAttack(ctx: Ctx, villain: string, weapon?: string): void {
   if (villain === 'TROLL') {
     out.emit({ type: 'panel', key: 'events/troll-fight' });
     const hits = (s.counters.trollHits = (s.counters.trollHits ?? 0) + (roll > 55 ? 1 : 0));
-    if (roll <= 30) out.tell(`You charge, but the troll jumps nimbly aside.`);
-    else if (roll <= 55) out.tell(`Clang! Crash! The troll parries.`);
-    else if (hits < 2) out.tell(`Your ${wname} connects! The troll is staggered and drops to one knee, wounded but very much alive — press the attack or he'll recover.`);
+    if (roll <= 55) out.tell(meleeLine(ctx.rng, HERO_MELEE, 'MISSED', wname, 'troll'));
+    else if (hits < 2) out.tell(meleeLine(ctx.rng, HERO_MELEE, 'STAGGER', wname, 'troll'));
     else {
-      out.tell('The fatal blow strikes the troll square in the heart: He dies.');
+      out.tell(meleeLine(ctx.rng, HERO_MELEE, 'KILLED', wname, 'troll'));
       out.tell('Almost as soon as the troll breathes his last breath, a cloud of sinister black fog envelops him, and when the fog lifts, the carcass has disappeared.');
       s.gflags['TROLL-DEAD'] = true;
       s.gflags['TROLL-FLAG'] = true;
@@ -280,9 +272,8 @@ export function playerAttack(ctx: Ctx, villain: string, weapon?: string): void {
   if (villain === 'THIEF') {
     out.emit({ type: 'panel', key: 'events/thief-encounter' });
     const hits = (s.counters.thiefHits = (s.counters.thiefHits ?? 0) + (roll > 60 ? 1 : 0));
-    if (roll <= 35) out.tell('You miss. The thief makes no attempt to take advantage of your imbalance.');
-    else if (roll <= 60) out.tell(`The thief deflects your blow with the large bag he is carrying.`);
-    else if (hits < 2) out.tell(`The ${wname} pinks the thief on the wrist, but it's not serious.`);
+    if (roll <= 60) out.tell(meleeLine(ctx.rng, HERO_MELEE, 'MISSED', wname, 'thief'));
+    else if (hits < 2) out.tell(meleeLine(ctx.rng, HERO_MELEE, 'LIGHT_WOUND', wname, 'thief'));
     else {
       killThief(ctx);
     }
@@ -296,7 +287,7 @@ export function playerAttack(ctx: Ctx, villain: string, weapon?: string): void {
 
 export function killThief(ctx: Ctx): void {
   const { s, out } = ctx;
-  out.tell('The fatal blow strikes the thief square in the heart: He dies.');
+  out.tell(meleeLine(ctx.rng, HERO_MELEE, 'KILLED', currentWeaponName(s), 'thief'));
   out.tell(
     'As the thief dies, the power of his magic decreases, and his treasures reappear:',
   );

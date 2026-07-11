@@ -2,11 +2,9 @@
 // guard, and thief robbery messaging.
 import { describe, it, expect } from 'vitest';
 import { Game } from '../src/engine/engine';
-import { inPlayer } from '../src/engine/world';
-
-function txt(g: Game, cmd: string): string {
-  return g.execute(cmd).filter((e) => e.type === 'text').map((e: any) => e.text).join('\n');
-}
+import { inPlayer, Out } from '../src/engine/world';
+import { HERO_MELEE } from '../src/engine/combatText';
+import { txt, fightUntilWon } from './testUtils';
 
 describe('bug fixes', () => {
   it('take all in the kitchen never reaches into the bottle for the water', () => {
@@ -54,7 +52,7 @@ describe('bug fixes', () => {
     g.s.here = 'TROLL-ROOM';
     g.s.locs['LAMP'] = 'ADVENTURER'; g.s.oflags['LAMP']['ONBIT'] = true;
     g.s.locs['SWORD'] = 'ADVENTURER';
-    for (let i = 0; i < 60 && !g.s.gflags['TROLL-DEAD']; i++) txt(g, 'attack troll with sword');
+    fightUntilWon(g, 'TROLL-ROOM', 'TROLL-DEAD', 'attack troll with sword');
     expect(g.s.gflags['TROLL-DEAD']).toBe(true);
     const t = txt(g, 'take axe');
     expect(t).toBe('Taken.');
@@ -118,21 +116,26 @@ describe('bug fixes', () => {
     }
   });
 
-  it('the stagger message cannot be misread as the player getting knocked out', () => {
+  it('a landed-but-not-killing blow uses an authentic, unambiguous troll-staggered line', () => {
     const g = new Game();
     g.start();
     g.s.here = 'CELLAR';
     g.s.locs['LAMP'] = 'ADVENTURER'; g.s.oflags['LAMP']['ONBIT'] = true;
     g.s.locs['SWORD'] = 'ADVENTURER';
     g.execute('north');
+    const staggerLines = new Set(HERO_MELEE.STAGGER.map((l) => l.replace('{DEF}', 'troll')));
     let sawStagger = false;
-    for (let i = 0; i < 60 && !g.s.gflags['TROLL-DEAD'] && !g.s.dead; i++) {
-      const t = txt(g, 'attack troll with sword');
-      if (t.includes('staggered')) {
-        sawStagger = true;
-        expect(t).not.toContain('knocking you out');
-        expect(t).toMatch(/troll is staggered/);
+    const snap = g.exportSave();
+    for (let attempt = 0; attempt < 30 && !sawStagger && !g.s.gflags['TROLL-DEAD']; attempt++) {
+      for (let i = 0; i < 30 && !g.s.gflags['TROLL-DEAD'] && !g.s.dead; i++) {
+        const t = txt(g, 'attack troll with sword');
+        // a landed, non-killing hit must be exactly one of the authentic
+        // STAGGER lines — never the old invented "knocking you out" mashup
+        const line = t.split('\n').find((l) => staggerLines.has(l));
+        if (line) { sawStagger = true; break; }
+        expect(t).not.toContain('knocking you out — no wait');
       }
+      if (!sawStagger && !g.s.gflags['TROLL-DEAD']) g.importSave(snap, new Out());
     }
     expect(sawStagger).toBe(true);
   });
