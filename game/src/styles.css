@@ -1,0 +1,336 @@
+/* Zork: Graphic Novel Edition — presentation chrome */
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&family=IM+Fell+English+SC&display=swap');
+
+:root {
+  --bg: #17181c;
+  --bg-panel: #101114;
+  --text: #e8e2d5;
+  --cmd: #7fb4d9;
+  --caption-bg: #e9dfa8;
+  --caption-ink: #241f14;
+  --plate: #211d16;
+  --accent: #c8a24a;
+  --danger: #b8433a;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 17px;
+  line-height: 1.45;
+  overflow: hidden;
+}
+
+.app { height: 100dvh; display: flex; flex-direction: column; }
+
+/* ---------- layout ---------- */
+.game {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.stage {
+  position: relative;
+  flex: 0 0 38dvh;
+  min-height: 72px;
+  background: var(--bg-panel);
+  overflow: hidden;
+  transition: flex-basis 0.3s ease;
+}
+.right-col { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+@media (min-width: 900px) and (orientation: landscape) {
+  .game { flex-direction: row; }
+  .stage { flex: 0 0 56%; min-height: 0; height: 100%; }
+  .right-col { flex: 1; height: 100%; }
+}
+
+/* keyboard-open compression on small portrait screens */
+@media (max-height: 500px) and (orientation: portrait) {
+  .stage { flex-basis: 88px; }
+}
+
+/* ---------- panel ---------- */
+.panel-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+}
+.panel-frame {
+  position: absolute;
+  inset: -1.5%;
+  width: 103%;
+  height: 103%;
+  pointer-events: none;
+  opacity: 0.9;
+  z-index: 3;
+}
+.room-caption {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  z-index: 4;
+  background: var(--caption-bg);
+  color: var(--caption-ink);
+  font-family: 'IM Fell English SC', serif;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  padding: 3px 12px 2px;
+  border: 2px solid #241f14;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+  max-width: 70%;
+}
+.compass {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  z-index: 5;
+  width: 108px;
+  height: 108px;
+  opacity: 0.92;
+  user-select: none;
+}
+.compass img { width: 100%; height: 100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.7)); }
+.compass button {
+  position: absolute;
+  width: 30px; height: 30px;
+  background: transparent;
+  border: none;
+  color: transparent;
+  cursor: pointer;
+}
+.compass button:active { background: rgba(255,255,255,0.12); border-radius: 50%; }
+.c-n { top: -2px; left: 39px; } .c-s { bottom: -2px; left: 39px; }
+.c-e { right: -2px; top: 39px; } .c-w { left: -2px; top: 39px; }
+.c-ne { top: 8px; right: 8px; } .c-nw { top: 8px; left: 8px; }
+.c-se { bottom: 8px; right: 8px; } .c-sw { bottom: 8px; left: 8px; }
+.updown {
+  position: absolute;
+  right: 124px;
+  bottom: 14px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.updown button {
+  width: 34px; height: 30px;
+  background: rgba(20,18,14,0.8);
+  color: var(--caption-bg);
+  border: 1px solid #4a4234;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+}
+
+/* ---------- status strip ---------- */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 12px;
+  background: #100f0d;
+  border-bottom: 1px solid #2c2820;
+  font-family: 'IM Fell English SC', serif;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  flex-wrap: wrap;
+}
+.status .spacer { flex: 1; }
+.status button {
+  background: none;
+  border: 1px solid #4a4234;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 2px 9px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.status button:hover { background: #241f14; }
+.health { display: flex; gap: 3px; }
+.health span { width: 10px; height: 14px; border-radius: 40% 40% 30% 30%; background: #3a352a; }
+.health span.lit { background: linear-gradient(#ffd97a, #c8742a); box-shadow: 0 0 6px #ffb84a88; }
+
+/* ---------- log ---------- */
+.log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 18px 6px;
+  min-height: 0;
+  scroll-behavior: smooth;
+}
+.log::-webkit-scrollbar { width: 8px; }
+.log::-webkit-scrollbar-thumb { background: #33302a; border-radius: 4px; }
+.line { margin: 0 0 8px; white-space: pre-wrap; max-width: 68ch; }
+.line.cmd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14.5px;
+  color: var(--cmd);
+  margin-top: 12px;
+}
+.line.room-name {
+  font-family: 'IM Fell English SC', serif;
+  font-size: 19px;
+  color: var(--caption-bg);
+  border-bottom: 1px solid #3a352a;
+  display: inline-block;
+  padding-right: 20px;
+  margin: 10px 0 6px;
+}
+.line.system { font-style: italic; color: #b9b2a0; font-size: 15.5px; }
+.line.death {
+  background: #000;
+  border: 1px solid #57231e;
+  color: #e3d7c4;
+  padding: 10px 14px;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.6);
+}
+
+/* ---------- command bar ---------- */
+.chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px 12px 2px;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: 0 0 auto;
+  background: #241f16;
+  color: var(--caption-bg);
+  border: 1px solid #4a4234;
+  border-radius: 14px;
+  padding: 4px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.chip.ask { border-color: var(--accent); color: #ffe9b0; }
+.cmdbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+  background: #14120e;
+  border-top: 2px solid #2c2820;
+}
+.cmdbar .prompt {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--cmd);
+  font-weight: 600;
+}
+.cmdbar input {
+  flex: 1;
+  background: #1d1a14;
+  border: 1px solid #3a352a;
+  border-radius: 4px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  padding: 9px 12px;
+  outline: none;
+}
+.cmdbar input:focus { border-color: var(--accent); }
+.cmdbar button {
+  background: var(--accent);
+  color: #1c150a;
+  border: none;
+  border-radius: 4px;
+  font-family: 'IM Fell English SC', serif;
+  font-size: 15px;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+
+/* ---------- full screens (title/death/victory) ---------- */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  z-index: 50;
+  overflow: hidden;
+}
+.screen .bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.85;
+}
+.screen .content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 24px;
+  max-width: 640px;
+}
+.screen img.logo { width: min(420px, 70vw); filter: drop-shadow(0 6px 18px rgba(0,0,0,0.9)); }
+.screen h2 {
+  font-family: 'IM Fell English SC', serif;
+  font-weight: 400;
+  color: var(--caption-bg);
+  text-shadow: 0 2px 8px #000;
+  margin: 8px 0 26px;
+  font-size: clamp(16px, 2.6vw, 24px);
+}
+.screen .btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.screen button {
+  background: rgba(20,17,10,0.85);
+  color: var(--caption-bg);
+  border: 2px solid var(--accent);
+  font-family: 'IM Fell English SC', serif;
+  font-size: 18px;
+  padding: 10px 26px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+}
+.screen button:hover { background: #2c2414; }
+.screen .fine { margin-top: 30px; color: #cfc7b2; font-size: 13px; text-shadow: 0 1px 4px #000; }
+
+/* ---------- help modal ---------- */
+.modal-wrap {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0,0,0,0.72);
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px;
+}
+.modal {
+  background: #1d1a14;
+  border: 2px solid var(--accent);
+  max-width: 560px;
+  max-height: 82dvh;
+  overflow-y: auto;
+  padding: 22px 26px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+}
+.modal h3 { font-family: 'IM Fell English SC', serif; color: var(--caption-bg); margin-top: 0; }
+.modal code {
+  font-family: 'JetBrains Mono', monospace;
+  background: #14110c;
+  color: var(--cmd);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 13.5px;
+}
+.modal .vol { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.modal input[type='range'] { flex: 1; accent-color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

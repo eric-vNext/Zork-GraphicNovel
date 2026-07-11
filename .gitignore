@@ -1,0 +1,17 @@
+# dependencies / build output
+game/node_modules/
+game/dist/
+
+# heavy local masters (regenerable; delivery copies live in game/public/)
+# - image masters: regenerate via docs/asset-plan.md prompts (media-gen)
+# - audio masters: regenerate via game/scripts/synth-audio.py
+assets/rooms/
+assets/events/
+assets/characters/
+assets/items/
+assets/ui/
+assets/audio/music/*.wav
+assets/audio/sfx/*.wav
+assets/raw-generations/
+
+.DS_Store
