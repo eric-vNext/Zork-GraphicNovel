@@ -263,7 +263,7 @@ export function playerAttack(ctx: Ctx, villain: string, weapon?: string): void {
     const hits = (s.counters.trollHits = (s.counters.trollHits ?? 0) + (roll > 55 ? 1 : 0));
     if (roll <= 30) out.tell(`You charge, but the troll jumps nimbly aside.`);
     else if (roll <= 55) out.tell(`Clang! Crash! The troll parries.`);
-    else if (hits < 2) out.tell(`The flat of the troll's axe hits you delicately on the head, knocking you out — no wait — the ${wname} connects! The troll is staggered, and drops to his knees.`);
+    else if (hits < 2) out.tell(`Your ${wname} connects! The troll is staggered and drops to one knee, wounded but very much alive — press the attack or he'll recover.`);
     else {
       out.tell('The fatal blow strikes the troll square in the heart: He dies.');
       out.tell('Almost as soon as the troll breathes his last breath, a cloud of sinister black fog envelops him, and when the fog lifts, the carcass has disappeared.');

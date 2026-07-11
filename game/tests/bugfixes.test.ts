@@ -117,4 +117,23 @@ describe('bug fixes', () => {
       expect(g.s.locs['TROLL']).toBeNull();
     }
   });
+
+  it('the stagger message cannot be misread as the player getting knocked out', () => {
+    const g = new Game();
+    g.start();
+    g.s.here = 'CELLAR';
+    g.s.locs['LAMP'] = 'ADVENTURER'; g.s.oflags['LAMP']['ONBIT'] = true;
+    g.s.locs['SWORD'] = 'ADVENTURER';
+    g.execute('north');
+    let sawStagger = false;
+    for (let i = 0; i < 60 && !g.s.gflags['TROLL-DEAD'] && !g.s.dead; i++) {
+      const t = txt(g, 'attack troll with sword');
+      if (t.includes('staggered')) {
+        sawStagger = true;
+        expect(t).not.toContain('knocking you out');
+        expect(t).toMatch(/troll is staggered/);
+      }
+    }
+    expect(sawStagger).toBe(true);
+  });
 });
