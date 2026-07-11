@@ -96,6 +96,27 @@ export function visibleObjects(s: WorldState): string[] {
   return [...out];
 }
 
+/**
+ * Scope for ALL/EVERYTHING (take all, drop all, ...). Unlike visibleObjects,
+ * this does NOT reach into ordinary containers (bottles, boxes, cases) even
+ * transparent ones — only loose items directly in the room/inventory, plus
+ * items resting on open surfaces (tables). Matches the original ZIL "take
+ * all" convention: you take what's lying around, not what's sealed away.
+ */
+export function allScopeObjects(s: WorldState): string[] {
+  const out = new Set<string>();
+  const addTree = (holder: string) => {
+    for (const o of contents(s, holder)) {
+      if (fset$(s, o, 'INVISIBLE')) continue;
+      out.add(o);
+      if (fset$(s, o, 'SURFACEBIT')) addTree(o);
+    }
+  };
+  addTree(s.here);
+  addTree(PLAYER);
+  return [...out];
+}
+
 /** Is the object reachable for taking/manipulation (not just visible through glass)? */
 export function reachable(s: WorldState, obj: string): boolean {
   let p = locOf(s, obj);

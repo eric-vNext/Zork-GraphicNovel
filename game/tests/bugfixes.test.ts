@@ -9,16 +9,18 @@ function txt(g: Game, cmd: string): string {
 }
 
 describe('bug fixes', () => {
-  it('take all in the kitchen does not silently grab bottled water', () => {
+  it('take all in the kitchen never reaches into the bottle for the water', () => {
     const g = new Game();
     g.start();
     g.s.here = 'KITCHEN';
     g.s.locs['LAMP'] = 'ADVENTURER';
     g.s.oflags['LAMP']['ONBIT'] = true;
     const t = txt(g, 'take all');
-    expect(g.s.locs['WATER']).toBe('BOTTLE'); // still inside the bottle, not lifted out on its own
-    expect(t).toMatch(/bottle/i);
-    // direct take is explicit and correct too
+    // take-all only sweeps loose items and open-surface contents (sack, bottle) —
+    // it must not even attempt (and print a line for) the water sealed inside the bottle
+    expect(t).not.toMatch(/water/i);
+    expect(g.s.locs['WATER']).toBe('BOTTLE');
+    // but a direct, explicit "take water" still resolves with the correct redirect
     const t2 = txt(g, 'take water');
     expect(t2).toContain("It's in the bottle. Perhaps you should take that instead.");
     expect(g.s.locs['WATER']).toBe('BOTTLE');

@@ -2,7 +2,7 @@
 // Ports the player-visible behavior of gparser.zil for Zork I's grammar.
 import { DATA } from '../engine/world';
 import type { WorldState } from '../engine/types';
-import { visibleObjects, fset$, reachable } from '../engine/world';
+import { visibleObjects, allScopeObjects, fset$, reachable } from '../engine/world';
 
 export interface NounPhrase { noun: string; adjectives: string[]; raw: string }
 
@@ -333,7 +333,7 @@ export function parse(s: WorldState, input: string): ParseResult {
         if (r.id) except.push(r.id);
       }
     }
-    const scope = visibleObjects(state).filter(
+    const scope = allScopeObjects(state).filter(
       (id) => !fset$(state, id, 'NDESCBIT') && !fset$(state, id, 'INVISIBLE') && !except.includes(id)
     );
     return { cmd: { verb, dobjs: scope, prep, raw, allBut, iobj: undefined, ...resolveIobj(state, iTokens, raw) } as Command };
