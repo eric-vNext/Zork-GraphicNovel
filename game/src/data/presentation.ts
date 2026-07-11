@@ -115,8 +115,11 @@ export const ROOM_PRES: Record<string, RoomPres> = {
 /** Dynamic panel overrides based on world flags (room state variants). */
 export function roomArtFor(room: string, gflags: Record<string, boolean>, oflags: (o: string, f: string) => boolean): string {
   if (room === 'LIVING-ROOM') {
-    if (gflags['WON-FLAG'] && !gflags['RUG-MOVED'] && !oflags('TRAP-DOOR', 'OPENBIT')) return 'living-room-case-full';
+    // case-full art shows the rug aside and the trap door closed, so it can
+    // take over from trapdoor-closed once the case is full; an open trap door
+    // still wins (the player is actively using it)
     if (oflags('TRAP-DOOR', 'OPENBIT')) return 'living-room-trapdoor-open';
+    if (gflags['WON-FLAG']) return 'living-room-case-full';
     if (gflags['RUG-MOVED']) return 'living-room-trapdoor-closed';
   }
   if (room === 'TROLL-ROOM' && gflags['TROLL-DEAD']) return 'troll-room-empty';

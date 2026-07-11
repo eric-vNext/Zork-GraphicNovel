@@ -6,14 +6,21 @@
 
 | Category | Path | Generated | Status |
 |---|---|---|---|
-| Room panels | `assets/rooms/` | **74** | ✅ All Tier-1 present, QA'd |
-| Event panels | `assets/events/` | **17** | ✅ All Tier-1 present, QA'd |
+| Room panels | `assets/rooms/` | **85** | ✅ All Tier-1 + Tier-2 present, QA'd |
+| Event panels | `assets/events/` | **29** | ✅ All Tier-1 + Tier-2 present, QA'd |
 | Character panels | `assets/characters/` | **4** (troll, thief, cyclops, bat) | ✅ Ready |
-| Item close-ups | `assets/items/` | **15** | ✅ Ready |
+| Item close-ups | `assets/items/` | **23** | ✅ All Tier-1 + Tier-2 present |
 | UI & frontispiece | `assets/ui/` | **6** | ✅ Ready (3 with alpha transparency) |
-| **Total images** | | **116** | **All Tier-1 assets ready** |
+| **Total images** | | **147** | **All Tier-1 and Tier-2 assets ready** |
 | Music beds | `assets/audio/music/` | 0 | ⏳ Deferred to build phase (see below) |
 | SFX | `assets/audio/sfx/` | 0 | ⏳ Deferred to build phase (see below) |
+
+**2026-07-11 update:** the three remaining Tier-2 gaps this doc used to flag —
+`living-room-case-full`, `living-room-trapdoor-closed`, `living-room-trapdoor-open`
+— are now generated and shipped. See "Living-room consistency pass" below.
+Every other Tier-2 item in `asset-plan.md` (12 events, 8 items, 7 more room
+variants) had in fact already been generated in an earlier session; this doc's
+"Known nits" section describing them as outstanding was stale.
 
 Masters are ~2430×1620 PNG (~6–7 MB each, ~800 MB total). These are **source masters only** — the build phase converts to resized WebP (~300 KB desktop / ~90 KB mobile variants, ~30 MB shipped total, lazy-loaded per region).
 
@@ -36,10 +43,38 @@ Masters are ~2430×1620 PNG (~6–7 MB each, ~800 MB total). These are **source 
 - **Regenerated per owner direction (12)**: `lamp-lit` (single hand, was three), `thief` + `thief-encounter` (redesigned: hooded cape, shadowed face with stubble, no background figures — the old background lantern-bearer is gone), `living-room` (empty trophy case; door carvings now wordless ornamental flourishes), `living-room-trapdoor` (open trap door on pure blackness — no stairs, per owner override of the source's "rickety staircase" line), `treasure-room` (stone staircase instead of rope ladder, per source text), `sandy-beach` (boat removed — it's a movable object, shovel is the focal point), `river-lower` + `white-cliffs` (consistent patched yellow inflatable, no engine, no wooden boats, bars fixed), `reservoir-drained`, `forest-dark`, `victory-barrow` (white-bar defects fixed).
 - **Consistency fix**: `living-room-trapdoor` re-derived from `living-room.png` as an image-to-image edit so the two states show the identical room (same door, case, sword, table) with only the rug/trapdoor changed.
 
+## Living-room consistency pass (2026-07-11)
+
+The three living-room state variants (`living-room-case-full`,
+`living-room-trapdoor-closed`, `living-room-trapdoor-open`) had been generated
+independently of `living-room.png` and of each other in an earlier pass, so
+the elvish sword's position/angle above the mantel and the nailed-shut west
+door's carving drifted slightly between them — the kind of thing a player
+moving between states in the same room would notice.
+
+Fixed by regenerating all three as **chained `nano-banana-pro/edit` image-to-image
+edits**, each built on the previous state rather than from a fresh text prompt:
+`living-room.png` → `living-room-trapdoor-closed.png` (rug shoved aside,
+closed trap door added) → `living-room-trapdoor-open.png` (same base, trap
+door now open on pure black, no stairs per the existing owner override) →
+`living-room-case-full.png` (same base, trophy case now filled and lit).
+Every state now shares the identical door, mantel, sword position/angle, and
+table/lantern placement — only the rug/trap-door/case state changes.
+
+`roomArtFor()` in `src/data/presentation.ts` also had a latent priority bug:
+`living-room-case-full` was gated on `!RUG-MOVED`, so once a player moved the
+rug (required to reach the trap door at all) the case-full art could never
+be shown even after winning — it always lost to `living-room-trapdoor-closed`.
+Fixed the precedence to open-trapdoor > case-full > trapdoor-closed > base.
+
 ## Known nits (acceptable for v1)
 
 - Titles/lettering the model painted diegetically (rune-carved barrow arch, engravings) is stylized gibberish — appropriate for background art, never used to convey information.
-- Tier-2 variants from `asset-plan.md` (trophy-case-full, dam-gates-open, maintenance-flooding, hades-banished, grating-open ×2, cyclops-fled, rainbow-solid, west-of-house-won, plus 12 T2 events and 8 T2 items) are **not yet generated**; the engine will fall back to base panels. Generate on request or during polish.
+- The living room's west door (nailed shut, per `LIVING-ROOM`'s LDESC) has no
+  dedicated art state for `MAGIC-FLAG` (after ODYSSEUS on the cyclops turns it
+  into a "cyclops-shaped opening" in the text) — art still shows it nailed
+  shut in that state. Not in the original `asset-plan.md` scope; flagged here
+  as a possible future addition, not a regression.
 
 ## Raw generations
 
