@@ -7,6 +7,16 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=overlays-content"
     />
     <meta name="theme-color" content="#17181c" />
+    <!-- Without these, "Add to Home Screen" on iOS just bookmarks the page inside
+         Safari's own chrome (animated toolbars) instead of launching a standalone
+         app — Safari ignores interactive-widget=overlays-content above, so that
+         Safari chrome fighting the keyboard for viewport space is what caused the
+         home-screen-only flicker. These make it a real standalone launch. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Zork" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>Zork I: The Great Underground Empire — Graphic Novel Edition</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <style>

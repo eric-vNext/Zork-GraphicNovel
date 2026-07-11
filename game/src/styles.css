@@ -16,6 +16,15 @@
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 body {
+  /* position: fixed removes body from document flow entirely, so iOS Safari's
+     native "scroll the page to reveal the focused input above the keyboard"
+     has no scrollable ancestor to act on. Without this, that native scroll
+     fights the JS visualViewport pin in GameScreen.tsx (each corrects the
+     other back and forth), which is what caused flicker specifically in
+     standalone/home-screen mode where there's no Safari chrome to absorb it. */
+  position: fixed;
+  inset: 0;
+  overscroll-behavior: none;
   background: var(--bg);
   color: var(--text);
   font-family: 'Source Serif 4', Georgia, serif;
