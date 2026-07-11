@@ -109,6 +109,7 @@ export function enterRoom(ctx: Ctx, room: string): void {
     out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
   }
   out.emit({ type: 'room', room });
+  s.justArrived = true; // give the player one beat to see the room before combat can steal the panel
   if (!roomLit(s)) {
     out.emit({ type: 'panel', key: 'events/grue-warning' });
     out.emit({ type: 'sfx', name: 'grue-growl' });

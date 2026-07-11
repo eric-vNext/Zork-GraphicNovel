@@ -195,6 +195,7 @@ export class Game {
   private tick(out: Out): void {
     const ctx = this.makeCtx(out, { verb: 'wait' });
     clocker(ctx);
+    this.s.justArrived = false; // only the tick immediately after entry gets the reprieve
     // darkness grue pressure while standing still
     const s = this.s;
     if (!roomLit(s)) {

@@ -85,4 +85,36 @@ describe('bug fixes', () => {
     expect(t2).not.toContain('finding nothing of value');
     expect(g2.s.locs['EGG']).toBe('LARGE-BAG');
   });
+
+  it('entering the troll room shows the establishing panel, not a mid-fight panel', () => {
+    const g = new Game();
+    g.start();
+    g.s.here = 'CELLAR';
+    g.s.locs['LAMP'] = 'ADVENTURER'; g.s.oflags['LAMP']['ONBIT'] = true;
+    const evs = g.execute('north');
+    const panels = evs.filter((e) => e.type === 'panel').map((e: any) => e.key);
+    expect(panels).not.toContain('events/troll-fight');
+    expect(g.s.here).toBe('TROLL-ROOM');
+    // the reprieve is one-shot: a subsequent turn can still be struck
+    let struck = false;
+    for (let i = 0; i < 40 && !struck; i++) {
+      struck = g.execute('wait').some((e) => e.type === 'panel' && (e as any).key === 'events/troll-fight');
+    }
+    expect(struck).toBe(true);
+  });
+
+  it('the troll never actually returns after death — a later visitor is the thief', () => {
+    const g = new Game();
+    g.start();
+    g.s.here = 'TROLL-ROOM';
+    g.s.gflags['TROLL-DEAD'] = true;
+    g.s.gflags['TROLL-FLAG'] = true;
+    g.s.locs['TROLL'] = null as any;
+    g.s.locs['LAMP'] = 'ADVENTURER'; g.s.oflags['LAMP']['ONBIT'] = true;
+    for (let i = 0; i < 200; i++) {
+      txt(g, 'wait');
+      expect(g.s.gflags['TROLL-DEAD']).toBe(true);
+      expect(g.s.locs['TROLL']).toBeNull();
+    }
+  });
 });

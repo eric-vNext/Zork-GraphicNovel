@@ -198,6 +198,7 @@ const THIEF_MISS = [
 
 function fightDaemon(ctx: Ctx): void {
   const { s, out } = ctx;
+  if (s.justArrived) return; // let the player see the room before a villain gets a free swing
   // troll
   if (s.here === 'TROLL-ROOM' && !s.gflags['TROLL-DEAD'] && !fset$(s, 'TROLL', 'INVISIBLE') && !s.gflags['TROLL-UNCONSCIOUS']) {
     if (prob(ctx, 65)) villainStrike(ctx, 'TROLL');

@@ -33,6 +33,7 @@ export function newState(): WorldState {
     dead: false, won: false,
     grueTurns: 0,
     itRef: null,
+    justArrived: false,
   };
 }
 

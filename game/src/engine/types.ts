@@ -65,6 +65,9 @@ export interface WorldState {
   won: boolean;
   grueTurns: number;                            // consecutive turns spent in darkness
   itRef: string | null;                         // what "it" refers to
+  justArrived: boolean;                         // true for the clock tick right after a room entry:
+                                                 // gives the player one beat to see the room before
+                                                 // a same-turn combat daemon can steal its panel
 }
 
 // Semantic events the presentation layer consumes.
