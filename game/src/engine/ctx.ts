@@ -24,7 +24,7 @@ export function prob(ctx: Ctx, pct: number): boolean { return ctx.rng() * 100 < 
 export function pickOne<T>(ctx: Ctx, arr: T[]): T { return arr[Math.floor(ctx.rng() * arr.length)]; }
 
 export const DUMMY = ['Look around.', 'Too late for that.', 'Have your eyes checked.'];
-export const HO_HUM = [' does nothing.', ' isn\'t notably helpful.', ' has no effect.'];
+export const HO_HUM = [' doesn\'t seem to work.', ' isn\'t notably helpful.', ' has no effect.'];
 export const YUKS = [
   'A valiant attempt.',
   'You can\'t be serious.',

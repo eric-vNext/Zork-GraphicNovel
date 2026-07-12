@@ -23,24 +23,19 @@ export function describeObjects(s: WorldState, out: Out): void {
   const items = contents(s, s.here).filter(
     (o) => !fset$(s, o, 'INVISIBLE') && !fset$(s, o, 'NDESCBIT') && o !== 'ADVENTURER'
   );
-  const plain: string[] = [];
   for (const o of items) {
     const d = objDef(o);
     const dyn = dynamicObjDesc(s, o);
     if (dyn) out.tell(dyn);
     else if (d.fdesc && !s.fdescGone[o]) out.tell(d.fdesc.replace(/\n/g, ' '));
     else if (d.ldesc) out.tell(d.ldesc.replace(/\n/g, ' '));
-    else plain.push(o);
+    else out.tell(`There is ${aName(o)} here.`);
     // visible contents of open/transparent containers (actors don't spill their
     // held weapon in the room description — that's revealed only in combat text)
     if (!fset$(s, o, 'ACTORBIT')) {
       const inner = containerListing(s, o, 0);
       if (inner) out.tell(inner);
     }
-  }
-  if (plain.length === 1) out.tell(`There is ${aName(plain[0])} here.`);
-  else if (plain.length > 1) {
-    out.tell(`There are ${plain.map((p) => aName(p)).join(', ')} here.`);
   }
 }
 

@@ -293,7 +293,7 @@ function trollDropsAxe(ctx: Ctx): void {
   }
 }
 
-function trollDead(ctx: Ctx): void {
+export function trollDead(ctx: Ctx): void {
   const { s, out } = ctx;
   trollDropsAxe(ctx);
   s.gflags['TROLL-DEAD'] = true;

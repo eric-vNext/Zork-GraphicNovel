@@ -4,10 +4,10 @@ import type { Ctx } from './ctx';
 import { prob, pickOne, YUKS } from './ctx';
 import { jigsUp } from './death';
 import { checkNowDark } from './daemons';
-import { playerAttack, wakeThiefForGift } from './melee';
+import { playerAttack, wakeThiefForGift, trollDead } from './melee';
 import {
   fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, roomOf, roomLit,
-  PLAYER, DATA, theName, objDef, inventory,
+  PLAYER, DATA, theName, aName, objDef, inventory,
 } from './world';
 
 const FOREST_ROOMS = ['FOREST-1', 'FOREST-2', 'FOREST-3', 'PATH', 'UP-A-TREE', 'GRATING-CLEARING', 'CLEARING', 'MOUNTAINS'];
@@ -162,7 +162,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
     const { s, out } = ctx;
     if ((ctx.verb === 'light' || ctx.verb === 'burn' || ctx.verb === 'lamp-on') && ctx.dobj === 'MATCH') {
       if (s.counters.matches <= 0) { out.tell('I\'m afraid that you have run out of matches.'); return true; }
-      if (s.here === 'GAS-ROOM') { gasExplosion(ctx); return true; }
+      if (s.here === 'GAS-ROOM') { gasExplosion(ctx, 'MATCH'); return true; }
       s.counters.matches -= 1;
       fset(s, 'MATCH', 'ONBIT'); fset(s, 'MATCH', 'FLAMEBIT');
       out.tell('One of the matches starts to burn.');
@@ -184,7 +184,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
     if (ctx.verb === 'light' || ctx.verb === 'burn' || ctx.verb === 'lamp-on') {
       if (fset$(s, 'CANDLES', 'RMUNGBIT')) { out.tell("Alas, there's not much left of the candles. Certainly not enough to burn."); return true; }
       if (fset$(s, 'CANDLES', 'ONBIT')) { out.tell('The candles are already lit.'); return true; }
-      if (s.here === 'GAS-ROOM') { gasExplosion(ctx); return true; }
+      if (s.here === 'GAS-ROOM') { gasExplosion(ctx, 'CANDLES'); return true; }
       const flame = hasFlame(s);
       if (!flame && ctx.iobj !== 'MATCH') { out.tell('You should light a match first.'); return true; }
       if (ctx.iobj === 'MATCH' && !fset$(s, 'MATCH', 'ONBIT')) { out.tell('With an unlit match?!?'); return true; }
@@ -195,7 +195,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       if (s.here === 'ENTRANCE-TO-HADES' && s.gflags['XB']) {
         s.gflags['XC'] = true;
         ctx.queue('I-XC', 3);
-        out.tell('The flames flicker low and the spirits cower at your unearthly power.');
+        out.tell('The flames flicker wildly and appear to dance. The earth beneath your feet trembles, and your legs nearly buckle beneath you. The spirits cower at your unearthly power.');
       }
       return true;
     }
@@ -316,8 +316,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
         if (!s.gflags['GRATE-REVEALED'] && s.here === 'GRATING-CLEARING') {
           s.gflags['GRATE-REVEALED'] = true; fclear(s, 'GRATE', 'INVISIBLE');
         }
-        out.tell('The leaves burn, and so do you, seeing as you were standing on top of them. In the ensuing conflagration, you are burned to a crisp.');
-        jigsUp(ctx, 'It seems burning leaves while standing on them was unwise.', {});
+        jigsUp(ctx, 'The leaves burn, and so do you.', {});
         return true;
       }
       if (s.here === 'GRATING-CLEARING' && !s.gflags['GRATE-REVEALED']) {
@@ -452,8 +451,8 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
   BOLT: (ctx) => {
     const { s, out } = ctx;
     if (ctx.verb === 'turn') {
-      if (ctx.iobj !== 'WRENCH') { out.tell(`The bolt won't turn with your best effort.`); return true; }
-      if (!s.gflags['GATE-FLAG']) { out.tell('The bolt won\'t turn using the wrench.'); return true; }
+      if (ctx.iobj !== 'WRENCH') { out.tell(`The bolt won't turn using ${theName(ctx.iobj ?? '')}.`); return true; }
+      if (!s.gflags['GATE-FLAG']) { out.tell("The bolt won't turn with your best effort."); return true; }
       if (s.gflags['LOW-TIDE']) {
         s.gflags['LOW-TIDE'] = false; // actually closing gates refills
         out.tell('The sluice gates close and water starts to collect behind the dam.');
@@ -509,8 +508,8 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
   'MACHINE-SWITCH': (ctx) => {
     const { s, out } = ctx;
     if (ctx.verb === 'turn') {
-      if (ctx.iobj !== 'SCREWDRIVER') { out.tell('It seems that a screwdriver is required to turn the switch.'); return true; }
-      if (fset$(s, 'MACHINE', 'OPENBIT')) { out.tell('The machine doesn\'t seem to want to do anything with the lid open.'); return true; }
+      if (ctx.iobj !== 'SCREWDRIVER') { out.tell(`It seems that a ${theName(ctx.iobj ?? '')} won't do.`); return true; }
+      if (fset$(s, 'MACHINE', 'OPENBIT')) { out.tell("The machine doesn't seem to want to do anything."); return true; }
       const inside = contents(s, 'MACHINE');
       if (inside.includes('COAL')) {
         removeObj(s, 'COAL');
@@ -518,12 +517,10 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
         out.tell('The machine comes to life (figuratively) with a dazzling display of colored lights and bizarre noises. After a few moments, the excitement abates.');
         out.emit({ type: 'sfx', name: 'machine-diamond' });
         out.emit({ type: 'panel', key: 'events/machine-diamond' });
-      } else if (inside.length) {
+      } else {
         for (const o of inside) { removeObj(s, o); }
         moveObj(s, 'GUNK', 'MACHINE');
         out.tell('The machine comes to life (figuratively) with a dazzling display of colored lights and bizarre noises. After a few moments, the excitement abates.');
-      } else {
-        out.tell('The machine emits a dull hum, but nothing else happens.');
       }
       return true;
     }
@@ -545,9 +542,28 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
     if (ctx.verb === 'give' || ctx.verb === 'throw') {
       const item = ctx.dobj === 'TROLL' ? ctx.iobj : ctx.dobj;
       if (item && item !== 'TROLL') {
+        if (item === 'AXE' && inPlayer(s, 'AXE')) {
+          removeObj(s, item);
+          out.tell('The troll scratches his head in confusion, then takes the axe.');
+          fset(s, 'TROLL', 'FIGHTBIT');
+          moveObj(s, 'AXE', 'TROLL');
+          return true;
+        }
         removeObj(s, item);
-        out.tell(`The troll, who is remarkably coordinated, catches the ${objDef(item).desc}${item === 'AXE' ? ' and eyes it warily' : ''} and, being for the moment sated, throws it back. Fortunately, the troll has poor control, and the ${objDef(item).desc} falls to the floor. He does not look pleased.`);
-        moveObj(s, item, 'TROLL-ROOM');
+        const verb = ctx.verb === 'throw'
+          ? `The troll, who is remarkably coordinated, catches the ${objDef(item).desc}`
+          : 'The troll, who is not overly proud, graciously accepts the gift';
+        const isWeapon = item === 'KNIFE' || item === 'SWORD' || item === 'AXE';
+        if (isWeapon && prob(ctx, 20)) {
+          out.tell(`${verb} and eats it hungrily. Poor troll, he dies from an internal hemorrhage and his carcass disappears in a sinister black fog.`);
+          trollDead(ctx);
+        } else if (isWeapon) {
+          out.tell(`${verb} and, being for the moment sated, throws it back. Fortunately, the troll has poor control, and the ${objDef(item).desc} falls to the floor. He does not look pleased.`);
+          moveObj(s, item, s.here);
+          fset(s, 'TROLL', 'FIGHTBIT');
+        } else {
+          out.tell(`${verb} and not having the most discriminating tastes, gleefully eats it.`);
+        }
         return true;
       }
     }
@@ -656,7 +672,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       return true;
     }
     if (ctx.verb === 'launch') {
-      if (!s.gflags['IN-BOAT']) { out.tell('You have to be in the boat to launch it.'); return true; }
+      if (!s.gflags['IN-BOAT']) { out.tell("You're not in the boat!"); return true; }
       const LAUNCH: Record<string, string> = {
         'DAM-BASE': 'RIVER-1', 'WHITE-CLIFFS-NORTH': 'RIVER-3', 'WHITE-CLIFFS-SOUTH': 'RIVER-4',
         'SANDY-BEACH': 'RIVER-4', 'SHORE': 'RIVER-5',
@@ -877,12 +893,13 @@ function basketHandler(ctx: Ctx, raised: boolean): boolean {
   return false;
 }
 
-function gasExplosion(ctx: Ctx): void {
+function gasExplosion(ctx: Ctx, lighting?: string): void {
   ctx.out.emit({ type: 'sfx', name: 'explosion' });
   ctx.out.emit({ type: 'shake' });
-  jigsUp(ctx,
-    'Oh dear. It appears that the smell coming from this room was coal gas. I would have thought twice about carrying flaming objects in here.\n\n     ** BOOOOOOOOOOOM **',
-    { panel: 'events/gas-explosion' });
+  const lead = lighting
+    ? `How sad for an aspiring adventurer to light ${aName(lighting)} in a room which reeks of gas. Fortunately, there is justice in the world.`
+    : 'Oh dear. It appears that the smell coming from this room was coal gas. I would have thought twice about carrying flaming objects in here.';
+  jigsUp(ctx, `${lead}\n\n     ** BOOOOOOOOOOOM **`, { panel: 'events/gas-explosion' });
 }
 
 // ============================ ROOM ACTIONS ===================================

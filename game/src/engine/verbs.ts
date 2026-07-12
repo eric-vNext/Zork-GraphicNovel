@@ -34,15 +34,12 @@ export function goTo(ctx: Ctx, dir: string): void {
       // allow landing via LAND exits; other movement from shore rooms while in boat:
     }
     if (!['RIVER-1', 'RIVER-2', 'RIVER-3', 'RIVER-4', 'RIVER-5', 'RESERVOIR', 'IN-STREAM'].includes(s.here)) {
-      if (dir !== 'LAND') { out.tell('You will have to get out of the boat first (or say "launch").'); return; }
+      if (dir !== 'LAND') { out.tell("Read the label for the boat's instructions."); return; }
     }
   }
   if (!ex) {
     if (dir === 'LAND' && s.gflags['IN-BOAT']) { out.tell('There\'s no place to land here.'); return; }
-    const CANT = ['You can\'t go that way.', 'There is no way to go in that direction.'];
-    // helpful specifics from the original
-    if ((dir === 'UP' || dir === 'DOWN') && r.flags.includes('RLANDBIT')) out.tell('You can\'t go that way.');
-    else out.tell(pickOne(ctx, CANT));
+    out.tell("You can't go that way.");
     return;
   }
   if (ex.msg && !ex.to && !ex.per) { out.tell(ex.msg.replace(/\n/g, ' ')); return; }
@@ -184,10 +181,10 @@ export function perform(ctx: Ctx): void {
     case 'inventory': listInventory(s, out); return;
     // 'wait' is handled entirely in Game.execute() (ports V-WAIT's OPTIONAL NUM,
     // looping CLOCKER up to N times) — never reaches here.
-    case 'jump': out.tell(pickOne(ctx, ['Are you proud of yourself?', 'Wheeeeeeeeee!!!!!', 'Do you expect me to applaud?'])); return;
+    case 'jump': out.tell(pickOne(ctx, ['Very good. Now you can go to the second grade.', 'Are you enjoying yourself?', 'Wheeeeeeeeee!!!!!', 'Do you expect me to applaud?'])); return;
     case 'pray':
       if (s.here === 'SOUTH-TEMPLE') {
-        out.tell('From the distance the sound of a lone trumpet is heard. The room becomes very bright and you feel disembodied. In a moment, the brightness fades and you find yourself rising as if from a long sleep, deep in the woods. In the distance you can faintly see a songbird and the beginnings of a path.');
+        out.tell('From the distance the sound of a lone trumpet is heard. The room becomes very bright and you feel disembodied. In a moment, the brightness fades and you find yourself rising as if from a long sleep, deep in the woods. In the distance you can faintly hear a songbird and the sounds of the forest.');
         out.emit({ type: 'sfx', name: 'magic-shimmer' });
         ctx.moveTo('FOREST-1', true);
         out.emit({ type: 'panel', key: 'events/prayer-teleport' });
@@ -211,7 +208,7 @@ export function perform(ctx: Ctx): void {
         out.emit({ type: 'panel', key: 'events/echo' });
         return;
       }
-      out.tell(s.here === 'LOUD-ROOM' ? 'echo echo ...' : 'There is no echo here.');
+      out.tell('echo echo ...');
       return;
     case 'odysseus':
       if (s.here === 'CYCLOPS-ROOM' && !s.gflags['MAGIC-FLAG']) {
@@ -227,8 +224,15 @@ export function perform(ctx: Ctx): void {
       out.tell('Wasn\'t he a sailor?');
       return;
     case 'hello':
-      if (d === 'THIEF') { out.tell('The thief nods a curt greeting.'); return; }
-      out.tell(pickOne(ctx, ['Hello.', 'Good day.', 'Nice weather we\'ve been having lately.']));
+      if (d && fset$(s, d, 'ACTORBIT')) {
+        if (d === 'THIEF' && s.gflags['THIEF-UNCONSCIOUS']) {
+          out.tell('The thief, being temporarily incapacitated, is unable to acknowledge your greeting with his usual graciousness.');
+          return;
+        }
+        out.tell(`${cap(theName(d))} bows his head to you in greeting.`);
+        return;
+      }
+      out.tell(pickOne(ctx, ['Hello.', 'Good day.', 'Nice weather we\'ve been having lately.', 'Goodbye.']));
       return;
     case 'attack': {
       if (!d) { out.tell('Attack what?'); return; }
@@ -244,14 +248,19 @@ export function perform(ctx: Ctx): void {
     }
     case 'give': {
       if (!d || !ctx.iobj) { out.tell('Give what to whom?'); return; }
-      out.tell(`You can't give ${theName(d)} to that.`);
+      out.tell(`You can't give a ${objDef(d)?.desc ?? 'that'} to a ${objDef(ctx.iobj)?.desc ?? 'that'}!`);
       return;
     }
-    case 'move':
     case 'push':
+      if (!d) return;
+      out.tell(`Pushing the ${objDef(d)?.desc ?? 'that'}${pickOne(ctx, HO_HUM)}`);
+      return;
+    case 'move':
     case 'pull':
       if (!d) return;
-      out.tell(`Moving the ${objDef(d)?.desc ?? 'that'}${pickOne(ctx, HO_HUM)}`);
+      out.tell(fset$(s, d, 'TAKEBIT')
+        ? `Moving the ${objDef(d)?.desc ?? 'that'} reveals nothing.`
+        : `You can't move the ${objDef(d)?.desc ?? 'that'}.`);
       return;
     case 'climb':
     case 'climb-down': {
@@ -285,7 +294,7 @@ export function perform(ctx: Ctx): void {
         const sub = { ...ctx, dobj: 'INFLATED-BOAT' };
         if (objAction(sub as typeof ctx, 'INFLATED-BOAT')) return;
       }
-      out.tell(s.gflags['IN-BOAT'] ? 'You can\'t launch it here.' : 'You have to be in the boat to launch it.');
+      out.tell(s.gflags['IN-BOAT'] ? "You can't launch it here." : "You're not in the boat!");
       return;
     }
     case 'land': goTo(ctx, 'LAND'); return;
@@ -299,7 +308,7 @@ export function perform(ctx: Ctx): void {
       return;
     case 'smell':
       if (s.here === 'GAS-ROOM' || s.here === 'SMELLY-ROOM') { out.tell('It smells like coal gas in here.'); return; }
-      out.tell(`It smells like ${aName(d ?? 'GRUE').replace(/^an? /, 'a ')} to me.`);
+      out.tell(`It smells like a ${objDef(d ?? 'GRUE')?.desc ?? 'grue'}.`);
       return;
     case 'listen':
       out.tell(s.here.startsWith('RIVER') ? 'The river rushes by.' : 'You hear nothing unusual.');
@@ -309,7 +318,7 @@ export function perform(ctx: Ctx): void {
       out.tell('You have lost your mind.');
       return;
     case 'search': out.tell('You find nothing unusual.'); return;
-    case 'kiss': out.tell('I\'d sooner kiss a grue.'); return;
+    case 'kiss': out.tell('I\'d sooner kiss a pig.'); return;
     case 'burn': {
       if (!d) return;
       if (!hasFlameCarried(ctx)) { out.tell('You should light a match first.'); return; }
@@ -326,25 +335,28 @@ export function perform(ctx: Ctx): void {
       return;
     case 'break':
       if (!d) return;
-      out.tell(pickOne(ctx, ['Nice try.', 'Not likely.', pickOne(ctx, YUKS)]));
+      if (fset$(s, d, 'ACTORBIT')) { out.tell('Nice try.'); return; }
+      out.tell(ctx.iobj
+        ? `Trying to destroy the ${objDef(d)?.desc ?? 'that'} with a ${objDef(ctx.iobj)?.desc ?? 'that'} is futile.`
+        : `Trying to destroy the ${objDef(d)?.desc ?? 'that'} with your bare hands is futile.`);
       return;
     case 'shake':
       if (d && fset$(s, d, 'CONTBIT') && !fset$(s, d, 'OPENBIT')) { out.tell(`It sounds like there is something inside the ${objDef(d).desc}.`); return; }
       out.tell('Shaken.');
       return;
     case 'squeeze': out.tell('How singularly useless.'); return;
-    case 'wear': out.tell('You can\'t wear that.'); return;
-    case 'tie': out.tell(d ? `You can't tie the ${objDef(d)?.desc ?? 'that'} to anything.` : 'Tie what?'); return;
-    case 'untie': out.tell('It is not tied to anything.'); return;
+    case 'wear': out.tell(d ? `You can't wear the ${objDef(d)?.desc ?? 'that'}.` : 'Wear what?'); return;
+    case 'tie': out.tell(d ? `You can't tie the ${objDef(d)?.desc ?? 'that'} to that.` : 'Tie what?'); return;
+    case 'untie': out.tell('This cannot be tied, so it cannot be untied!'); return;
     case 'wave': out.tell(`Waving the ${objDef(d ?? '')?.desc ?? 'thing'}${pickOne(ctx, HO_HUM)}`); return;
     case 'wind': out.tell('You cannot wind that up.'); return;
-    case 'ring': out.tell('How, exactly, does one ring that?'); return;
+    case 'ring': out.tell('How, exactly, can you ring that?'); return;
     case 'dig': out.tell(d === 'SAND' ? 'The ground is too hard for digging here.' : 'Digging here is quite pointless.'); return;
     case 'touch': out.tell('Fiddling with that isn\'t helpful.'); return;
-    case 'fill': out.tell('There is nothing to fill it with here.'); return;
+    case 'fill': out.tell("There's nothing to fill it with."); return;
     case 'pour': out.tell('You can\'t pour that.'); return;
-    case 'lock': out.tell('There is no lock on it.'); return;
-    case 'unlock': out.tell('It doesn\'t seem to be locked.'); return;
+    case 'lock': out.tell("It doesn't seem to work."); return;
+    case 'unlock': out.tell("It doesn't seem to work."); return;
     case 'inflate': out.tell('How can you inflate that?'); return;
     case 'deflate': out.tell('Come on, now!'); return;
     case 'lower':
@@ -353,10 +365,10 @@ export function perform(ctx: Ctx): void {
       return;
     case 'lamp-on': out.tell(d ? `You can't turn that on.` : 'Turn on what?'); return;
     case 'lamp-off': out.tell(d ? `You can't turn that off.` : 'Turn off what?'); return;
-    case 'light': out.tell(d ? `You can't light that.` : 'Light what?'); return;
-    case 'extinguish': out.tell('That wasn\'t lit.'); return;
-    case 'turn': out.tell('You can\'t turn that.'); return;
-    case 'knock': out.tell(d === 'FRONT-DOOR' || d === 'WHITE-HOUSE' ? 'Nobody\'s home.' : 'Why knock on that?'); return;
+    case 'light': out.tell(d ? `You can't turn that on.` : 'Turn on what?'); return;
+    case 'extinguish': out.tell(d ? `You can't turn that off.` : 'Turn off what?'); return;
+    case 'turn': out.tell('You can\'t turn that!'); return;
+    case 'knock': out.tell(d === 'FRONT-DOOR' || d === 'WHITE-HOUSE' ? 'Nobody\'s home.' : `Why knock on a ${objDef(d ?? '')?.desc ?? 'thing'}?`); return;
     case 'swim': out.tell('Swimming isn\'t usually allowed in the dungeon.'); return;
     case 'sleep': out.tell('There\'s nothing to sleep on, and besides, adventurers don\'t sleep.'); return;
     case 'curse': out.tell('Such language in a high-class establishment like this!'); return;
@@ -390,7 +402,7 @@ function doTake(ctx: Ctx): void {
     out.tell(pickOne(ctx, ['What a concept!', 'You can\'t be serious.', 'An interesting idea...']));
     return;
   }
-  if (!reachable(s, d)) { out.tell(`You can't reach ${theName(d)}.`); return; }
+  if (!reachable(s, d)) { out.tell("You can't reach something that's inside a closed container."); return; }
   if (loadWeight(s) + objWeight(s, d) > 100) {
     out.tell('Your load is too heavy' + (loadWeight(s) > 85 ? '.' : ', especially in light of your condition.'));
     return;
@@ -430,7 +442,7 @@ function doPut(ctx: Ctx): void {
   const i = ctx.iobj;
   if (!i) { out.tell(`Where do you want to put ${theName(d)}?`); return; }
   if (!inPlayer(s, d)) { out.tell(`You don't have ${theName(d)}.`); return; }
-  if (!fset$(s, i, 'CONTBIT') && !fset$(s, i, 'SURFACEBIT')) { out.tell(`You can't put anything in the ${objDef(i)?.desc ?? 'that'}.`); return; }
+  if (!fset$(s, i, 'CONTBIT') && !fset$(s, i, 'SURFACEBIT')) { out.tell("You can't do that."); return; }
   if (!fset$(s, i, 'OPENBIT') && !fset$(s, i, 'SURFACEBIT')) { out.tell(`The ${objDef(i).desc} isn't open.`); return; }
   const cap = objDef(i).capacity ?? 100;
   const used = contents(s, i).reduce((sum, o) => sum + objWeight(s, o), 0);
@@ -480,7 +492,6 @@ export function checkEndgame(ctx: Ctx): void {
     moveObj(s, 'MAP', 'TROPHY-CASE');
     fclear(s, 'MAP', 'INVISIBLE');
     out.tell('An almost inaudible voice whispers in your ear, "Look to your treasures for the final secret."');
-    out.tell('Suddenly, an ancient map appears in the trophy case!');
     out.emit({ type: 'panel', key: 'events/map-appears' });
     out.emit({ type: 'sfx', name: 'magic-shimmer' });
   }
@@ -491,7 +502,7 @@ function doOpen(ctx: Ctx): void {
   const d = ctx.dobj!;
   if (!d) { out.tell('Open what?'); return; }
   if (!fset$(s, d, 'CONTBIT') && !fset$(s, d, 'DOORBIT')) { out.tell(`You must tell me how to do that to a ${objDef(d)?.desc ?? 'thing'}.`); return; }
-  if (fset$(s, d, 'OPENBIT')) { out.tell(pickOne(ctx, ['Look around.', 'It is already open.'])); return; }
+  if (fset$(s, d, 'OPENBIT')) { out.tell('It is already open.'); return; }
   if (fset$(s, d, 'LOCKEDBIT')) { out.tell('It seems to be locked.'); return; }
   fset(s, d, 'OPENBIT');
   const inner = contents(s, d).filter((o) => !fset$(s, o, 'INVISIBLE'));

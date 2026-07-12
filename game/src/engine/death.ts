@@ -13,7 +13,7 @@ export function jigsUp(ctx: Ctx, text: string, opts?: { panel?: string }): void 
 
   if (s.counters.deaths > 2) {
     out.tell(
-      "It takes a talented person to be killed while already dead. YOU are such a talent. Unfortunately, it takes a talented person to deal with it. I am not such a talent. Sorry.",
+      "You clearly are a suicidal maniac. We don't allow psychotics in the cave, since they may harm other adventurers. Your remains will be installed in the Land of the Living Dead, where your fellow adventurers may gloat over them.",
       'death'
     );
     s.dead = true;
@@ -22,7 +22,7 @@ export function jigsUp(ctx: Ctx, text: string, opts?: { panel?: string }): void 
   }
 
   out.tell(
-    'As you take your last breath, you feel relieved of your burdens. The feeling passes as you find yourself before the gates of Hell, where the spirits jeer at you and deny you entry. Your senses are disturbed. The objects in the dungeon appear indistinct, bleary, less real. A pale light flickers. The words, "This will never do," come thundering into your mind from a distance. In a definite case of mistaken identity, you have been resurrected.',
+    "Now, let's take a look here... Well, you probably deserve another chance. I can't quite fix you up completely, but you can't have everything.",
     'death'
   );
 
