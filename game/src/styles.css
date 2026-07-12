@@ -423,6 +423,37 @@ body {
   margin: 14px 0 6px;
 }
 
+/* ---------- first-take treasure fly-in card ---------- */
+.treasure-flash {
+  position: absolute;
+  z-index: 4;
+  top: 50%; left: 50%;
+  margin: 0;
+  /* the standalone `translate` property composes with framer-motion's
+     animated `transform` instead of being clobbered by it */
+  translate: -50% -50%;
+  width: min(42%, 30dvh);
+  background: #1d1a14;
+  border: 2px solid var(--accent);
+  padding: 6px 6px 4px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.85), 0 0 26px rgba(200,162,74,0.35);
+  pointer-events: none;
+}
+.treasure-flash img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid #6b5836;
+}
+.treasure-flash figcaption {
+  font-family: 'IM Fell English SC', serif;
+  color: #e9dfa8;
+  font-size: clamp(11px, 1.6dvh, 14px);
+  text-align: center;
+  padding: 4px 2px 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }

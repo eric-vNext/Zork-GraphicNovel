@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { Game } from '../engine/engine';
 import type { GameEvent } from '../engine/types';
-import { ROOM_PRES, roomArtFor, REGION_MUSIC, EVENT_PANELS, PANEL_FALLBACK } from '../data/presentation';
+import { ROOM_PRES, roomArtFor, REGION_MUSIC, EVENT_PANELS, PANEL_FALLBACK, ITEM_ART } from '../data/presentation';
 import { audio } from '../audio/audioManager';
 import { fset$, inventory, DATA, roomLit, contents } from '../engine/world';
 import { Out } from '../engine/world';
@@ -86,6 +86,8 @@ interface GameStore {
   slotsOpen: SlotsMode;      // the save-slots panel, opened by UI buttons or SAVE/RESTORE verbs
   activeSlot: number | null; // last slot saved to or loaded from; typed SAVE/RESTORE target it
   caseView: CaseItem[] | null; // trophy-case museum inset (null = closed), from EXAMINE CASE
+  treasureFlash: { art: string; name: string } | null; // fly-in card on first treasure take
+  treasureFlashSeq: number;    // keys each flash so repeats remount fresh
   begin: () => void;
   submit: (cmd: string) => void;
   restartGame: () => void;
@@ -93,6 +95,7 @@ interface GameStore {
   openSlots: (mode: 'save' | 'load') => void;
   closeSlots: () => void;
   closeCaseView: () => void;
+  clearTreasureFlash: () => void;
   saveToSlot: (slot: number) => Promise<boolean>;
   loadSlot: (slot: number) => Promise<boolean>;
   setActiveSlot: (slot: number | null) => void;
@@ -123,6 +126,8 @@ export const useStore = create<GameStore>((set, get) => ({
   slotsOpen: false,
   activeSlot: loadActiveSlot(),
   caseView: null,
+  treasureFlash: null,
+  treasureFlashSeq: 0,
 
   begin: () => {
     const g = get().game;
@@ -134,6 +139,7 @@ export const useStore = create<GameStore>((set, get) => ({
   openSlots: (mode) => set({ slotsOpen: mode }),
   closeSlots: () => set({ slotsOpen: false }),
   closeCaseView: () => set({ caseView: null }),
+  clearTreasureFlash: () => set({ treasureFlash: null }),
 
   setActiveSlot: (slot) => {
     if (HAS_STORAGE) {
@@ -217,6 +223,7 @@ export const useStore = create<GameStore>((set, get) => ({
     let restoreReq = false;
     let restartReq = false;
     let caseViewReq = false;
+    let treasureObj: string | null = null;
 
     for (const e of events) {
       switch (e.type) {
@@ -267,6 +274,10 @@ export const useStore = create<GameStore>((set, get) => ({
         case 'restore-request': restoreReq = true; break;
         case 'restart': restartReq = true; break;
         case 'case-view': caseViewReq = true; break;
+        case 'treasure':
+          if (ITEM_ART[e.obj]) treasureObj = e.obj;
+          else { panel = 'events/treasure-gleam'; panelIsEvent = true; } // no art: old generic gleam
+          break;
       }
     }
 
@@ -304,6 +315,12 @@ export const useStore = create<GameStore>((set, get) => ({
         // only open the museum inset when there's something to display —
         // an empty case already reads fine as plain text
         ...(caseViewReq && caseTreasureList(s).length ? { caseView: caseTreasureList(s) } : null),
+        ...(treasureObj
+          ? {
+              treasureFlash: { art: ITEM_ART[treasureObj], name: DATA.objects[treasureObj]?.desc ?? '' },
+              treasureFlashSeq: prev.treasureFlashSeq + 1,
+            }
+          : null),
       };
     });
 

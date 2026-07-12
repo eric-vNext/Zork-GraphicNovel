@@ -89,4 +89,5 @@ export type GameEvent =
   | { type: 'save-request' }
   | { type: 'restore-request' }
   | { type: 'restart' }
-  | { type: 'case-view' }; // open the trophy-case museum inset (docs/handoff: case tiers)
+  | { type: 'case-view' } // open the trophy-case museum inset (docs/handoff: case tiers)
+  | { type: 'treasure'; obj: string }; // first take of a treasure — fly-in overlay of its item art

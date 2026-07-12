@@ -117,6 +117,7 @@ function Stage() {
       </ShakeWrap>
       <Particles />
       <Vignette />
+      <TreasureFlash />
       {roomName && <div className="room-caption">{roomName}</div>}
       <button
         className="compass"
@@ -135,6 +136,40 @@ function Stage() {
         <img src="./art/ui/compass-rose.webp" alt="" draggable={false} />
       </button>
     </div>
+  );
+}
+
+// First-take treasure card: the item's own art flies in over the room panel,
+// holds a beat, and flies back out — the room panel underneath never changes,
+// which sidesteps the "last panel event wins" overwrite gotcha entirely.
+// Keyed by treasureFlashSeq for the same one-shot-remount reason as ShakeWrap.
+function TreasureFlash() {
+  const flash = useStore((s) => s.treasureFlash);
+  const seq = useStore((s) => s.treasureFlashSeq);
+  const clear = useStore((s) => s.clearTreasureFlash);
+  if (!flash) return null;
+  return (
+    <motion.figure
+      key={seq}
+      className="treasure-flash"
+      initial={REDUCED_MOTION ? { opacity: 0 } : { opacity: 0, x: 90, y: -18, scale: 0.7, rotate: 4 }}
+      animate={
+        REDUCED_MOTION
+          ? { opacity: [0, 1, 1, 0], transition: { duration: 2.4, times: [0, 0.1, 0.85, 1] } }
+          : {
+              opacity: [0, 1, 1, 0],
+              x: [90, 0, 0, -70],
+              y: [-18, 0, 0, -12],
+              scale: [0.7, 1, 1, 0.78],
+              rotate: [4, 0, 0, -3],
+              transition: { duration: 2.6, times: [0, 0.16, 0.82, 1], ease: 'easeInOut' },
+            }
+      }
+      onAnimationComplete={clear}
+    >
+      <img src={`./art/items/${flash.art}.webp`} alt="" draggable={false} />
+      <figcaption>{flash.name}</figcaption>
+    </motion.figure>
   );
 }
 

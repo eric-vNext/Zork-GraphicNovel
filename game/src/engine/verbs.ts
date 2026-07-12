@@ -416,7 +416,9 @@ function doTake(ctx: Ctx): void {
     s.counters.score += od.value!;
     out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
     out.emit({ type: 'sfx', name: 'treasure-chime' });
-    out.emit({ type: 'panel', key: 'events/treasure-gleam' });
+    // the store shows the treasure's own item art as a transient fly-in
+    // overlay (falling back to the generic gleam panel if it has no art)
+    out.emit({ type: 'treasure', obj: d });
   } else {
     out.emit({ type: 'sfx', name: 'take' });
   }
