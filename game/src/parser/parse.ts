@@ -269,7 +269,12 @@ export function parse(s: WorldState, input: string): ParseResult {
     if (verb === 'enter' && !rest.length) return { cmd: { verb: 'walk', dir: 'IN', raw } };
   }
   if (verb === 'exit' && !rest.length) return { cmd: { verb: 'walk', dir: 'OUT', raw } };
-  if (verb === 'get' && rest[0] === 'out') return { cmd: { verb: 'walk', dir: 'OUT', raw } };
+  // NB: verbWord (not verb) here — 'get' is already canonicalized to 'take'
+  // by this point (v('take', 'get', ...)), so `verb === 'get'` can never match.
+  if (verbWord === 'get' && rest[0] === 'out') return { cmd: { verb: 'walk', dir: 'OUT', raw } };
+  // TAKE/GET IN OBJECT (FIND VEHBIT) = V-BOARD (gsyntax.zil:470): "get in
+  // the boat" boards it, it doesn't try to take a nonsense "in the boat" object.
+  if (verb === 'take' && (rest[0] === 'in' || rest[0] === 'into')) { verb = 'enter'; rest = rest.slice(1); }
   if (verb === 'swing') verb = 'attack';
   if (verb === 'smash') verb = 'break';
   // DIG IN OBJECT: ZIL's syntax table has IN as fixed filler before the
