@@ -88,4 +88,5 @@ export type GameEvent =
   // emit requests the same way ZIL's <SAVE> deferred to the interpreter.
   | { type: 'save-request' }
   | { type: 'restore-request' }
-  | { type: 'restart' };
+  | { type: 'restart' }
+  | { type: 'case-view' }; // open the trophy-case museum inset (docs/handoff: case tiers)

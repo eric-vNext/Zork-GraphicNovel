@@ -5,8 +5,9 @@ import { Game } from '../engine/engine';
 import type { GameEvent } from '../engine/types';
 import { ROOM_PRES, roomArtFor, REGION_MUSIC, EVENT_PANELS, PANEL_FALLBACK } from '../data/presentation';
 import { audio } from '../audio/audioManager';
-import { fset$, inventory, DATA, roomLit } from '../engine/world';
+import { fset$, inventory, DATA, roomLit, contents } from '../engine/world';
 import { Out } from '../engine/world';
+import type { WorldState } from '../engine/types';
 import { readSaveSlot, writeSaveSlot, migrateLegacySave } from '../engine/idbSaves';
 
 export interface LogLine { id: number; text: string; cls: string }
@@ -21,6 +22,24 @@ function loadActiveSlot(): number | null {
   if (!HAS_STORAGE) return null;
   const v = Number(localStorage.getItem(ACTIVE_SLOT_KEY));
   return Number.isInteger(v) && v >= 1 ? v : null;
+}
+
+export interface CaseItem { id: string; name: string; points: number }
+
+// Treasures currently resting in the trophy case, nested containers included
+// (the canary rides inside the egg). Drives the room-art fill tier and the
+// museum inset's cells.
+function caseTreasureList(s: WorldState): CaseItem[] {
+  const found: CaseItem[] = [];
+  const walk = (holder: string) => {
+    for (const o of contents(s, holder)) {
+      const od = DATA.objects[o];
+      if ((od?.tvalue ?? 0) > 0) found.push({ id: o, name: od.desc ?? o, points: od.tvalue! });
+      walk(o);
+    }
+  };
+  walk('TROPHY-CASE');
+  return found;
 }
 
 function saveMeta(state: unknown): { roomName: string; score: number; moves: number } {
@@ -66,12 +85,14 @@ interface GameStore {
   vignetteSeq: number;       // bumped per vignette occurrence, even if the kind repeats
   slotsOpen: SlotsMode;      // the save-slots panel, opened by UI buttons or SAVE/RESTORE verbs
   activeSlot: number | null; // last slot saved to or loaded from; typed SAVE/RESTORE target it
+  caseView: CaseItem[] | null; // trophy-case museum inset (null = closed), from EXAMINE CASE
   begin: () => void;
   submit: (cmd: string) => void;
   restartGame: () => void;
   applyEvents: (events: GameEvent[]) => void;
   openSlots: (mode: 'save' | 'load') => void;
   closeSlots: () => void;
+  closeCaseView: () => void;
   saveToSlot: (slot: number) => Promise<boolean>;
   loadSlot: (slot: number) => Promise<boolean>;
   setActiveSlot: (slot: number | null) => void;
@@ -101,6 +122,7 @@ export const useStore = create<GameStore>((set, get) => ({
   vignetteSeq: 0,
   slotsOpen: false,
   activeSlot: loadActiveSlot(),
+  caseView: null,
 
   begin: () => {
     const g = get().game;
@@ -111,6 +133,7 @@ export const useStore = create<GameStore>((set, get) => ({
 
   openSlots: (mode) => set({ slotsOpen: mode }),
   closeSlots: () => set({ slotsOpen: false }),
+  closeCaseView: () => set({ caseView: null }),
 
   setActiveSlot: (slot) => {
     if (HAS_STORAGE) {
@@ -193,6 +216,7 @@ export const useStore = create<GameStore>((set, get) => ({
     let saveReq = false;
     let restoreReq = false;
     let restartReq = false;
+    let caseViewReq = false;
 
     for (const e of events) {
       switch (e.type) {
@@ -202,7 +226,7 @@ export const useStore = create<GameStore>((set, get) => ({
         case 'room': {
           sawRoom = true;
           travelDir = e.dir;
-          const art = roomArtFor(e.room, s.gflags, (o, f) => fset$(s, o, f));
+          const art = roomArtFor(e.room, s.gflags, (o, f) => fset$(s, o, f), caseTreasureList(s).length);
           panel = `rooms/${art}`;
           panelIsEvent = false;
           roomName = DATA.rooms[e.room]?.desc ?? '';
@@ -242,6 +266,7 @@ export const useStore = create<GameStore>((set, get) => ({
         case 'save-request': saveReq = true; break;
         case 'restore-request': restoreReq = true; break;
         case 'restart': restartReq = true; break;
+        case 'case-view': caseViewReq = true; break;
       }
     }
 
@@ -276,6 +301,9 @@ export const useStore = create<GameStore>((set, get) => ({
         healthLostSeq: healthLost ? prev.healthLostSeq + 1 : prev.healthLostSeq,
         vignette: vignette === 'none' ? prev.vignette : vignette,
         vignetteSeq: vignette !== 'none' ? prev.vignetteSeq + 1 : prev.vignetteSeq,
+        // only open the museum inset when there's something to display —
+        // an empty case already reads fine as plain text
+        ...(caseViewReq && caseTreasureList(s).length ? { caseView: caseTreasureList(s) } : null),
       };
     });
 

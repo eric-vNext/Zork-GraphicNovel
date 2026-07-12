@@ -75,6 +75,41 @@ rug (required to reach the trap door at all) the case-full art could never
 be shown even after winning — it always lost to `living-room-trapdoor-closed`.
 Fixed the precedence to open-trapdoor > case-full > trapdoor-closed > base.
 
+## Trophy-case fill tiers + museum inset (2026-07-12)
+
+The trophy case now visibly fills as treasures are deposited (owner-approved
+approach: painted tiers for the room art, an HTML "museum cabinet" inset for
+literal per-item display — runtime sprite compositing onto the painting was
+researched and rejected: the panel renders `object-fit: cover` with a Ken
+Burns drift, so pixel-anchored overlays are fragile, and cut-out sprites
+fight the painted lighting).
+
+**7 new assets**, all `nano-banana-pro/edit` image-to-image edits in the
+same chain discipline as the consistency pass above:
+
+- `living-room-case-some-{open,closed}` — a few treasures (egg, portrait,
+  jade), faint glow; edited off the matching trapdoor-state base.
+- `living-room-case-crowded-{open,closed}` — most shelves filled (egg,
+  skull, chalice, jade, torch, pearls, coins, bar), strong glow.
+- `living-room-case-full-open` — two-reference edit combining
+  `living-room-case-full` (the radiant case) with the open trap door from
+  `living-room-trapdoor-open`; closes the gap where the full-case art could
+  only appear with the trap door shut.
+- `items/sapphire-bracelet`, `items/brass-bauble` — the two treasures that
+  had no item panels (needed as museum-inset miniatures; also wired into
+  `ITEM_ART` so EXAMINE shows them like other treasures).
+
+Tier selection lives in `roomArtFor()` (empty → 1–5 "some" → 6+ "crowded" →
+`WON-FLAG` full), computed from **live case contents** (nested included —
+the canary inside the egg counts), so taking treasures back out steps the
+art back down. All tier art shows the rug aside; a pre-rug-move deposit
+still gets tier art (treasure feedback beats rug fidelity — same call the
+case-full precedence fix above made). The museum inset opens on
+EXAMINE/LOOK IN CASE via a presentation-only `case-view` engine event; the
+verbatim container-listing text still prints unchanged. PNG masters are in
+`assets/{rooms,items}/`, converted with the standard `convert-assets.py`
+specs.
+
 ## Known nits (acceptable for v1)
 
 - Titles/lettering the model painted diegetically (rune-carved barrow arch, engravings) is stylized gibberish — appropriate for background art, never used to convey information.

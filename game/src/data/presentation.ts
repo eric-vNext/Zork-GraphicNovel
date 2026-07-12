@@ -113,13 +113,28 @@ export const ROOM_PRES: Record<string, RoomPres> = {
 };
 
 /** Dynamic panel overrides based on world flags (room state variants). */
-export function roomArtFor(room: string, gflags: Record<string, boolean>, oflags: (o: string, f: string) => boolean): string {
+export function roomArtFor(
+  room: string,
+  gflags: Record<string, boolean>,
+  oflags: (o: string, f: string) => boolean,
+  caseTreasures = 0, // treasures currently in the trophy case (docs: trophy-case tiers)
+): string {
   if (room === 'LIVING-ROOM') {
-    // case-full art shows the rug aside and the trap door closed, so it can
-    // take over from trapdoor-closed once the case is full; an open trap door
-    // still wins (the player is actively using it)
-    if (oflags('TRAP-DOOR', 'OPENBIT')) return 'living-room-trapdoor-open';
-    if (gflags['WON-FLAG']) return 'living-room-case-full';
+    // The case fills up in tiers as treasures are deposited: empty -> a few
+    // (1-5) -> crowded (6+) -> full (WON-FLAG). Each tier exists in both
+    // trapdoor-open and trapdoor-closed framings. All tier art shows the rug
+    // aside; if the player somehow deposits before moving the rug, showing
+    // their treasure beats rug fidelity (same call case-full already made).
+    const tier = gflags['WON-FLAG'] ? 'full' : caseTreasures >= 6 ? 'crowded' : caseTreasures >= 1 ? 'some' : null;
+    if (oflags('TRAP-DOOR', 'OPENBIT')) {
+      if (tier === 'full') return 'living-room-case-full-open';
+      if (tier === 'crowded') return 'living-room-case-crowded-open';
+      if (tier === 'some') return 'living-room-case-some-open';
+      return 'living-room-trapdoor-open';
+    }
+    if (tier === 'full') return 'living-room-case-full';
+    if (tier === 'crowded') return 'living-room-case-crowded-closed';
+    if (tier === 'some') return 'living-room-case-some-closed';
     if (gflags['RUG-MOVED']) return 'living-room-trapdoor-closed';
   }
   if (room === 'TROLL-ROOM' && gflags['TROLL-DEAD']) return 'troll-room-empty';
@@ -149,6 +164,8 @@ export const EVENT_PANELS = new Set([
   'events/villain-vanish', 'events/canary-song', 'events/thief-gift',
   'characters/troll', 'characters/thief', 'characters/cyclops', 'characters/bat',
   'rooms/living-room-trapdoor-open', 'rooms/living-room-trapdoor-closed', 'rooms/living-room-case-full',
+  'rooms/living-room-case-full-open', 'rooms/living-room-case-some-open', 'rooms/living-room-case-some-closed',
+  'rooms/living-room-case-crowded-open', 'rooms/living-room-case-crowded-closed',
   'rooms/grating-clearing', 'rooms/grating-clearing-open', 'rooms/grating-room-open',
   'rooms/dam-room', 'rooms/dam-open', 'rooms/cyclops-room', 'rooms/cyclops-room-hole',
   'rooms/troll-room', 'rooms/troll-room-empty', 'rooms/rainbow-solid', 'rooms/reservoir-drained',
@@ -167,4 +184,6 @@ export const ITEM_ART: Record<string, string> = {
   TRUNK: 'trunk-of-jewels', BAR: 'platinum-bar', EMERALD: 'emerald-buoy', SCARAB: 'scarab',
   'POT-OF-GOLD': 'pot-of-gold', JADE: 'jade-figurine', 'BAG-OF-COINS': 'bag-of-coins',
   'INFLATABLE-BOAT': 'magic-boat', 'INFLATED-BOAT': 'magic-boat',
+  BRACELET: 'sapphire-bracelet', BAUBLE: 'brass-bauble',
+  'BROKEN-EGG': 'jeweled-egg', 'BROKEN-CANARY': 'clockwork-canary',
 };

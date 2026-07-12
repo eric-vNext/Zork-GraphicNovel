@@ -115,6 +115,11 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       return true;
     }
     if (ctx.verb === 'take') { out.tell('The trophy case is securely fastened to the wall.'); return true; }
+    if (ctx.verb === 'examine' || ctx.verb === 'look-in') {
+      // presentation-only: the store opens the museum-cabinet inset; the
+      // default handler still prints the normal container listing text
+      out.emit({ type: 'case-view' });
+    }
     return false;
   },
   LAMP: (ctx) => {

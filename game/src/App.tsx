@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useStore } from './state/store';
 import { GameScreen } from './components/GameScreen';
 import { SaveLoadModal } from './components/SaveLoadModal';
+import { CaseView } from './components/CaseView';
 
 const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -50,6 +51,7 @@ export default function App() {
       {screen === 'victory' && <VictoryScreen />}
       {help && <HelpModal onClose={() => setHelp(false)} />}
       {slotsOpen && <SaveLoadModal />}
+      <CaseView />
     </div>
   );
 }

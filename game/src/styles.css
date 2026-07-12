@@ -365,6 +365,64 @@ body {
 }
 .save-slot-actions button:disabled { opacity: 0.4; cursor: default; }
 
+/* ---------- trophy-case museum inset ---------- */
+.case-view {
+  background: linear-gradient(#221c12, #191510);
+  border: 3px double var(--accent);
+  max-width: 640px;
+  max-height: 84dvh;
+  overflow-y: auto;
+  padding: 20px 24px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.85), inset 0 0 60px rgba(200,162,74,0.08);
+}
+.case-view h3 {
+  font-family: 'IM Fell English SC', serif;
+  color: var(--caption-bg);
+  margin: 0 0 14px;
+  text-align: center;
+  letter-spacing: 2px;
+}
+.case-cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+.case-cell {
+  margin: 0;
+  background: #14110c;
+  border: 1px solid #4a3d22;
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.7);
+  padding: 6px;
+}
+.case-cell img, .case-cell-blank {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid #6b5836;
+  filter: saturate(0.92);
+  color: #c8a24a; font-size: 32px;
+}
+.case-cell figcaption {
+  font-family: 'IM Fell English SC', serif;
+  color: #e9dfa8;
+  font-size: 12.5px;
+  text-align: center;
+  margin-top: 5px;
+  line-height: 1.25;
+}
+.case-cell figcaption span {
+  display: block;
+  color: #9d8a5e;
+  font-size: 11px;
+}
+.case-total {
+  text-align: center;
+  color: #cfc7b2;
+  font-size: 13px;
+  margin: 14px 0 6px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
