@@ -72,9 +72,6 @@ function Stage() {
   const isEvent = useStore((s) => s.panelIsEvent);
   const roomName = useStore((s) => s.roomName);
   const submit = useStore((s) => s.submit);
-  const [settled, setSettled] = useState(false);
-
-  useEffect(() => { setSettled(false); }, [seq]);
 
   const fly = isEvent ? 36 : 24;
   const dur = isEvent ? 0.6 : 0.42;
@@ -83,26 +80,13 @@ function Stage() {
   return (
     <div className="stage">
       <AnimatePresence mode="sync">
-        <motion.img
+        <PanelImage
           key={seq}
-          className="panel-img"
           src={`./art/${panel}.webp`}
           alt={roomName}
-          initial={{ opacity: 0, x: fly, y: -12, scale: 1.035 }}
-          animate={
-            REDUCED_MOTION
-              ? { opacity: 1, x: 0, y: 0, scale: 1 }
-              : settled
-                ? { opacity: 1, ...drift }
-                : { opacity: 1, x: 0, y: 0, scale: 1 }
-          }
-          exit={{ opacity: 0, transition: { duration: 0.26 } }}
-          transition={
-            settled
-              ? { duration: 22, ease: 'easeInOut', repeat: Infinity, repeatType: 'mirror' }
-              : { duration: dur, ease: [0.22, 1, 0.36, 1] }
-          }
-          onAnimationComplete={() => { if (!settled) setSettled(true); }}
+          fly={fly}
+          dur={dur}
+          drift={drift}
         />
       </AnimatePresence>
       {roomName && <div className="room-caption">{roomName}</div>}
@@ -123,6 +107,41 @@ function Stage() {
         <img src="./art/ui/compass-rose.webp" alt="" draggable={false} />
       </button>
     </div>
+  );
+}
+
+interface DriftSpec { scale: number[]; x: number[]; y: number[] }
+
+// Owns its own `settled` flag, scoped to one panel image by React's `key`
+// remount. Settled state living in the parent (Stage) instead of here was
+// the bug behind the "fade takes 10 seconds" report: a fresh panel's first
+// render would still see the *previous* panel's settled=true (React hasn't
+// run the reset effect yet), so its entrance briefly picked up the 22s idle
+// transition instead of the fast one. A remounted-per-key component can't
+// carry that staleness — it always starts at settled=false.
+function PanelImage({ src, alt, fly, dur, drift }: { src: string; alt: string; fly: number; dur: number; drift: DriftSpec }) {
+  const [settled, setSettled] = useState(false);
+  return (
+    <motion.img
+      className="panel-img"
+      src={src}
+      alt={alt}
+      initial={{ opacity: 0, x: fly, y: -12, scale: 1.035 }}
+      animate={
+        REDUCED_MOTION
+          ? { opacity: 1, x: 0, y: 0, scale: 1 }
+          : settled
+            ? { opacity: 1, ...drift }
+            : { opacity: 1, x: 0, y: 0, scale: 1 }
+      }
+      exit={{ opacity: 0, transition: { duration: 0.26 } }}
+      transition={
+        settled
+          ? { duration: 22, ease: 'easeInOut', repeat: Infinity, repeatType: 'mirror' }
+          : { duration: dur, ease: [0.22, 1, 0.36, 1] }
+      }
+      onAnimationComplete={() => { if (!settled) setSettled(true); }}
+    />
   );
 }
 
