@@ -139,14 +139,15 @@ function Stage() {
   );
 }
 
-// First-take treasure card: the item's own art flies in over the room panel,
-// holds a beat, and flies back out — the room panel underneath never changes,
-// which sidesteps the "last panel event wins" overwrite gotcha entirely.
-// Keyed by treasureFlashSeq for the same one-shot-remount reason as ShakeWrap.
+// Fly-in flash card (first treasure take, sword glow): dramatic art flies in
+// over the room panel, holds a beat, and flies back out — the room panel
+// underneath never changes, which sidesteps the "last panel event wins"
+// overwrite gotcha entirely. Keyed by flashSeq for the same one-shot-remount
+// reason as ShakeWrap.
 function TreasureFlash() {
-  const flash = useStore((s) => s.treasureFlash);
-  const seq = useStore((s) => s.treasureFlashSeq);
-  const clear = useStore((s) => s.clearTreasureFlash);
+  const flash = useStore((s) => s.flashCard);
+  const seq = useStore((s) => s.flashSeq);
+  const clear = useStore((s) => s.clearFlashCard);
   if (!flash) return null;
   return (
     <motion.figure
@@ -167,8 +168,8 @@ function TreasureFlash() {
       }
       onAnimationComplete={clear}
     >
-      <img src={`./art/items/${flash.art}.webp`} alt="" draggable={false} />
-      <figcaption>{flash.name}</figcaption>
+      <img src={`./art/${flash.art}.webp`} alt="" draggable={false} />
+      {flash.caption && <figcaption>{flash.caption}</figcaption>}
     </motion.figure>
   );
 }

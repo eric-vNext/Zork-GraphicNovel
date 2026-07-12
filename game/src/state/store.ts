@@ -86,8 +86,11 @@ interface GameStore {
   slotsOpen: SlotsMode;      // the save-slots panel, opened by UI buttons or SAVE/RESTORE verbs
   activeSlot: number | null; // last slot saved to or loaded from; typed SAVE/RESTORE target it
   caseView: CaseItem[] | null; // trophy-case museum inset (null = closed), from EXAMINE CASE
-  treasureFlash: { art: string; name: string } | null; // fly-in card on first treasure take
-  treasureFlashSeq: number;    // keys each flash so repeats remount fresh
+  // transient fly-in card over the stage (first treasure take, sword glow) —
+  // shows dramatic art without replacing the room panel underneath.
+  // art is a path under ./art/ without extension, e.g. 'items/jeweled-egg'.
+  flashCard: { art: string; caption?: string } | null;
+  flashSeq: number;            // keys each flash so repeats remount fresh
   begin: () => void;
   submit: (cmd: string) => void;
   restartGame: () => void;
@@ -95,7 +98,7 @@ interface GameStore {
   openSlots: (mode: 'save' | 'load') => void;
   closeSlots: () => void;
   closeCaseView: () => void;
-  clearTreasureFlash: () => void;
+  clearFlashCard: () => void;
   saveToSlot: (slot: number) => Promise<boolean>;
   loadSlot: (slot: number) => Promise<boolean>;
   setActiveSlot: (slot: number | null) => void;
@@ -126,8 +129,8 @@ export const useStore = create<GameStore>((set, get) => ({
   slotsOpen: false,
   activeSlot: loadActiveSlot(),
   caseView: null,
-  treasureFlash: null,
-  treasureFlashSeq: 0,
+  flashCard: null,
+  flashSeq: 0,
 
   begin: () => {
     const g = get().game;
@@ -139,7 +142,7 @@ export const useStore = create<GameStore>((set, get) => ({
   openSlots: (mode) => set({ slotsOpen: mode }),
   closeSlots: () => set({ slotsOpen: false }),
   closeCaseView: () => set({ caseView: null }),
-  clearTreasureFlash: () => set({ treasureFlash: null }),
+  clearFlashCard: () => set({ flashCard: null }),
 
   setActiveSlot: (slot) => {
     if (HAS_STORAGE) {
@@ -223,7 +226,7 @@ export const useStore = create<GameStore>((set, get) => ({
     let restoreReq = false;
     let restartReq = false;
     let caseViewReq = false;
-    let treasureObj: string | null = null;
+    let flashCard: { art: string; caption?: string } | null = null;
 
     for (const e of events) {
       switch (e.type) {
@@ -248,6 +251,10 @@ export const useStore = create<GameStore>((set, get) => ({
         }
         case 'panel': {
           const key = PANEL_FALLBACK[e.key] ?? e.key;
+          // Sword glow fires as a daemon right after room transitions, so as
+          // a panel it always stole the just-entered room's art ("last panel
+          // event wins"). Render it as a fly-in card over the room instead.
+          if (key === 'events/sword-glow') { flashCard = { art: key }; break; }
           if (EVENT_PANELS.has(key) || key.startsWith('rooms/') || key.startsWith('items/')) {
             panel = key;
             panelIsEvent = key.startsWith('events/') || key.startsWith('characters/') || key.startsWith('items/');
@@ -275,7 +282,7 @@ export const useStore = create<GameStore>((set, get) => ({
         case 'restart': restartReq = true; break;
         case 'case-view': caseViewReq = true; break;
         case 'treasure':
-          if (ITEM_ART[e.obj]) treasureObj = e.obj;
+          if (ITEM_ART[e.obj]) flashCard = { art: `items/${ITEM_ART[e.obj]}`, caption: DATA.objects[e.obj]?.desc ?? '' };
           else { panel = 'events/treasure-gleam'; panelIsEvent = true; } // no art: old generic gleam
           break;
       }
@@ -315,12 +322,7 @@ export const useStore = create<GameStore>((set, get) => ({
         // only open the museum inset when there's something to display —
         // an empty case already reads fine as plain text
         ...(caseViewReq && caseTreasureList(s).length ? { caseView: caseTreasureList(s) } : null),
-        ...(treasureObj
-          ? {
-              treasureFlash: { art: ITEM_ART[treasureObj], name: DATA.objects[treasureObj]?.desc ?? '' },
-              treasureFlashSeq: prev.treasureFlashSeq + 1,
-            }
-          : null),
+        ...(flashCard ? { flashCard, flashSeq: prev.flashSeq + 1 } : null),
       };
     });
 
