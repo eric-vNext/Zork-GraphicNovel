@@ -265,6 +265,13 @@ function villainResult(ctx: Ctx, villain: string, def: number, res: Outcome): vo
   if (def === 0) {
     fclear(s, villain, 'FIGHTBIT');
     out.tell(`Almost as soon as the ${villainDesc(villain)} breathes his last breath, a cloud of sinister black fog envelops him, and when the fog lifts, the carcass has disappeared.`);
+    out.emit({ type: 'sfx', name: 'corpse-vanish' });
+    // The troll's own trollDead() emits rooms/troll-room-empty right after this
+    // (which wins per "last panel event wins" -- see docs/handoff-2026-07-11.md),
+    // and that empty-room reveal is the more useful resting shot there, so this
+    // dramatic beat's own art is reserved for the thief, which has no such
+    // follow-up panel of its own.
+    if (villain !== 'TROLL') out.emit({ type: 'panel', key: 'events/villain-vanish' });
     removeObj(s, villain);
     if (villain === 'TROLL') trollDead(ctx);
     else thiefDead(ctx);

@@ -58,7 +58,10 @@ export const DAEMONS: Record<string, Daemon> = {
       s.counters.candleIdx = next;
       ctx.queue('I-CANDLES', CANDLE_TABLE[next][0]);
     } else {
-      if (inPlayer(s, 'CANDLES')) out.tell("You'd better have more light than from the pair of candles.");
+      if (inPlayer(s, 'CANDLES')) {
+        out.tell("You'd better have more light than from the pair of candles.");
+        out.emit({ type: 'sfx', name: 'lamp-off' }); // parity with I-LANTERN's own burnout sfx
+      }
       fclear(s, 'CANDLES', 'ONBIT');
       fclear(s, 'CANDLES', 'FLAMEBIT');
       fset(s, 'CANDLES', 'RMUNGBIT');

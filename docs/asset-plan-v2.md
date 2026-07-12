@@ -1,7 +1,7 @@
 # Extended Asset & Presentation Plan (v2)
 
-**Status: Tier A and Tier D shipped (2026-07-12).** Tier B (new SFX) and
-Tier C (new event-panel art) are still open — see §2/§3 below.
+**Status: Tier A, B, and D shipped (2026-07-12).** Tier C (new event-panel
+art) is still open — see §3 below.
 
 Continuation of `docs/asset-plan.md` (all Tier-1/Tier-2 items from that plan
 are shipped — see `docs/generated-asset-review.md`). This plan catalogs
@@ -60,7 +60,26 @@ Total cost: three one-line `out.emit()` additions. Do this first.
 
 ---
 
-## 2. Tier B — new sound effects
+## 2. Tier B — new sound effects ✅ done (2026-07-12)
+
+All 9 new sounds shipped (`glass-shatter`, `sand-collapse`, `boat-puncture`,
+`corpse-vanish`, `ghost-curse`, `mirror-warp`, `cyclops-yawn`, `rug-drag`,
+`putty-seal`) plus the 2 reuse-only wirings (`dam-gates-close` reusing
+`dam-machinery.m4a`, `candle-burnout` reusing `lamp-off.m4a`). One deliberate
+deviation from the plan: `corpse-vanish`'s `events/villain-vanish` panel
+(added alongside, jumping ahead into Tier C for this one pairing) only fires
+for the thief, not the troll — `trollDead()` emits its own
+`rooms/troll-room-empty` panel immediately after in the same turn, which
+wins per "last panel event wins", so giving the troll case a panel too
+would've been silently discarded; see the comment at the call site.
+
+**Bonus find:** writing the `putty-seal` test surfaced a real, pre-existing
+bug — `LEAK` was never actually revealed to the parser (its `INVISIBLE`
+flag was never cleared when the blue button starts the flood, unlike the
+source, which does clear it in the equivalent `BUTTON-F` branch), so the
+whole dam-leak-with-putty puzzle was unsolvable. Fixed in the same pass
+(`specials.ts`, blue-button handler) since it directly blocked verifying
+the new sfx; see `tests/tierB.test.ts`'s dedicated regression test for it.
 
 All buildable with the existing numpy DSP toolkit in `synth-audio.py`
 (`sine`/`noise`/`bp`/`reverb`/`env_perc`/etc. — see the file's own comments

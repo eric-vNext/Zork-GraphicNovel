@@ -76,6 +76,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       s.gflags['RUG-MOVED'] = true;
       fclear(s, 'TRAP-DOOR', 'INVISIBLE');
       out.tell('With a great effort, the rug is moved to one side of the room, revealing the dusty cover of a closed trap door.');
+      out.emit({ type: 'sfx', name: 'rug-drag' });
       out.emit({ type: 'panel', key: 'rooms/living-room-trapdoor-closed' });
       return true;
     }
@@ -147,6 +148,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
     }
     if (ctx.verb === 'throw') {
       out.tell('The lamp has smashed into the floor, and the light has gone out.');
+      out.emit({ type: 'sfx', name: 'glass-shatter' });
       ctx.disable('I-LANTERN');
       removeObj(s, 'LAMP');
       moveObj(s, 'BROKEN-LAMP', s.here);
@@ -333,6 +335,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       removeObj(s, 'BOTTLE');
       if (roomOf(s, 'WATER') || inPlayer(s, 'WATER')) removeObj(s, 'WATER');
       out.tell('The bottle hits the far wall and shatters.');
+      out.emit({ type: 'sfx', name: 'glass-shatter' });
       return true;
     }
     return false;
@@ -432,6 +435,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
         out.tell('You can see a scarab here in the sand.');
         out.emit({ type: 'sfx', name: 'treasure-chime' });
       } else {
+        out.emit({ type: 'sfx', name: 'sand-collapse' });
         out.emit({ type: 'shake' });
         jigsUp(ctx, 'The hole collapses, smothering you.', {});
       }
@@ -451,6 +455,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       if (s.gflags['LOW-TIDE']) {
         s.gflags['LOW-TIDE'] = false; // actually closing gates refills
         out.tell('The sluice gates close and water starts to collect behind the dam.');
+        out.emit({ type: 'sfx', name: 'dam-machinery' });
         ctx.queue('I-RFILL', 8);
       } else {
         out.tell('The sluice gates open and water pours through the dam.');
@@ -475,6 +480,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       if (ctx.enabled('I-MAINT-ROOM')) {
         ctx.disable('I-MAINT-ROOM');
         out.tell('By some miracle of Zorkian technology, you have managed to stop the leak in the dam.');
+        out.emit({ type: 'sfx', name: 'putty-seal' });
         return true;
       }
     }
@@ -588,6 +594,8 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
         removeObj(s, 'WATER');
         s.gflags['CYCLOPS-FLAG'] = true;
         out.tell('The cyclops takes the bottle, checks that it\'s open, and drinks the water. A moment later, he lets out a yawn that nearly blows you over, and then falls fast asleep (what did you put in that drink, anyway?).');
+        out.emit({ type: 'sfx', name: 'cyclops-yawn' });
+        out.emit({ type: 'panel', key: 'events/cyclops-sleeps' });
         s.counters.cyclowrath = 0;
         return true;
       }
@@ -628,6 +636,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       const sharp = inventory(s).find((o) => ['SWORD', 'AXE', 'KNIFE', 'RUSTY-KNIFE', 'STILETTO', 'SCEPTRE'].includes(o));
       if (sharp) {
         out.tell(`Oops! Something sharp seems to have slipped and punctured the boat. The boat deflates to the sounds of hissing, sputtering, and cursing.`);
+        out.emit({ type: 'sfx', name: 'boat-puncture' });
         removeObj(s, 'INFLATED-BOAT');
         moveObj(s, 'PUNCTURED-BOAT', s.here);
         return true;
@@ -695,6 +704,8 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
     if (['touch', 'move', 'take', 'push'].includes(ctx.verb)) {
       const { s, out } = ctx;
       out.tell('A ghost appears in the room and is appalled at your desecration of the remains of a fellow adventurer. He casts a curse on your valuables and banishes them to the Land of the Living Dead. The ghost leaves, muttering obscenities.');
+      out.emit({ type: 'sfx', name: 'ghost-curse' });
+      out.emit({ type: 'panel', key: 'events/ghost-curse' });
       for (const o of inventory(s)) {
         if ((objDef(o).tvalue ?? 0) > 0) moveObj(s, o, 'LAND-OF-LIVING-DEAD');
       }
@@ -789,13 +800,14 @@ function weaponFunction(ctx: Ctx, weapon: string, villain: string, defeated: () 
 function mirrorHandler(ctx: Ctx): boolean {
     const { s, out } = ctx;
     if (ctx.verb === 'touch' || ctx.verb === 'rub') {
-      if (s.here === 'MIRROR-ROOM-1') { out.emit({ type: 'shake' }); ctx.moveTo('MIRROR-ROOM-2', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); return true; }
-      if (s.here === 'MIRROR-ROOM-2') { out.emit({ type: 'shake' }); ctx.moveTo('MIRROR-ROOM-1', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); return true; }
+      if (s.here === 'MIRROR-ROOM-1') { out.emit({ type: 'sfx', name: 'mirror-warp' }); out.emit({ type: 'shake' }); ctx.moveTo('MIRROR-ROOM-2', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); return true; }
+      if (s.here === 'MIRROR-ROOM-2') { out.emit({ type: 'sfx', name: 'mirror-warp' }); out.emit({ type: 'shake' }); ctx.moveTo('MIRROR-ROOM-1', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); return true; }
       return false;
     }
     if (ctx.verb === 'break') {
       s.gflags['MIRROR-MUNG'] = true;
       out.tell('You have broken the mirror. I hope you have a seven years\' supply of good luck handy.');
+      out.emit({ type: 'sfx', name: 'glass-shatter' });
       return true;
     }
     if (ctx.verb === 'examine' || ctx.verb === 'look-in') {
@@ -824,6 +836,7 @@ function buttonHandler(color: string): Handler {
     }
     if (color === 'BLUE') {
       if (s.gflags['MAINT-FLOODED'] || ctx.enabled('I-MAINT-ROOM')) { out.tell('The blue button appears to be jammed.'); return true; }
+      fclear(s, 'LEAK', 'INVISIBLE');
       out.tell('There is a rumbling sound and a stream of water appears to burst from the east wall of the room (apparently, a leak has occurred in a pipe).');
       out.emit({ type: 'sfx', name: 'flood-rising' });
       out.emit({ type: 'panel', key: 'rooms/maintenance-flooding' });

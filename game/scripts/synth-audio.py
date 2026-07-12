@@ -435,6 +435,55 @@ def sfx_hollow_voice():
     base = saw(95, 1.4)
     v = bp(base, 300, 900) + bp(base, 1000, 1600) * 0.5
     return reverb(v * env_ad(np.ones(len(v)), 0.25, 0.6)[:len(v)], 1.4, 0.5) * 0.6
+# docs/asset-plan-v2.md Tier B: new SFX for previously-silent story beats.
+def sfx_glass_shatter():
+    crash = bp(noise(0.35), 2500, 9000) * env_perc(0.35, 0.001, 14)
+    c = np.zeros(int(0.6 * SR))
+    place(c, crash, 0)
+    for i in range(6):
+        f = rng.uniform(2800, 5200)
+        place(c, sine(f, 0.25) * env_perc(0.25, 0.001, 22) * 0.18, 0.02 + i * 0.025)
+    return reverb(c, 0.4, 0.22)
+def sfx_sand_collapse():
+    rumble = lp(noise(1.2), 220) * env_ad(np.ones(int(1.2*SR)), 0.05, 0.9)[:int(1.2*SR)]
+    f = np.linspace(90, 45, int(0.9 * SR))
+    groan = np.sin(np.cumsum(2 * np.pi * f / SR)) * env_ad(np.ones(int(0.9*SR)), 0.05, 0.7)[:int(0.9*SR)] * 0.4
+    grit = bp(noise(1.1), 1200, 4000) * slow_lfo(1.1, 6, 0.2, 0.6) * 0.3
+    return mix(rumble * 0.7, groan, grit)
+def sfx_boat_puncture():
+    # deflating hiss: sharp onset, noisy decay -- inverse arc of sfx_inflate's rising bursts
+    return bp(noise(1.3), 900, 3800) * env_perc(1.3, 0.005, 2.0) * 1.1
+def sfx_corpse_vanish():
+    # dark descending whoosh for the troll/thief "black fog" vanish
+    f = np.linspace(220, 55, int(0.9 * SR))
+    swoop = np.sin(np.cumsum(2 * np.pi * f / SR))
+    v = bp(swoop, 80, 700) * env_ad(np.ones(int(0.9*SR)), 0.02, 0.75)[:int(0.9*SR)]
+    return reverb(v, 1.1, 0.55) * 0.55
+def sfx_ghost_curse():
+    # eerie rising formant, higher and more plaintive than hollow-voice
+    base = saw(180, 1.3)
+    v = bp(base, 500, 1400) + bp(base, 1400, 2400) * 0.4
+    wail = v * env_ad(np.ones(int(1.3*SR)), 0.35, 0.6)[:int(1.3*SR)]
+    return reverb(wail, 1.3, 0.5) * 0.5
+def sfx_mirror_warp():
+    f = np.linspace(45, 90, int(0.8 * SR))
+    swoop = np.sin(np.cumsum(2 * np.pi * f / SR)) * env_ad(np.ones(int(0.8*SR)), 0.05, 0.5)[:int(0.8*SR)]
+    rumble = lp(noise(0.8), 130) * env_ad(np.ones(int(0.8*SR)), 0.05, 0.6)[:int(0.8*SR)]
+    return mix(bp(swoop, 40, 220) * 0.5, rumble * 0.5)
+def sfx_cyclops_yawn():
+    f = np.linspace(300, 90, int(1.6 * SR))
+    yawn = np.sin(np.cumsum(2 * np.pi * f / SR)) * env_ad(np.ones(int(1.6*SR)), 0.3, 1.0)[:int(1.6*SR)]
+    breath = lp(noise(0.9), 500) * env_ad(np.ones(int(0.9*SR)), 0.2, 0.6)[:int(0.9*SR)] * 0.25
+    c = np.zeros(int(2.6 * SR))
+    place(c, bp(yawn, 80, 700) * 0.5, 0)
+    place(c, breath, 1.5)
+    return c
+def sfx_rug_drag():
+    return bp(noise(0.7), 150, 900) * slow_lfo(0.7, 4, 0.3, 0.8) * env_ad(np.ones(int(0.7*SR)), 0.05, 0.5)[:int(0.7*SR)] * 0.45
+def sfx_putty_seal():
+    squelch = bp(noise(0.25), 300, 1400) * env_perc(0.25, 0.01, 14)
+    pop = sine(180, 0.08) * env_perc(0.08, 0.002, 30) * 0.4
+    return np.concatenate([squelch, pop])
 def sfx_slide():
     f = np.linspace(400, 2000, int(1.3 * SR))
     wh = bp(noise(1.3), 400, 4000) * env_ad(np.ones(int(1.3*SR)), 0.15, 0.3)[:int(1.3*SR)]
@@ -479,6 +528,10 @@ SFX = {
     "treasure-chime-above": sfx_treasure_above, "treasure-chime-house": sfx_treasure_house,
     "treasure-chime-temple": sfx_treasure_temple,
     "treasure-chime-dam": sfx_treasure_dam, "treasure-chime-endgame": sfx_treasure_endgame,
+    "glass-shatter": sfx_glass_shatter, "sand-collapse": sfx_sand_collapse,
+    "boat-puncture": sfx_boat_puncture, "corpse-vanish": sfx_corpse_vanish,
+    "ghost-curse": sfx_ghost_curse, "mirror-warp": sfx_mirror_warp,
+    "cyclops-yawn": sfx_cyclops_yawn, "rug-drag": sfx_rug_drag, "putty-seal": sfx_putty_seal,
 }
 for name, fn in SFX.items():
     emit(name, fn(), "sfx", gain=0.8)
