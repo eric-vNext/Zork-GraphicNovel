@@ -49,6 +49,17 @@ export async function listSaveSlots(count = SAVE_SLOT_COUNT): Promise<(SaveSlotR
   return results;
 }
 
+export async function readSaveSlot(slot: number): Promise<SaveSlotRecord | null> {
+  const db = await openDb();
+  const record = await new Promise<SaveSlotRecord | null>((resolve, reject) => {
+    const req = db.transaction(STORE, 'readonly').objectStore(STORE).get(slot);
+    req.onsuccess = () => resolve(req.result ?? null);
+    req.onerror = () => reject(req.error);
+  });
+  db.close();
+  return record;
+}
+
 export async function writeSaveSlot(record: SaveSlotRecord): Promise<void> {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
@@ -69,4 +80,28 @@ export async function deleteSaveSlot(slot: number): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+}
+
+// One-time migration from the pre-slots localStorage save (key 'zork-gn-save',
+// removed 2026-07-12 when SAVE/RESTORE were unified onto the slots). Imports it
+// as slot 1 if slot 1 is empty, then deletes the key — idempotent, so React
+// StrictMode's double-invoked effects are harmless. Returns the migrated slot
+// number, or null if there was nothing to migrate.
+export async function migrateLegacySave(
+  describe: (state: unknown) => { roomName: string; score: number; moves: number },
+): Promise<number | null> {
+  const LEGACY_KEY = 'zork-gn-save';
+  const json = localStorage.getItem(LEGACY_KEY);
+  if (!json) return null;
+  try {
+    const existing = await readSaveSlot(1);
+    if (!existing) {
+      const meta = describe(JSON.parse(json));
+      await writeSaveSlot({ slot: 1, json, ...meta, timestamp: Date.now() });
+    }
+    localStorage.removeItem(LEGACY_KEY);
+    return existing ? null : 1;
+  } catch {
+    return null; // corrupt legacy save: leave the key for manual inspection
+  }
 }

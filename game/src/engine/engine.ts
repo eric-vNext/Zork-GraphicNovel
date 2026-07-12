@@ -10,7 +10,6 @@ import { fightStrength } from './melee';
 import { jigsUp } from './death';
 import { describeRoom } from './describe';
 
-const SAVE_KEY = 'zork-gn-save';
 const RANKS: Array<[number, string]> = [
   [350, 'Master Adventurer'], [330, 'Wizard'], [300, 'Master'], [200, 'Adventurer'],
   [100, 'Junior Adventurer'], [50, 'Novice Adventurer'], [25, 'Amateur Adventurer'], [0, 'Beginner'],
@@ -27,6 +26,7 @@ export class Game {
   private rngState = 12345;
   private scripting = false;
   private transcript: string[] = [];
+  private pendingRestart = false; // RESTART asked "Y is affirmative", awaiting the answer
 
   constructor() {
     this.s = newState();
@@ -113,12 +113,29 @@ export class Game {
   private executeInner(input: string): GameEvent[] {
     const out = new Out();
     const s = this.s;
+    let raw = input.trim();
+
+    // answer to "Do you wish to restart? (Y is affirmative):" — must be checked
+    // before the dead/won gate, since RESTART is offered in both states
+    if (this.pendingRestart) {
+      this.pendingRestart = false;
+      if (/^y(es)?$/i.test(raw)) {
+        out.tell('Restarting.', 'system');
+        out.emit({ type: 'restart' });
+      } else {
+        out.tell('Ok.', 'system');
+      }
+      return out.events;
+    }
+
     if (s.dead || s.won) {
+      // the death message promises RESTART and RESTORE work — honor that
+      if (/^restart$/i.test(raw)) { this.askRestart(out); return out.events; }
+      if (s.dead && /^restore$/i.test(raw)) { out.emit({ type: 'restore-request' }); return out.events; }
       out.tell(s.won ? 'The game is over. Start a new game to play again.' : 'You are dead. RESTART or RESTORE a saved game.', 'system');
       return out.events;
     }
 
-    let raw = input.trim();
     if (!raw) { out.tell('I beg your pardon?'); return out.events; }
 
     // echo command back in log styling is handled by UI; here: AGAIN
@@ -210,9 +227,9 @@ export class Game {
       case 'verbose': s.verbosity = 'verbose'; out.tell('Maximum verbosity.', 'system'); return out.events;
       case 'brief': s.verbosity = 'brief'; out.tell('Brief descriptions.', 'system'); return out.events;
       case 'superbrief': s.verbosity = 'superbrief'; out.tell('Superbrief descriptions.', 'system'); return out.events;
-      case 'save': this.save(out); return out.events;
-      case 'restore': this.restore(out); return out.events;
-      case 'restart': out.tell('Use the menu (or reload) to restart.', 'system'); return out.events;
+      case 'save': out.emit({ type: 'save-request' }); return out.events;
+      case 'restore': out.emit({ type: 'restore-request' }); return out.events;
+      case 'restart': this.askRestart(out); return out.events;
       case 'quit': this.reportScore(out); out.tell('Use the menu to leave the game.', 'system'); return out.events;
       case 'version': this.printVersion(out); return out.events;
       case 'bug': out.tell('Bug? Not in a flawless program like this! (Cough, cough).', 'system'); return out.events;
@@ -306,27 +323,12 @@ export class Game {
     out.tell(`Your score is ${s.counters.score} (total of 350 points), in ${s.counters.moves} moves.\nThis gives you the rank of ${rank}.`, 'system');
   }
 
-  save(out: Out): void {
-    try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(this.s));
-      out.tell('Ok.', 'system');
-    } catch {
-      out.tell('Save failed.', 'system');
-    }
-  }
-
-  restore(out: Out): void {
-    const data = localStorage.getItem(SAVE_KEY);
-    if (!data) { out.tell('There is no saved game.', 'system'); return; }
-    try {
-      this.s = JSON.parse(data);
-      out.tell('Ok.', 'system');
-      out.emit({ type: 'room', room: this.s.here });
-      describeRoom(this.s, out, true);
-      out.emit({ type: 'score', score: this.s.counters.score, moves: this.s.counters.moves });
-    } catch {
-      out.tell('Restore failed.', 'system');
-    }
+  // Ports V-RESTART (gverbs.zil): report score, then ask for confirmation.
+  private askRestart(out: Out): void {
+    this.reportScore(out);
+    this.pendingRestart = true;
+    out.tell('Do you wish to restart? (Y is affirmative):', 'system');
+    out.emit({ type: 'ask', question: 'Do you wish to restart?', options: ['yes', 'no'] });
   }
 
   exportSave(): string { return JSON.stringify(this.s); }
@@ -336,6 +338,7 @@ export class Game {
       out.tell('Ok.', 'system');
       out.emit({ type: 'room', room: this.s.here });
       describeRoom(this.s, out, true);
+      out.emit({ type: 'score', score: this.s.counters.score, moves: this.s.counters.moves });
       return true;
     } catch { out.tell('That save file is invalid.', 'system'); return false; }
   }

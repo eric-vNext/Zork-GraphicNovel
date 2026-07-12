@@ -82,4 +82,10 @@ export type GameEvent =
   | { type: 'score'; score: number; moves: number }
   | { type: 'death'; permanent: boolean }
   | { type: 'victory' }
-  | { type: 'ask'; question: string; options: string[] }; // disambiguation chips
+  | { type: 'ask'; question: string; options: string[] } // disambiguation chips
+  // Save/restore/restart are fulfilled by the store layer: the engine is
+  // synchronous and storage-agnostic (IndexedDB is async), so SAVE/RESTORE
+  // emit requests the same way ZIL's <SAVE> deferred to the interpreter.
+  | { type: 'save-request' }
+  | { type: 'restore-request' }
+  | { type: 'restart' };

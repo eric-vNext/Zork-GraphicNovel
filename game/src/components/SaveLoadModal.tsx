@@ -1,14 +1,11 @@
-// Multi-slot save/load menu backed by IndexedDB (docs/handoff-2026-07-11.md
-// item 6). Additive to the classic single-slot SAVE/RESTORE verbs, which
-// still work unchanged via localStorage in engine.ts.
+// The save-slots panel — the one UI for all saving/loading (docs/saved-games.md).
+// Typed SAVE/RESTORE act on the active slot and open this panel when there
+// isn't one; the panel's own buttons go through the same store actions.
 import { useEffect, useState } from 'react';
 import { useStore } from '../state/store';
-import { Out } from '../engine/world';
-import { DATA } from '../engine/world';
 import {
   SAVE_SLOT_COUNT,
   listSaveSlots,
-  writeSaveSlot,
   deleteSaveSlot,
   type SaveSlotRecord,
 } from '../engine/idbSaves';
@@ -20,11 +17,13 @@ function formatTimestamp(ts: number): string {
   });
 }
 
-export function SaveLoadModal({ onClose }: { onClose: () => void }) {
-  const game = useStore((s) => s.game);
+export function SaveLoadModal() {
+  const mode = useStore((s) => s.slotsOpen);
   const screen = useStore((s) => s.screen);
-  const begin = useStore((s) => s.begin);
-  const applyEvents = useStore((s) => s.applyEvents);
+  const activeSlot = useStore((s) => s.activeSlot);
+  const saveToSlot = useStore((s) => s.saveToSlot);
+  const loadSlot = useStore((s) => s.loadSlot);
+  const closeSlots = useStore((s) => s.closeSlots);
 
   const [slots, setSlots] = useState<(SaveSlotRecord | null)[] | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
@@ -36,48 +35,23 @@ export function SaveLoadModal({ onClose }: { onClose: () => void }) {
 
   useEffect(refresh, []);
 
-  const canSave = screen === 'play' || screen === 'death';
+  const canSave = screen === 'play';
 
   const handleSave = async (slot: number) => {
     setBusy(slot);
     setError('');
-    try {
-      const json = game.exportSave();
-      const state = JSON.parse(json);
-      await writeSaveSlot({
-        slot,
-        json,
-        roomName: DATA.rooms[state.here]?.desc ?? state.here,
-        score: state.counters?.score ?? 0,
-        moves: state.counters?.moves ?? 0,
-        timestamp: Date.now(),
-      });
-      refresh();
-    } catch {
-      setError('Save failed.');
-    } finally {
-      setBusy(null);
-    }
+    const ok = await saveToSlot(slot);
+    if (!ok) setError('Save failed.');
+    setBusy(null);
+    if (ok) closeSlots();
   };
 
-  const handleLoad = async (record: SaveSlotRecord) => {
-    setBusy(record.slot);
+  const handleLoad = async (slot: number) => {
+    setBusy(slot);
     setError('');
-    try {
-      if (screen !== 'play') begin();
-      const out = new Out();
-      const ok = game.importSave(record.json, out);
-      if (ok) {
-        applyEvents(out.events);
-        onClose();
-      } else {
-        setError('That save slot is corrupted.');
-      }
-    } catch {
-      setError('Load failed.');
-    } finally {
-      setBusy(null);
-    }
+    const ok = await loadSlot(slot);
+    if (!ok) setError('That save slot could not be loaded.');
+    setBusy(null);
   };
 
   const handleDelete = async (slot: number) => {
@@ -94,12 +68,15 @@ export function SaveLoadModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="modal-wrap" onClick={onClose}>
+    <div className="modal-wrap" onClick={closeSlots}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Save Slots</h3>
+        <h3>{mode === 'save' ? 'Save Game' : 'Restore Game'}</h3>
         <p>
-          These live in this browser's local storage (IndexedDB), separate from the classic
-          <code> save</code>/<code>restore</code> commands. Three slots, on this device only.
+          {mode === 'save'
+            ? 'Choose a slot to save to. '
+            : 'Choose a save to restore. '}
+          Typed <code>save</code>/<code>restore</code> use your last-used slot
+          (marked ★). Saves live in this browser only.
         </p>
         {error && <p style={{ color: '#e08a8a' }}>{error}</p>}
         <div className="save-slots">
@@ -109,7 +86,7 @@ export function SaveLoadModal({ onClose }: { onClose: () => void }) {
             return (
               <div key={slot} className="save-slot">
                 <div className="save-slot-info">
-                  <strong>Slot {slot}</strong>
+                  <strong>{activeSlot === slot ? '★ ' : ''}Slot {slot}</strong>
                   {record ? (
                     <span>
                       {record.roomName} — Score {record.score}, {record.moves} moves
@@ -124,7 +101,7 @@ export function SaveLoadModal({ onClose }: { onClose: () => void }) {
                   <button disabled={!canSave || isBusy} onClick={() => handleSave(slot)}>
                     Save
                   </button>
-                  <button disabled={!record || isBusy} onClick={() => record && handleLoad(record)}>
+                  <button disabled={!record || isBusy} onClick={() => handleLoad(slot)}>
                     Load
                   </button>
                   <button disabled={!record || isBusy} onClick={() => handleDelete(slot)}>
@@ -137,7 +114,7 @@ export function SaveLoadModal({ onClose }: { onClose: () => void }) {
         </div>
         <div className="btns" style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
-            onClick={onClose}
+            onClick={closeSlots}
             style={{ background: '#241f14', color: '#e9dfa8', border: '1px solid #c8a24a', padding: '6px 18px', cursor: 'pointer' }}
           >
             Close

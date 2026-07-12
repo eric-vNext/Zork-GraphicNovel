@@ -7,9 +7,30 @@ import { ROOM_PRES, roomArtFor, REGION_MUSIC, EVENT_PANELS, PANEL_FALLBACK } fro
 import { audio } from '../audio/audioManager';
 import { fset$, inventory, DATA, roomLit } from '../engine/world';
 import { Out } from '../engine/world';
+import { readSaveSlot, writeSaveSlot, migrateLegacySave } from '../engine/idbSaves';
 
 export interface LogLine { id: number; text: string; cls: string }
 export type Screen = 'title' | 'play' | 'death' | 'victory';
+export type SlotsMode = false | 'save' | 'load';
+
+const ACTIVE_SLOT_KEY = 'zork-gn-active-slot';
+// vitest runs the store in Node, where browser storage doesn't exist
+const HAS_STORAGE = typeof localStorage !== 'undefined';
+
+function loadActiveSlot(): number | null {
+  if (!HAS_STORAGE) return null;
+  const v = Number(localStorage.getItem(ACTIVE_SLOT_KEY));
+  return Number.isInteger(v) && v >= 1 ? v : null;
+}
+
+function saveMeta(state: unknown): { roomName: string; score: number; moves: number } {
+  const st = state as { here: string; counters?: { score?: number; moves?: number } };
+  return {
+    roomName: DATA.rooms[st.here]?.desc ?? st.here,
+    score: st.counters?.score ?? 0,
+    moves: st.counters?.moves ?? 0,
+  };
+}
 
 // Region-flavored treasure-fanfare stingers (docs/handoff-2026-07-11.md item 7).
 // The engine only ever emits the generic 'treasure-chime' sfx name; this is a
@@ -43,10 +64,17 @@ interface GameStore {
   healthLostSeq: number;     // bumped whenever a health pip is lost — triggers a pip reaction
   vignette: 'none' | 'wound' | 'death';
   vignetteSeq: number;       // bumped per vignette occurrence, even if the kind repeats
+  slotsOpen: SlotsMode;      // the save-slots panel, opened by UI buttons or SAVE/RESTORE verbs
+  activeSlot: number | null; // last slot saved to or loaded from; typed SAVE/RESTORE target it
   begin: () => void;
   submit: (cmd: string) => void;
   restartGame: () => void;
   applyEvents: (events: GameEvent[]) => void;
+  openSlots: (mode: 'save' | 'load') => void;
+  closeSlots: () => void;
+  saveToSlot: (slot: number) => Promise<boolean>;
+  loadSlot: (slot: number) => Promise<boolean>;
+  setActiveSlot: (slot: number | null) => void;
 }
 
 let lineId = 0;
@@ -71,12 +99,63 @@ export const useStore = create<GameStore>((set, get) => ({
   healthLostSeq: 0,
   vignette: 'none',
   vignetteSeq: 0,
+  slotsOpen: false,
+  activeSlot: loadActiveSlot(),
 
   begin: () => {
     const g = get().game;
     audio.unlock();
     set({ screen: 'play' });
     get().applyEvents(g.start());
+  },
+
+  openSlots: (mode) => set({ slotsOpen: mode }),
+  closeSlots: () => set({ slotsOpen: false }),
+
+  setActiveSlot: (slot) => {
+    if (HAS_STORAGE) {
+      if (slot === null) localStorage.removeItem(ACTIVE_SLOT_KEY);
+      else localStorage.setItem(ACTIVE_SLOT_KEY, String(slot));
+    }
+    set({ activeSlot: slot });
+  },
+
+  // Both the slot panel's buttons and the typed SAVE/RESTORE verbs land here,
+  // so there is exactly one save/load code path.
+  saveToSlot: async (slot) => {
+    const { game } = get();
+    try {
+      const json = game.exportSave();
+      await writeSaveSlot({ slot, json, ...saveMeta(JSON.parse(json)), timestamp: Date.now() });
+      get().setActiveSlot(slot);
+      set((st) => ({ log: [...st.log, { id: lineId++, text: 'Ok.', cls: 'system' }] }));
+      return true;
+    } catch {
+      set((st) => ({ log: [...st.log, { id: lineId++, text: 'Failed.', cls: 'system' }] }));
+      return false;
+    }
+  },
+
+  loadSlot: async (slot) => {
+    const { screen } = get();
+    try {
+      const record = await readSaveSlot(slot);
+      if (!record) { set({ slotsOpen: 'load' }); return false; }
+      if (screen !== 'play') get().begin();
+      const out = new Out();
+      const ok = get().game.importSave(record.json, out);
+      if (ok) {
+        get().applyEvents(out.events);
+        get().setActiveSlot(slot);
+        set({ slotsOpen: false });
+      } else {
+        get().applyEvents(out.events); // "That save file is invalid."
+      }
+      return ok;
+    } catch {
+      set((st) => ({ log: [...st.log, { id: lineId++, text: 'Failed.', cls: 'system' }] }));
+      return false;
+    }
   },
 
   submit: (cmdText: string) => {
@@ -111,6 +190,9 @@ export const useStore = create<GameStore>((set, get) => ({
     let travelDir = st.travelDir;
     let shakeBumps = 0;
     let tempDeath = false; // 'death' event with permanent:false — the resurrection flash
+    let saveReq = false;
+    let restoreReq = false;
+    let restartReq = false;
 
     for (const e of events) {
       switch (e.type) {
@@ -157,6 +239,9 @@ export const useStore = create<GameStore>((set, get) => ({
           audio.playBed('victory');
           break;
         case 'ask': chips = e.options; break;
+        case 'save-request': saveReq = true; break;
+        case 'restore-request': restoreReq = true; break;
+        case 'restart': restartReq = true; break;
       }
     }
 
@@ -193,5 +278,28 @@ export const useStore = create<GameStore>((set, get) => ({
         vignetteSeq: vignette !== 'none' ? prev.vignetteSeq + 1 : prev.vignetteSeq,
       };
     });
+
+    // Fulfill engine requests (the engine is synchronous; storage is not).
+    // Typed SAVE/RESTORE act on the active slot; without one, open the panel.
+    if (restartReq) { get().restartGame(); return; }
+    if (saveReq) {
+      const slot = get().activeSlot;
+      if (slot) void get().saveToSlot(slot);
+      else set({ slotsOpen: 'save' });
+    }
+    if (restoreReq) {
+      const slot = get().activeSlot;
+      if (slot) void get().loadSlot(slot); // opens the panel itself if the slot is empty
+      else set({ slotsOpen: 'load' });
+    }
   },
 }));
+
+// Legacy single-slot localStorage save (pre-2026-07-12) → slot 1, once.
+if (HAS_STORAGE && typeof indexedDB !== 'undefined') {
+  void migrateLegacySave(saveMeta).then((slot) => {
+    if (slot !== null && useStore.getState().activeSlot === null) {
+      useStore.getState().setActiveSlot(slot);
+    }
+  });
+}

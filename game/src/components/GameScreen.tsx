@@ -14,7 +14,7 @@ const PARTICLE_FLAVOR: Record<string, 'dust' | 'firefly' | 'ember' | 'spore' | '
 
 const QUICK_CHIPS = ['look', 'up', 'down', 'inventory', 'take all', 'open', 'examine', 'read', 'wait', 'save'];
 
-export function GameScreen({ onHelp, onSlots }: { onHelp: () => void; onSlots: () => void }) {
+export function GameScreen({ onHelp }: { onHelp: () => void }) {
   // Pin the app to the visual viewport so the soft keyboard overlays instead of
   // scrolling the page: the panel stays put and only the log compresses.
   useEffect(() => {
@@ -54,7 +54,7 @@ export function GameScreen({ onHelp, onSlots }: { onHelp: () => void; onSlots: (
     <div className="game">
       <Stage />
       <div className="right-col">
-        <StatusBar onHelp={onHelp} onSlots={onSlots} />
+        <StatusBar onHelp={onHelp} />
         <LogView />
         <CommandBar />
       </div>
@@ -244,7 +244,7 @@ function PanelImage({ src, alt, offset, dur, drift }: { src: string; alt: string
   );
 }
 
-function StatusBar({ onHelp, onSlots }: { onHelp: () => void; onSlots: () => void }) {
+function StatusBar({ onHelp }: { onHelp: () => void }) {
   const score = useStore((s) => s.score);
   const moves = useStore((s) => s.moves);
   const health = useStore((s) => s.health);
@@ -252,6 +252,7 @@ function StatusBar({ onHelp, onSlots }: { onHelp: () => void; onSlots: () => voi
   const healthLostSeq = useStore((s) => s.healthLostSeq);
   const submit = useStore((s) => s.submit);
   const game = useStore((s) => s.game);
+  const openSlots = useStore((s) => s.openSlots);
   const inv = useStore((s) => s.inventoryList);
   const [muted, setMuted] = useState(audio.muted);
   const [showInv, setShowInv] = useState(false);
@@ -290,9 +291,8 @@ function StatusBar({ onHelp, onSlots }: { onHelp: () => void; onSlots: () => voi
       </motion.span>
       <span className="spacer" />
       <button onClick={() => setShowInv(!showInv)}>Inventory</button>
-      <button onClick={() => submit('save')}>Save</button>
-      <button onClick={() => submit('restore')}>Restore</button>
-      <button onClick={onSlots}>Slots</button>
+      <button onClick={() => openSlots('save')}>Saves</button>
+      <button onClick={() => submit('restart')}>Restart</button>
       <button onClick={downloadTranscript}>Transcript</button>
       <button onClick={() => { audio.setMuted(!muted); setMuted(!muted); }}>{muted ? 'Unmute' : 'Mute'}</button>
       <button onClick={onHelp}>Help</button>
