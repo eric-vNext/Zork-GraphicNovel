@@ -10,8 +10,7 @@ assets/events/
 assets/characters/
 assets/items/
 assets/ui/
-assets/audio/music/*.wav
-assets/audio/sfx/*.wav
+assets/audio/
 assets/raw-generations/
 
 .DS_Store
