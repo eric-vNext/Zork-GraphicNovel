@@ -27,7 +27,7 @@ export function newState(): WorldState {
     touched: {}, scoredRooms: {}, scoredTakes: {}, scoredCase: {}, fdescGone: {},
     daemons: {},
     counters: { score: 0, moves: 0, deaths: 0, matches: 6, wounds: 0, lampIdx: 0, lampTick: 100, candleIdx: 0, candleTick: 20, loadAllowed: 100 },
-    thiefRoom: 'TREASURE-ROOM',
+    thiefRoom: 'ROUND-ROOM', // matches THIEF's initial (IN ROUND-ROOM) in 1dungeon.zil
     thiefEngrossed: false,
     verbosity: 'brief',
     dead: false, won: false,

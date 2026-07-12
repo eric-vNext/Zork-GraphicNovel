@@ -14,6 +14,7 @@ export interface Command {
   prep?: string;
   raw: string;
   allBut?: boolean;             // dobjs came from ALL
+  num?: number;                 // for 'wait N'
 }
 
 export interface ParseResult {
@@ -125,6 +126,9 @@ v('follow');
 v('cross', 'ford');
 v('yes', 'y');
 v('no');
+v('bug');
+v('script');
+v('unscript', 'noscript');
 
 const PREPS = new Set(['with', 'using', 'in', 'into', 'inside', 'on', 'onto', 'to', 'at', 'under', 'underneath',
   'beneath', 'behind', 'from', 'through', 'over', 'off', 'around', 'across', 'for', 'about', 'against', 'beside']);
@@ -269,10 +273,16 @@ export function parse(s: WorldState, input: string): ParseResult {
   if (verb === 'swing') verb = 'attack';
   if (verb === 'smash') verb = 'break';
 
+  // WAIT <n>: ports V-WAIT's OPTIONAL NUM argument (default 3 turns for bare WAIT)
+  if (verb === 'wait' && rest.length === 1 && /^\d+$/.test(rest[0])) {
+    return { cmd: { verb: 'wait', raw, num: Number(rest[0]) } };
+  }
+
   // no-object verbs pass through
   const NO_OBJ = new Set(['inventory', 'look', 'wait', 'again', 'score', 'diagnose', 'save', 'restore',
     'restart', 'quit', 'verbose', 'brief', 'superbrief', 'version', 'help', 'xyzzy', 'plugh', 'zork',
-    'echo', 'odysseus', 'pray', 'jump', 'sleep', 'curse', 'shout', 'hello', 'listen', 'swim', 'yes', 'no', 'launch', 'land']);
+    'echo', 'odysseus', 'pray', 'jump', 'sleep', 'curse', 'shout', 'hello', 'listen', 'swim', 'yes', 'no',
+    'launch', 'land', 'bug', 'script', 'unscript']);
   if (!rest.length) {
     if (NO_OBJ.has(verb)) return { cmd: { verb, raw } };
     // orphan: ask for the object

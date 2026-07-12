@@ -1,12 +1,13 @@
 // The clock (gclock.zil) and all daemons/timers from 1actions.zil,
 // including combat (I-FIGHT), the thief (I-THIEF), lamp/candle fuel, and the river.
 import type { Ctx } from './ctx';
-import { prob, pickOne } from './ctx';
+import { prob } from './ctx';
 import { jigsUp } from './death';
 import { fightDaemon } from './melee';
+import { thiefDaemon } from './thief';
 import {
-  fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, roomOf,
-  roomLit, PLAYER, roomDef, DATA,
+  fset, fclear, fset$, moveObj, removeObj, inPlayer, roomOf,
+  roomLit, roomDef,
 } from './world';
 
 type Daemon = (ctx: Ctx) => void;
@@ -123,13 +124,16 @@ export const DAEMONS: Record<string, Daemon> = {
   'I-SWORD': (ctx) => {
     const { s, out } = ctx;
     if (!inPlayer(s, 'SWORD')) return;
+    // INFESTED? only counts a villain that is actually visible (not merely
+    // positioned there) — matters now that the thief has a real, constantly
+    // roaming (mostly invisible) position; visibility for TROLL/CYCLOPS is
+    // just "in that room" since they don't wander off-stage like the thief.
     const villainsNear = (dist: number): boolean => {
-      const vs = ['TROLL', 'THIEF', 'CYCLOPS'].filter(
-        (vl) => s.locs[vl] && !fset$(s, vl, 'INVISIBLE') && !s.gflags[`${vl}-DEAD`]
-      );
-      if (dist === 0) return vs.some((vl) => roomOf(s, vl) === s.here || (vl === 'THIEF' && s.thiefRoom === s.here && s.gflags['THIEF-HERE']));
+      const vs = ['TROLL', 'CYCLOPS'].filter((vl) => s.locs[vl] && !fset$(s, vl, 'INVISIBLE') && !s.gflags[`${vl}-DEAD`]);
+      const thiefVisibleHere = s.gflags['THIEF-HERE'] && !s.gflags['THIEF-DEAD'];
+      if (dist === 0) return vs.some((vl) => roomOf(s, vl) === s.here) || (thiefVisibleHere && s.thiefRoom === s.here);
       const adj = Object.values(roomDef(s.here).exits).map((e) => e.to).filter(Boolean) as string[];
-      return vs.some((vl) => adj.includes(roomOf(s, vl) ?? '') || (vl === 'THIEF' && adj.includes(s.thiefRoom)));
+      return vs.some((vl) => adj.includes(roomOf(s, vl) ?? '')) || (thiefVisibleHere && adj.includes(s.thiefRoom));
     };
     const glow = villainsNear(0) ? 2 : villainsNear(1) ? 1 : 0;
     const prev = s.counters.swordGlow ?? 0;
@@ -191,72 +195,7 @@ export function checkNowDark(ctx: Ctx): void {
   if (!roomLit(ctx.s)) ctx.out.tell('It is now pitch black.');
 }
 
-// ---------------- thief wanderings (I-THIEF) ----------------
-// Combat itself (I-FIGHT and the melee blows) lives in melee.ts.
-function thiefDaemon(ctx: Ctx): void {
-  const { s, out } = ctx;
-  if (s.gflags['THIEF-DEAD']) return;
-  const here = roomDef(s.here);
-  const underground = !here.flags.includes('RLANDBIT') || !here.flags.includes('ONBIT');
-  const sacred = here.flags.includes('SACREDBIT');
-  if (s.here === 'TREASURE-ROOM') return; // handled by fight daemon
-  if (!underground || sacred || s.dead) { s.gflags['THIEF-HERE'] = false; return; }
-
-  if (s.gflags['THIEF-HERE']) {
-    // thief leaves this turn; he robs the room first, then the player, then nothing
-    const roomLoot = contents(s, s.here).filter(
-      (o) => (DATA.objects[o]?.tvalue ?? 0) > 0 && !fset$(s, o, 'NDESCBIT') && !fset$(s, o, 'SACREDBIT')
-    );
-    const invLoot = contents(s, PLAYER).filter((o) => (DATA.objects[o]?.tvalue ?? 0) > 0);
-    let robbed: 'room' | 'player' | null = null;
-    if (roomLoot.length) {
-      const item = pickOne(ctx, roomLoot);
-      moveObj(s, item, 'LARGE-BAG');
-      if (item === 'EGG') s.gflags['THIEF-HAS-EGG'] = true;
-      robbed = 'room';
-    } else if (invLoot.length) {
-      const item = pickOne(ctx, invLoot);
-      moveObj(s, item, 'LARGE-BAG');
-      if (item === 'EGG') s.gflags['THIEF-HAS-EGG'] = true;
-      robbed = 'player';
-    }
-    if (robbed === 'player') {
-      out.tell('The thief just left, still carrying his large bag. You may not have noticed that he robbed you blind first.');
-      out.emit({ type: 'panel', key: 'events/thief-steals' });
-    } else if (robbed === 'room') {
-      out.tell('The thief just left, still carrying his large bag. You may not have noticed that he appropriated the valuables in the room.');
-    } else {
-      out.tell('The thief, finding nothing of value, left disgusted.');
-    }
-    s.gflags['THIEF-HERE'] = false;
-    fset(s, 'THIEF', 'INVISIBLE');
-    return;
-  }
-
-  if (prob(ctx, 9)) {
-    // thief appears
-    if (prob(ctx, 50)) {
-      out.tell('Someone carrying a large bag is casually leaning against one of the walls here. He does not speak, but it is clear from his aspect that the bag will be taken only over his dead body.');
-      out.emit({ type: 'panel', key: 'characters/thief' });
-      out.emit({ type: 'sfx', name: 'thief-snicker' });
-      s.gflags['THIEF-HERE'] = true;
-      moveObj(s, 'THIEF', s.here);
-      fclear(s, 'THIEF', 'INVISIBLE');
-    } else {
-      // silent robbery of the room
-      const roomLoot = contents(s, s.here).filter(
-        (o) => (DATA.objects[o]?.tvalue ?? 0) > 0 && !fset$(s, o, 'NDESCBIT') && !fset$(s, o, 'SACREDBIT')
-      );
-      if (roomLoot.length && prob(ctx, 60)) {
-        const item = pickOne(ctx, roomLoot);
-        moveObj(s, item, 'LARGE-BAG');
-        if (item === 'EGG') s.gflags['THIEF-HAS-EGG'] = true;
-        if (roomLit(s)) out.tell('You hear, off in the distance, someone saying "My, I wonder what this fine jewel is doing here."');
-      }
-    }
-  }
-}
-
+// Thief wanderings (I-THIEF) live in thief.ts.
 
 // ---------------- the clock ----------------
 export function clocker(ctx: Ctx): void {

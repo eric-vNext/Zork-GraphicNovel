@@ -16,11 +16,17 @@ const RANKS: Array<[number, string]> = [
   [100, 'Junior Adventurer'], [50, 'Novice Adventurer'], [25, 'Amateur Adventurer'], [0, 'Beginner'],
 ];
 
+const UNKNOWN_WORD_RE = /^I don't know the word "(.+)"\.$/;
+
 export class Game {
   s: WorldState;
   private pending: PendingParse | null = null;
   private lastCmd: string | null = null;
+  private lastFailedRaw: string | null = null;
+  private lastFailedWord: string | null = null;
   private rngState = 12345;
+  private scripting = false;
+  private transcript: string[] = [];
 
   constructor() {
     this.s = newState();
@@ -91,6 +97,20 @@ export class Game {
   }
 
   execute(input: string): GameEvent[] {
+    const wasScripting = this.scripting;
+    const events = this.executeInner(input);
+    if (wasScripting || this.scripting) {
+      const lines = events.filter((e) => e.type === 'text').map((e: any) => e.text);
+      this.transcript.push(`> ${input}`, ...lines, '');
+    }
+    return events;
+  }
+
+  /** SCRIPT toggles a running transcript; UNSCRIPT closes it. Ports V-SCRIPT/V-UNSCRIPT. */
+  isScripting(): boolean { return this.scripting; }
+  getTranscript(): string { return this.transcript.join('\n'); }
+
+  private executeInner(input: string): GameEvent[] {
     const out = new Out();
     const s = this.s;
     if (s.dead || s.won) {
@@ -107,6 +127,21 @@ export class Game {
       raw = this.lastCmd;
     }
 
+    // OOPS <word>: splice a corrected word into the command that just failed
+    // to parse and re-run it, ports gparser.zil's OOPS-TABLE mechanism.
+    const oopsMatch = /^oops\s+(\S+)$/i.exec(raw);
+    if (oopsMatch) {
+      if (!this.lastFailedRaw || !this.lastFailedWord) {
+        out.tell("I beg your pardon?");
+        return out.events;
+      }
+      const idx = this.lastFailedRaw.toLowerCase().lastIndexOf(this.lastFailedWord.toLowerCase());
+      raw = idx < 0 ? this.lastFailedRaw
+        : this.lastFailedRaw.slice(0, idx) + oopsMatch[1] + this.lastFailedRaw.slice(idx + this.lastFailedWord.length);
+      this.lastFailedRaw = null;
+      this.lastFailedWord = null;
+    }
+
     // pending question (disambiguation / orphan)
     let result;
     if (this.pending) {
@@ -117,7 +152,12 @@ export class Game {
       result = parse(s, raw);
     }
 
-    if (result.error) { out.tell(result.error); return out.events; }
+    if (result.error) {
+      const m = UNKNOWN_WORD_RE.exec(result.error);
+      if (m) { this.lastFailedRaw = raw; this.lastFailedWord = m[1]; }
+      out.tell(result.error);
+      return out.events;
+    }
     if (result.ask) {
       this.pending = result.ask.pending;
       out.tell(result.ask.question);
@@ -128,16 +168,24 @@ export class Game {
     const cmd = result.cmd!;
     this.lastCmd = raw.toLowerCase() === 'again' ? this.lastCmd : raw;
 
-    // Loud Room echo effect: most commands just echo back
+    // Loud Room: while it's roaring, only SAVE/RESTORE/QUIT/WEST/EAST/UP/BUG/ECHO
+    // get through — literally everything else (including other directions,
+    // LOOK, SCORE, etc.) falls through to V-ECHO's word-then-ellipsis gag.
+    // Ports LOUD-ROOM-FCN's M-ENTER read-loop word dispatch verbatim.
     if (s.here === 'LOUD-ROOM' && !s.gflags['ECHO-FLAG'] && !s.gflags['LOW-TIDE']) {
-      const allowed = new Set(['walk', 'echo', 'look', 'save', 'restore', 'quit', 'restart', 'verbose', 'brief', 'superbrief', 'score']);
-      if (!allowed.has(cmd.verb)) {
+      const loudOk =
+        cmd.verb === 'echo' || cmd.verb === 'bug' ||
+        cmd.verb === 'save' || cmd.verb === 'restore' || cmd.verb === 'quit' ||
+        (cmd.verb === 'walk' && (cmd.dir === 'WEST' || cmd.dir === 'EAST' || cmd.dir === 'UP'));
+      if (!loudOk) {
         const w = raw.split(/\s+/).pop();
         out.tell(`${w} ${w} ...`);
         this.tick(out);
         return out.events;
       }
     }
+
+    if (cmd.verb === 'wait') return this.doWait(out, cmd);
 
     // system verbs (no game time passes)
     switch (cmd.verb) {
@@ -166,9 +214,20 @@ export class Game {
       case 'restore': this.restore(out); return out.events;
       case 'restart': out.tell('Use the menu (or reload) to restart.', 'system'); return out.events;
       case 'quit': this.reportScore(out); out.tell('Use the menu to leave the game.', 'system'); return out.events;
-      case 'version': out.tell('Zork I: The Great Underground Empire — Graphic Novel Edition v1.0. Ported from the historicalsource/zork1 ZIL release.', 'system'); return out.events;
+      case 'version': this.printVersion(out); return out.events;
+      case 'bug': out.tell('Bug? Not in a flawless program like this! (Cough, cough).', 'system'); return out.events;
+      case 'script':
+        this.scripting = true;
+        out.tell('Here begins a transcript of interaction with', 'system');
+        this.printVersion(out);
+        return out.events;
+      case 'unscript':
+        out.tell('Here ends a transcript of interaction with', 'system');
+        this.printVersion(out);
+        this.scripting = false;
+        return out.events;
       case 'help':
-        out.tell('Type commands like: OPEN MAILBOX, GO NORTH (or just N), TAKE LAMP, ATTACK TROLL WITH SWORD, PUT COFFIN IN CASE.\nUseful commands: LOOK (L), EXAMINE (X), INVENTORY (I), WAIT (Z), AGAIN (G), SCORE, DIAGNOSE, SAVE, RESTORE, VERBOSE/BRIEF.\nLight your lamp before going below. Beware of grues.', 'system');
+        out.tell('Type commands like: OPEN MAILBOX, GO NORTH (or just N), TAKE LAMP, ATTACK TROLL WITH SWORD, PUT COFFIN IN CASE.\nUseful commands: LOOK (L), EXAMINE (X), INVENTORY (I), WAIT (Z) or WAIT N, AGAIN (G), OOPS <word>, SCORE, DIAGNOSE, SAVE, RESTORE, VERBOSE/BRIEF, SCRIPT/UNSCRIPT.\nLight your lamp before going below. Beware of grues.', 'system');
         return out.events;
     }
 
@@ -200,6 +259,28 @@ export class Game {
     if (!s.dead && !s.won) this.tick(out, cmd);
     out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
     return out.events;
+  }
+
+  /** WAIT <n>: ports V-WAIT — loops the clock up to n times (default 3), stopping
+   *  early the moment a daemon has something to say (CLOCKER returning truthy). */
+  private doWait(out: Out, cmd: Command): GameEvent[] {
+    const s = this.s;
+    out.tell('Time passes...');
+    const n = Math.max(0, cmd.num ?? 3);
+    for (let i = 0; i < n && !s.dead && !s.won; i++) {
+      const before = out.events.length;
+      this.tick(out, cmd);
+      if (out.events.length > before) break;
+    }
+    out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
+    return out.events;
+  }
+
+  private printVersion(out: Out): void {
+    out.tell(
+      'ZORK I: The Great Underground Empire\nInfocom interactive fiction - a fantasy story\nCopyright (c) 1981, 1982, 1983, 1984, 1985, 1986 Infocom, Inc. All rights reserved.\nZORK is a registered trademark of Infocom, Inc.\nRelease 88 / Serial number 840726',
+      'system',
+    );
   }
 
   private tick(out: Out, cmd?: Partial<Command>): void {

@@ -181,7 +181,8 @@ export function perform(ctx: Ctx): void {
     case 'open': return doOpen(ctx);
     case 'close': return doClose(ctx);
     case 'inventory': listInventory(s, out); return;
-    case 'wait': out.tell('Time passes...'); return;
+    // 'wait' is handled entirely in Game.execute() (ports V-WAIT's OPTIONAL NUM,
+    // looping CLOCKER up to N times) — never reaches here.
     case 'jump': out.tell(pickOne(ctx, ['Are you proud of yourself?', 'Wheeeeeeeeee!!!!!', 'Do you expect me to applaud?'])); return;
     case 'pray':
       if (s.here === 'SOUTH-TEMPLE') {
