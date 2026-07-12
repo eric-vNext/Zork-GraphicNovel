@@ -54,15 +54,31 @@ export function GameScreen({ onHelp }: { onHelp: () => void }) {
   );
 }
 
+const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Slow idle Ken Burns drift once a panel has settled: a gentle mirrored
+// zoom/pan loop so static illustrations feel a little alive between turns.
+// Keyed per-panel so each art variant gets its own drift direction/pace
+// rather than every panel repeating an identical motion.
+const IDLE_DRIFT = [
+  { scale: [1, 1.045], x: [0, -10], y: [0, 6] },
+  { scale: [1, 1.05], x: [0, 8], y: [0, -8] },
+  { scale: [1, 1.04], x: [0, 6], y: [0, 8] },
+];
+
 function Stage() {
   const panel = useStore((s) => s.panel);
   const seq = useStore((s) => s.panelSeq);
   const isEvent = useStore((s) => s.panelIsEvent);
   const roomName = useStore((s) => s.roomName);
   const submit = useStore((s) => s.submit);
+  const [settled, setSettled] = useState(false);
+
+  useEffect(() => { setSettled(false); }, [seq]);
 
   const fly = isEvent ? 36 : 24;
   const dur = isEvent ? 0.6 : 0.42;
+  const drift = IDLE_DRIFT[seq % IDLE_DRIFT.length];
 
   return (
     <div className="stage">
@@ -73,9 +89,20 @@ function Stage() {
           src={`./art/${panel}.webp`}
           alt={roomName}
           initial={{ opacity: 0, x: fly, y: -12, scale: 1.035 }}
-          animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+          animate={
+            REDUCED_MOTION
+              ? { opacity: 1, x: 0, y: 0, scale: 1 }
+              : settled
+                ? { opacity: 1, ...drift }
+                : { opacity: 1, x: 0, y: 0, scale: 1 }
+          }
           exit={{ opacity: 0, transition: { duration: 0.26 } }}
-          transition={{ duration: dur, ease: [0.22, 1, 0.36, 1] }}
+          transition={
+            settled
+              ? { duration: 22, ease: 'easeInOut', repeat: Infinity, repeatType: 'mirror' }
+              : { duration: dur, ease: [0.22, 1, 0.36, 1] }
+          }
+          onAnimationComplete={() => { if (!settled) setSettled(true); }}
         />
       </AnimatePresence>
       {roomName && <div className="room-caption">{roomName}</div>}

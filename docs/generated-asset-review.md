@@ -82,11 +82,23 @@ Every generation (including rejected attempts) is archived by the media-gen pipe
 
 ## Audio plan status
 
-**Not yet generated — by design.** The media-gen registry currently exposes image/video/upscale models only (no music model), so per `research-report.md` §6 the fallback method is locked in:
+**Generated.** This section previously said "not yet generated — by design"
+(deferred to Phase 6); that's now stale — `game/scripts/synth-audio.py` (pure
+numpy DSP, fixed RNG seed 1980, `afconvert` to AAC) has generated all 10
+music beds and the full SFX set into `game/public/audio/`, matching the
+fallback method `research-report.md` §6 locked in:
 
-- **Music beds (10)**: composed offline via scriptable synthesis (Tone.js offline render / Node WebAudio script) during Phase 6 — dark ambient loops per region, 60–90 s seamless, OGG+M4A.
-- **SFX (~29)**: hand-authored via the same offline synthesis script — full list in `asset-plan.md` §6.
-- Nothing sampled or licensed; 100% original synthesis. Mix targets: beds ≈ -20 LUFS, SFX ≤ -14 LUFS peaks, < 4 MB total shipped audio.
+- **Music beds (10)**: dark ambient loops per region, 69 s before a 3 s
+  loop-crossfade, M4A.
+- **SFX (~34)**: hand-authored via the same offline synthesis script.
+- **2026-07-11 addition (handoff item 7)**: 5 region-flavored
+  `treasure-chime-{above,house,temple,dam,endgame}` variants, remapped by
+  current region at playback time in `src/state/store.ts` rather than baked
+  into the engine's event emission. Re-running the whole script to add these
+  was verified byte-identical (decoded PCM) for every pre-existing sound —
+  the fixed RNG seed plus append-only additions to the `SFX`/`BEDS` dicts
+  keep generation order, and therefore every existing output, stable.
+- Nothing sampled or licensed; 100% original synthesis.
 
 ## Review artifacts
 

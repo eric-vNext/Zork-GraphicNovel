@@ -329,6 +329,43 @@ def sfx_treasure():
     for i, f in enumerate([1568, 1976, 2637, 3136]):
         place(c, sine(f, 0.6) * env_perc(0.6, 0.002, 7) * 0.3, i * 0.07)
     return reverb(c, 0.6, 0.3)
+# Region-flavored treasure-fanfare variants (item 7): same family, different
+# register/timbre/reverb per region so a take-treasure moment feels native to
+# where it happens rather than one generic chime everywhere.
+def sfx_treasure_above():
+    # bright, airy, open-sky sparkle -- higher register, tight room
+    c = np.zeros(int(0.9 * SR))
+    for i, f in enumerate([2093, 2637, 3136, 3729, 4186]):
+        place(c, sine(f, 0.45) * env_perc(0.45, 0.001, 10) * 0.26, i * 0.05)
+    return reverb(c, 0.35, 0.18)
+def sfx_treasure_house():
+    # celesta/music-box, matching bed_house's pluck() theme instrument
+    c = np.zeros(int(1.1 * SR))
+    for i, f in enumerate([D4 * 2, F4 * 2, A4 * 2, D4 * 4]):
+        place(c, pluck(f, 0.7, 4200) * 0.32, i * 0.09)
+    return reverb(c, 0.5, 0.22)
+def sfx_treasure_temple():
+    # solemn: a warm sustained pad swell under the chime, long stone-hall tail
+    c = np.zeros(int(1.6 * SR))
+    pad = pad_chord([D4, A3 * 2, D4 * 2], 1.6, 1200, amp=env_ad(np.ones(int(1.6*SR)), 0.15, 1.1)) * 0.18
+    place(c, pad, 0)
+    for i, f in enumerate([1174, 1568, 1976]):
+        place(c, sine(f, 0.7) * env_perc(0.7, 0.004, 5) * 0.22, 0.15 + i * 0.11)
+    return reverb(c, 1.4, 0.45)
+def sfx_treasure_dam():
+    # metallic/industrial: inharmonic bell partials, lower fundamental, big resonant tail
+    c = np.zeros(int(1.1 * SR))
+    for i, f in enumerate([880, 1318, 1975.5, 2637]):  # slightly detuned overtones
+        place(c, sine(f, 0.55) * env_perc(0.55, 0.003, 6) * 0.24, i * 0.06)
+    return reverb(c, 1.1, 0.5)
+def sfx_treasure_endgame():
+    # fullest/most triumphant: arpeggio riding a short resolving chord
+    c = np.zeros(int(1.5 * SR))
+    pad = pad_chord([D4, F4, A4], 1.5, 1400, amp=env_ad(np.ones(int(1.5*SR)), 0.05, 1.2)) * 0.22
+    place(c, pad, 0)
+    for i, f in enumerate([1568, 1976, 2637, 3136, D4 * 4]):
+        place(c, sine(f, 0.5) * env_perc(0.5, 0.002, 7) * 0.28, i * 0.06)
+    return reverb(c, 0.9, 0.35)
 def sfx_case():
     c = np.zeros(int(2.2 * SR))
     for i, f in enumerate([D4*2, F4*2, A4*2, D4*4]):
@@ -439,6 +476,9 @@ SFX = {
     "explosion": sfx_explosion, "bell": sfx_bell, "page-turn": sfx_page,
     "ui-click": sfx_click, "trapdoor-slam": sfx_trapdoor, "echo": sfx_echo,
     "water-flow": sfx_water_flow, "machine-diamond": sfx_machine,
+    "treasure-chime-above": sfx_treasure_above, "treasure-chime-house": sfx_treasure_house,
+    "treasure-chime-temple": sfx_treasure_temple,
+    "treasure-chime-dam": sfx_treasure_dam, "treasure-chime-endgame": sfx_treasure_endgame,
 }
 for name, fn in SFX.items():
     emit(name, fn(), "sfx", gain=0.8)

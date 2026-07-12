@@ -11,6 +11,17 @@ import { Out } from '../engine/world';
 export interface LogLine { id: number; text: string; cls: string }
 export type Screen = 'title' | 'play' | 'death' | 'victory';
 
+// Region-flavored treasure-fanfare stingers (docs/handoff-2026-07-11.md item 7).
+// The engine only ever emits the generic 'treasure-chime' sfx name; this is a
+// presentation-layer remap by the player's current region, same spirit as
+// ROOM_PRES mapping rooms to art — the engine shouldn't need to know about audio.
+const TREASURE_CHIME_BY_REGION: Record<string, string> = {
+  above: 'treasure-chime-above', house: 'treasure-chime-house',
+  temple: 'treasure-chime-temple',
+  dam: 'treasure-chime-dam', mine: 'treasure-chime-dam',
+  endgame: 'treasure-chime-endgame',
+};
+
 interface GameStore {
   game: Game;
   screen: Screen;
@@ -112,7 +123,11 @@ export const useStore = create<GameStore>((set, get) => ({
           }
           break;
         }
-        case 'sfx': audio.sfx(e.name); break;
+        case 'sfx': {
+          const name = e.name === 'treasure-chime' ? (TREASURE_CHIME_BY_REGION[region] ?? e.name) : e.name;
+          audio.sfx(name);
+          break;
+        }
         case 'score': break;
         case 'death':
           if (e.permanent) screen = 'death';
