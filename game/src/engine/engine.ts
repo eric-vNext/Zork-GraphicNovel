@@ -294,6 +294,7 @@ export class Game {
       s.grueTurns += 1;
       if (s.grueTurns >= 3 && this.rng() < 0.4) {
         out.emit({ type: 'panel', key: 'events/grue-death' });
+        out.emit({ type: 'shake' });
         jigsUp(ctx, 'Oh, no! You have walked into the slavering fangs of a lurking grue!', {});
       }
     } else s.grueTurns = 0;

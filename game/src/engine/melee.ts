@@ -141,6 +141,7 @@ function villainBlow(ctx: Ctx, villain: string, playerOut: boolean): BlowResult 
       break;
     case 'KILLED': case 'SITTING_DUCK':
       def = 0;
+      out.emit({ type: 'shake' });
       break;
     case 'LIGHT_WOUND':
       def = Math.max(0, def - 1);
@@ -149,6 +150,7 @@ function villainBlow(ctx: Ctx, villain: string, playerOut: boolean): BlowResult 
     case 'SERIOUS_WOUND':
       def = Math.max(0, def - 2);
       if (s.counters.loadAllowed > 50) s.counters.loadAllowed -= 20;
+      out.emit({ type: 'shake' });
       break;
     case 'STAGGER':
       fset(s, PLAYER, 'STAGGERED');

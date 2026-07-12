@@ -72,11 +72,11 @@ export function goTo(ctx: Ctx, dir: string): void {
     if (!s.gflags['LOW-TIDE'] && !s.gflags['IN-BOAT']) { out.tell('You would drown.'); return; }
   }
   const throughWindowToKitchen = ex.ifDoor === 'KITCHEN-WINDOW' && ex.to === 'KITCHEN';
-  enterRoom(ctx, ex.to!);
+  enterRoom(ctx, ex.to!, dir);
   if (throughWindowToKitchen) out.emit({ type: 'panel', key: 'events/window-entry' });
 }
 
-export function enterRoom(ctx: Ctx, room: string): void {
+export function enterRoom(ctx: Ctx, room: string, dir?: string): void {
   const { s, out } = ctx;
   const wasLit = roomLit(s);
   const fromRoom = s.here;
@@ -86,6 +86,7 @@ export function enterRoom(ctx: Ctx, room: string): void {
     s.grueTurns += 1;
     if (s.grueTurns >= 2 && ctx.rng() < 0.5) {
       out.emit({ type: 'panel', key: 'events/grue-death' });
+      out.emit({ type: 'shake' });
       jigsUp(ctx, 'Oh, no! You have walked into the slavering fangs of a lurking grue!', {});
       return;
     }
@@ -108,7 +109,7 @@ export function enterRoom(ctx: Ctx, room: string): void {
     s.counters.score += rd.value;
     out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
   }
-  out.emit({ type: 'room', room });
+  out.emit({ type: 'room', room, dir });
   s.justArrived = true; // give the player one beat to see the room before combat can steal the panel
   if (!roomLit(s)) {
     out.emit({ type: 'panel', key: 'events/grue-warning' });
@@ -220,6 +221,7 @@ export function perform(ctx: Ctx): void {
         out.tell('The cyclops, hearing the name of his father\'s deadly nemesis, flees the room by knocking down the wall on the east of the room.');
         out.emit({ type: 'panel', key: 'events/cyclops-odysseus' });
         out.emit({ type: 'sfx', name: 'explosion' });
+        out.emit({ type: 'shake' });
         return;
       }
       out.tell('Wasn\'t he a sailor?');

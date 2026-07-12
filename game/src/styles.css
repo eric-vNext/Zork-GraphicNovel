@@ -67,6 +67,48 @@ body {
   object-fit: cover;
   object-position: center 35%;
 }
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.vignette-wound {
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(184,67,58,0.75) 100%);
+}
+.vignette-death {
+  background: #000;
+}
+
+/* ---------- ambient particles (region-flavored, purely decorative) ---------- */
+.particles {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+.particle {
+  position: absolute;
+  bottom: -6%;
+  left: var(--px, 50%);
+  width: var(--psize, 3px);
+  height: var(--psize, 3px);
+  border-radius: 50%;
+  opacity: 0;
+  animation: particle-drift var(--pdur, 14s) linear infinite;
+  animation-delay: var(--pdelay, 0s);
+}
+@keyframes particle-drift {
+  0% { transform: translate(0, 0); opacity: 0; }
+  8% { opacity: var(--pop, 0.5); }
+  85% { opacity: var(--pop, 0.5); }
+  100% { transform: translate(var(--psway, 20px), -120%); opacity: 0; }
+}
+.particles-dust .particle { background: #c9bd9a; box-shadow: 0 0 3px rgba(201,189,154,0.6); }
+.particles-firefly .particle { background: #ffe9a8; box-shadow: 0 0 6px 2px rgba(255,233,168,0.85); }
+.particles-ember .particle { background: #ff8a4a; box-shadow: 0 0 5px 1px rgba(255,110,40,0.8); }
+.particles-spore .particle { background: #b9d9c8; box-shadow: 0 0 4px rgba(185,217,200,0.6); }
 .room-caption {
   position: absolute;
   left: 14px;

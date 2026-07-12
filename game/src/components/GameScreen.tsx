@@ -1,8 +1,16 @@
 // Main play screen: panel (Framer Motion transitions) + log + command bar.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '../state/store';
 import { audio } from '../audio/audioManager';
+
+// Ambient decoration per region — dust motes underground/in the house,
+// fireflies above ground and at the endgame, embers near the dam/mine,
+// drifting spores in the temple. Purely cosmetic, no new art needed.
+const PARTICLE_FLAVOR: Record<string, 'dust' | 'firefly' | 'ember' | 'spore' | 'none'> = {
+  above: 'firefly', house: 'dust', underground: 'dust', maze: 'dust',
+  temple: 'spore', dam: 'ember', mine: 'ember', endgame: 'firefly',
+};
 
 const QUICK_CHIPS = ['look', 'up', 'down', 'inventory', 'take all', 'open', 'examine', 'read', 'wait', 'save'];
 
@@ -66,29 +74,49 @@ const IDLE_DRIFT = [
   { scale: [1, 1.04], x: [0, 6], y: [0, 8] },
 ];
 
+// Directional panel entrance: the new panel flies in from the compass side
+// the player just walked toward, instead of always the same fixed corner —
+// reinforces spatial orientation for free. Falls back to the old generic
+// offset for non-directional transitions (teleports, event panels, etc.).
+const DIR_OFFSET: Record<string, { x: number; y: number }> = {
+  NORTH: { x: 0, y: -40 }, SOUTH: { x: 0, y: 40 },
+  EAST: { x: 40, y: 0 }, WEST: { x: -40, y: 0 },
+  NE: { x: 30, y: -30 }, NW: { x: -30, y: -30 },
+  SE: { x: 30, y: 30 }, SW: { x: -30, y: 30 },
+  UP: { x: 0, y: 34 }, DOWN: { x: 0, y: -34 },
+};
+
 function Stage() {
   const panel = useStore((s) => s.panel);
   const seq = useStore((s) => s.panelSeq);
   const isEvent = useStore((s) => s.panelIsEvent);
   const roomName = useStore((s) => s.roomName);
   const submit = useStore((s) => s.submit);
+  const travelDir = useStore((s) => s.travelDir);
+  const shakeSeq = useStore((s) => s.shakeSeq);
 
-  const fly = isEvent ? 36 : 24;
   const dur = isEvent ? 0.6 : 0.42;
   const drift = IDLE_DRIFT[seq % IDLE_DRIFT.length];
+  const offset = !isEvent && travelDir && DIR_OFFSET[travelDir]
+    ? DIR_OFFSET[travelDir]
+    : { x: isEvent ? 36 : 24, y: -12 };
 
   return (
     <div className="stage">
-      <AnimatePresence mode="sync">
-        <PanelImage
-          key={seq}
-          src={`./art/${panel}.webp`}
-          alt={roomName}
-          fly={fly}
-          dur={dur}
-          drift={drift}
-        />
-      </AnimatePresence>
+      <ShakeWrap seq={shakeSeq}>
+        <AnimatePresence mode="sync">
+          <PanelImage
+            key={seq}
+            src={`./art/${panel}.webp`}
+            alt={roomName}
+            offset={offset}
+            dur={dur}
+            drift={drift}
+          />
+        </AnimatePresence>
+      </ShakeWrap>
+      <Particles />
+      <Vignette />
       {roomName && <div className="room-caption">{roomName}</div>}
       <button
         className="compass"
@@ -110,7 +138,78 @@ function Stage() {
   );
 }
 
+// One-shot screen shake, keyed by shakeSeq so each occurrence gets a fresh
+// mount (same proven-safe pattern as PanelImage's settled flag — no shared
+// state to leak stale between triggers). No-op wrapper (seq===0) until the
+// first shake ever fires, so it never touches layout otherwise.
+function ShakeWrap({ seq, children }: { seq: number; children: React.ReactNode }) {
+  if (seq === 0 || REDUCED_MOTION) return <>{children}</>;
+  return (
+    <motion.div
+      key={seq}
+      initial={{ x: 0, y: 0 }}
+      animate={{ x: [0, -9, 8, -6, 5, -3, 2, 0], y: [0, 3, -3, 2, -2, 1, 0, 0] }}
+      transition={{ duration: 0.45, ease: 'easeOut' }}
+      style={{ width: '100%', height: '100%' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Full-screen radial pulse over the stage: a quick red flash for a wound, a
+// slower black fade for a (survivable) death, before the resurrection panel
+// takes over. Keyed by vignetteSeq for the same one-shot-remount reason as
+// ShakeWrap; renders nothing once its animation finishes (kind stays set,
+// but the seq no longer bumps, so no new element mounts).
+function Vignette() {
+  const vignette = useStore((s) => s.vignette);
+  const seq = useStore((s) => s.vignetteSeq);
+  if (vignette === 'none' || REDUCED_MOTION) return null;
+  const isDeath = vignette === 'death';
+  return (
+    <motion.div
+      key={seq}
+      className={`vignette vignette-${vignette}`}
+      initial={{ opacity: isDeath ? 0.92 : 0.6 }}
+      animate={{ opacity: 0 }}
+      transition={{ duration: isDeath ? 1.6 : 0.6, ease: 'easeOut' }}
+    />
+  );
+}
+
+// Re-randomized (not re-rendered) only when the region actually changes, via
+// useMemo keyed on `region` — CSS custom properties per particle drive the
+// @keyframes drift in styles.css; prefers-reduced-motion is already handled
+// there (the blanket `animation: none` rule leaves particles at opacity 0).
+function Particles() {
+  const region = useStore((s) => s.region);
+  const flavor = PARTICLE_FLAVOR[region] ?? 'none';
+  const particles = useMemo(() => {
+    if (flavor === 'none') return [];
+    const n = 10;
+    return Array.from({ length: n }, (_, i) => ({
+      id: i,
+      style: {
+        '--px': `${Math.round(Math.random() * 100)}%`,
+        '--psize': `${(2 + Math.random() * 2.5).toFixed(1)}px`,
+        '--pdur': `${(10 + Math.random() * 10).toFixed(1)}s`,
+        '--pdelay': `${(-Math.random() * 18).toFixed(1)}s`,
+        '--psway': `${Math.round((Math.random() - 0.5) * 60)}px`,
+        '--pop': flavor === 'firefly' ? 0.85 : flavor === 'ember' ? 0.8 : 0.4,
+      } as React.CSSProperties,
+    }));
+  }, [flavor]);
+  if (!particles.length) return null;
+  return (
+    <div className={`particles particles-${flavor}`}>
+      {particles.map((p) => <span key={p.id} className="particle" style={p.style} />)}
+    </div>
+  );
+}
+
 interface DriftSpec { scale: number[]; x: number[]; y: number[] }
+interface Offset { x: number; y: number }
 
 // Owns its own `settled` flag, scoped to one panel image by React's `key`
 // remount. Settled state living in the parent (Stage) instead of here was
@@ -119,14 +218,14 @@ interface DriftSpec { scale: number[]; x: number[]; y: number[] }
 // run the reset effect yet), so its entrance briefly picked up the 22s idle
 // transition instead of the fast one. A remounted-per-key component can't
 // carry that staleness — it always starts at settled=false.
-function PanelImage({ src, alt, fly, dur, drift }: { src: string; alt: string; fly: number; dur: number; drift: DriftSpec }) {
+function PanelImage({ src, alt, offset, dur, drift }: { src: string; alt: string; offset: Offset; dur: number; drift: DriftSpec }) {
   const [settled, setSettled] = useState(false);
   return (
     <motion.img
       className="panel-img"
       src={src}
       alt={alt}
-      initial={{ opacity: 0, x: fly, y: -12, scale: 1.035 }}
+      initial={{ opacity: 0, x: offset.x, y: offset.y, scale: 1.035 }}
       animate={
         REDUCED_MOTION
           ? { opacity: 1, x: 0, y: 0, scale: 1 }
@@ -149,6 +248,8 @@ function StatusBar({ onHelp }: { onHelp: () => void }) {
   const score = useStore((s) => s.score);
   const moves = useStore((s) => s.moves);
   const health = useStore((s) => s.health);
+  const scorePulseSeq = useStore((s) => s.scorePulseSeq);
+  const healthLostSeq = useStore((s) => s.healthLostSeq);
   const submit = useStore((s) => s.submit);
   const inv = useStore((s) => s.inventoryList);
   const [muted, setMuted] = useState(audio.muted);
@@ -156,11 +257,24 @@ function StatusBar({ onHelp }: { onHelp: () => void }) {
 
   return (
     <div className="status">
-      <span>Score: {score}</span>
+      <motion.span
+        key={`score-${scorePulseSeq}`}
+        animate={scorePulseSeq > 0 && !REDUCED_MOTION ? { scale: [1, 1.35, 1], color: ['#c8a24a', '#ffe9b0', '#c8a24a'] } : undefined}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        style={{ display: 'inline-block' }}
+      >
+        Score: {score}
+      </motion.span>
       <span>Moves: {moves}</span>
-      <span className="health" title="Health">
+      <motion.span
+        key={`health-${healthLostSeq}`}
+        className="health"
+        title="Health"
+        animate={healthLostSeq > 0 && !REDUCED_MOTION ? { x: [0, -4, 4, -2, 0] } : undefined}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+      >
         {[0, 1, 2].map((i) => <span key={i} className={i < health ? 'lit' : ''} />)}
-      </span>
+      </motion.span>
       <span className="spacer" />
       <button onClick={() => setShowInv(!showInv)}>Inventory</button>
       <button onClick={() => submit('save')}>Save</button>
@@ -197,9 +311,25 @@ function LogView() {
         stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
       }}
     >
-      {log.map((l) => (
-        <p key={l.id} className={`line ${l.cls}`}>{l.text}</p>
-      ))}
+      {log.map((l) => {
+        // Give the two moments that matter most a little entrance weight —
+        // not a typewriter effect on every line, that would just slow play.
+        const dramatic = l.cls === 'room-name' || l.cls === 'death';
+        if (dramatic && !REDUCED_MOTION) {
+          return (
+            <motion.p
+              key={l.id}
+              className={`line ${l.cls}`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: 'easeOut' }}
+            >
+              {l.text}
+            </motion.p>
+          );
+        }
+        return <p key={l.id} className={`line ${l.cls}`}>{l.text}</p>;
+      })}
     </div>
   );
 }

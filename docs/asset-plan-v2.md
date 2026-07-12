@@ -1,5 +1,8 @@
 # Extended Asset & Presentation Plan (v2)
 
+**Status: Tier A and Tier D shipped (2026-07-12).** Tier B (new SFX) and
+Tier C (new event-panel art) are still open — see §2/§3 below.
+
 Continuation of `docs/asset-plan.md` (all Tier-1/Tier-2 items from that plan
 are shipped — see `docs/generated-asset-review.md`). This plan catalogs
 concrete next-round additions in three lanes: new sound effects, new
@@ -36,7 +39,7 @@ of the other three and can happen anytime.
 
 ---
 
-## 1. Tier A — wire existing, currently-unused assets
+## 1. Tier A — wire existing, currently-unused assets ✅ done (2026-07-12)
 
 Two image assets already exist in `game/public/art/events/` and are listed
 in `EVENT_PANELS` (`game/src/data/presentation.ts`) but are **never emitted
@@ -177,7 +180,28 @@ verbatim to all of these. Suggested prompts are starting points, not final.
 
 ---
 
-## 4. Tier D — animation techniques (no new assets)
+## 4. Tier D — animation techniques (no new assets) ✅ done (2026-07-12)
+
+All eight items below shipped. Implementation notes:
+- **Shake** is a new `{ type: 'shake' }` `GameEvent`, emitted deliberately at
+  specific dramatic moments in the engine (serious combat wounds/kills, gas
+  explosion, cyclops-through-the-wall, sand collapse, mirror warp, grue
+  death) rather than inferred from sfx names — keeps the "punctuation, not
+  noise" intent explicit and easy to audit/extend.
+- Directional panel transitions needed `dir` threaded from `goTo` through
+  `enterRoom` into the `'room'` event (`types.ts`, `verbs.ts`) — only the
+  literal compass-walk path sets it; teleports/climbs/etc. fall back to the
+  old generic offset, which is correct (they don't have a "direction").
+- Shake/vignette/score-pulse/health-pip reactions all use the same
+  key-per-occurrence remount pattern the Ken Burns entrance-delay bugfix
+  established (see the git history around that fix) — a shared boolean
+  flag that lags a render behind was exactly the bug there, so none of
+  these new one-shot animations use that shape at all.
+- Caught one real bug during this pass: the score-pulse and health-pip
+  `motion.span`s are siblings that both defaulted to `key={0}` before their
+  first trigger, colliding (React "two children with the same key",
+  confirmed live in the browser, not a false positive). Fixed by
+  namespacing the keys (`score-${seq}`, `health-${seq}`).
 
 Right now the only motion in the app is: the panel fly-in/crossfade on
 scene change (`GameScreen.tsx` `PanelImage`) and the idle Ken Burns drift

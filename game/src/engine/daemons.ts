@@ -139,7 +139,11 @@ export const DAEMONS: Record<string, Daemon> = {
     const prev = s.counters.swordGlow ?? 0;
     if (glow !== prev) {
       s.counters.swordGlow = glow;
-      if (glow === 2) { out.tell('Your sword has begun to glow very brightly.'); out.emit({ type: 'sfx', name: 'sword-glow' }); }
+      if (glow === 2) {
+        out.tell('Your sword has begun to glow very brightly.');
+        out.emit({ type: 'sfx', name: 'sword-glow' });
+        out.emit({ type: 'panel', key: 'events/sword-glow' });
+      }
       else if (glow === 1) out.tell('Your sword is glowing with a faint blue glow.');
       else out.tell('Your sword is no longer glowing.');
     }

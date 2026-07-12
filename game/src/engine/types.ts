@@ -73,7 +73,10 @@ export interface WorldState {
 // Semantic events the presentation layer consumes.
 export type GameEvent =
   | { type: 'text'; text: string; cls?: 'room-name' | 'system' | 'death' | 'normal' }
-  | { type: 'room'; room: string }              // player is now here (panel + music)
+  | { type: 'room'; room: string; dir?: string } // player is now here (panel + music); dir is the
+                                                  // compass direction walked, when there was one —
+                                                  // lets the panel slide in from that side
+  | { type: 'shake' }                            // brief screen-shake pulse (serious wound, explosion, ...)
   | { type: 'panel'; key: string }              // event panel override, e.g. 'events/troll-fight'
   | { type: 'sfx'; name: string }
   | { type: 'score'; score: number; moves: number }

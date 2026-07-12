@@ -29,6 +29,7 @@ interface GameStore {
   panel: string;             // art path without extension, e.g. 'rooms/west-of-house'
   panelSeq: number;          // increments per panel change (keying animations)
   panelIsEvent: boolean;
+  travelDir?: string;        // compass direction of the walk that produced the current panel
   roomName: string;
   region: string;
   score: number;
@@ -37,6 +38,11 @@ interface GameStore {
   chips: string[];           // disambiguation options
   inventoryList: string[];
   dark: boolean;
+  shakeSeq: number;          // bumped on a dramatic hit/explosion/collapse — triggers a screen shake
+  scorePulseSeq: number;     // bumped whenever score increases — triggers a status-bar pulse
+  healthLostSeq: number;     // bumped whenever a health pip is lost — triggers a pip reaction
+  vignette: 'none' | 'wound' | 'death';
+  vignetteSeq: number;       // bumped per vignette occurrence, even if the kind repeats
   begin: () => void;
   submit: (cmd: string) => void;
   restartGame: () => void;
@@ -60,6 +66,11 @@ export const useStore = create<GameStore>((set, get) => ({
   chips: [],
   inventoryList: [],
   dark: false,
+  shakeSeq: 0,
+  scorePulseSeq: 0,
+  healthLostSeq: 0,
+  vignette: 'none',
+  vignetteSeq: 0,
 
   begin: () => {
     const g = get().game;
@@ -78,7 +89,10 @@ export const useStore = create<GameStore>((set, get) => ({
 
   restartGame: () => {
     const game = new Game();
-    set({ game, screen: 'play', log: [], panelSeq: 0, panelIsEvent: false });
+    set({
+      game, screen: 'play', log: [], panelSeq: 0, panelIsEvent: false, travelDir: undefined,
+      shakeSeq: 0, scorePulseSeq: 0, healthLostSeq: 0, vignette: 'none', vignetteSeq: 0,
+    });
     get().applyEvents(game.start());
   },
 
@@ -94,6 +108,9 @@ export const useStore = create<GameStore>((set, get) => ({
     let screen: Screen = st.screen;
     let chips: string[] = [];
     let sawRoom = false;
+    let travelDir = st.travelDir;
+    let shakeBumps = 0;
+    let tempDeath = false; // 'death' event with permanent:false — the resurrection flash
 
     for (const e of events) {
       switch (e.type) {
@@ -102,6 +119,7 @@ export const useStore = create<GameStore>((set, get) => ({
           break;
         case 'room': {
           sawRoom = true;
+          travelDir = e.dir;
           const art = roomArtFor(e.room, s.gflags, (o, f) => fset$(s, o, f));
           panel = `rooms/${art}`;
           panelIsEvent = false;
@@ -128,9 +146,11 @@ export const useStore = create<GameStore>((set, get) => ({
           audio.sfx(name);
           break;
         }
+        case 'shake': shakeBumps += 1; break;
         case 'score': break;
         case 'death':
           if (e.permanent) screen = 'death';
+          else tempDeath = true;
           break;
         case 'victory':
           screen = 'victory';
@@ -145,20 +165,33 @@ export const useStore = create<GameStore>((set, get) => ({
     if (dark && sawRoom) { panel = 'events/grue-warning'; panelIsEvent = true; }
 
     const wounds = s.counters.wounds ?? 0;
-    set((prev) => ({
-      log: [...prev.log, ...newLog].slice(-400),
-      panel,
-      panelIsEvent,
-      panelSeq: panel !== prev.panel ? prev.panelSeq + 1 : prev.panelSeq,
-      roomName,
-      region,
-      screen,
-      chips,
-      score: s.counters.score,
-      moves: s.counters.moves,
-      health: Math.max(0, 3 - wounds),
-      inventoryList: inventory(s).map((o) => DATA.objects[o]?.desc ?? o),
-      dark,
-    }));
+    const health = Math.max(0, 3 - wounds);
+    const score = s.counters.score;
+    set((prev) => {
+      const healthLost = health < prev.health;
+      const scoreGained = score > prev.score;
+      const vignette: GameStore['vignette'] = tempDeath ? 'death' : healthLost ? 'wound' : 'none';
+      return {
+        log: [...prev.log, ...newLog].slice(-400),
+        panel,
+        panelIsEvent,
+        panelSeq: panel !== prev.panel ? prev.panelSeq + 1 : prev.panelSeq,
+        travelDir,
+        roomName,
+        region,
+        screen,
+        chips,
+        score,
+        moves: s.counters.moves,
+        health,
+        inventoryList: inventory(s).map((o) => DATA.objects[o]?.desc ?? o),
+        dark,
+        shakeSeq: shakeBumps > 0 ? prev.shakeSeq + 1 : prev.shakeSeq,
+        scorePulseSeq: scoreGained ? prev.scorePulseSeq + 1 : prev.scorePulseSeq,
+        healthLostSeq: healthLost ? prev.healthLostSeq + 1 : prev.healthLostSeq,
+        vignette: vignette === 'none' ? prev.vignette : vignette,
+        vignetteSeq: vignette !== 'none' ? prev.vignetteSeq + 1 : prev.vignetteSeq,
+      };
+    });
   },
 }));

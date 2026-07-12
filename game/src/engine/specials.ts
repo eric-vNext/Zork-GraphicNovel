@@ -246,6 +246,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
         fset(s, 'EGG', 'OPENBIT');
         moveObj(s, 'BROKEN-CANARY', 'EGG');
         out.tell('The egg is now open, but the clumsiness of your attempt has seriously compromised its esthetic appeal. There is a golden clockwork canary nestled in the egg. It seems to have recently had a bad experience. The mountings for its jewel-like eyes are empty, and its silver beak is crumpled. Through a cracked crystal window below its left wing you can see the remains of intricate machinery. It is not clear what result winding it would have, as the mainspring seems sprung.');
+        out.emit({ type: 'panel', key: 'events/egg-opened' });
         return true;
       }
       out.tell('You have neither the tools nor the expertise.');
@@ -431,6 +432,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
         out.tell('You can see a scarab here in the sand.');
         out.emit({ type: 'sfx', name: 'treasure-chime' });
       } else {
+        out.emit({ type: 'shake' });
         jigsUp(ctx, 'The hole collapses, smothering you.', {});
       }
       return true;
@@ -787,8 +789,8 @@ function weaponFunction(ctx: Ctx, weapon: string, villain: string, defeated: () 
 function mirrorHandler(ctx: Ctx): boolean {
     const { s, out } = ctx;
     if (ctx.verb === 'touch' || ctx.verb === 'rub') {
-      if (s.here === 'MIRROR-ROOM-1') { ctx.moveTo('MIRROR-ROOM-2', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); return true; }
-      if (s.here === 'MIRROR-ROOM-2') { ctx.moveTo('MIRROR-ROOM-1', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); return true; }
+      if (s.here === 'MIRROR-ROOM-1') { out.emit({ type: 'shake' }); ctx.moveTo('MIRROR-ROOM-2', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); return true; }
+      if (s.here === 'MIRROR-ROOM-2') { out.emit({ type: 'shake' }); ctx.moveTo('MIRROR-ROOM-1', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); return true; }
       return false;
     }
     if (ctx.verb === 'break') {
@@ -854,6 +856,8 @@ function basketHandler(ctx: Ctx, raised: boolean): boolean {
 }
 
 function gasExplosion(ctx: Ctx): void {
+  ctx.out.emit({ type: 'sfx', name: 'explosion' });
+  ctx.out.emit({ type: 'shake' });
   jigsUp(ctx,
     'Oh dear. It appears that the smell coming from this room was coal gas. I would have thought twice about carrying flaming objects in here.\n\n     ** BOOOOOOOOOOOM **',
     { panel: 'events/gas-explosion' });

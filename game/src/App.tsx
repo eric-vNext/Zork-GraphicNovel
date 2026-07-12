@@ -1,7 +1,42 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useStore } from './state/store';
 import { GameScreen } from './components/GameScreen';
 import { Out } from './engine/world';
+
+const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Slow desaturate-and-settle entrance for the death/victory screens, instead
+// of a hard cut — the moment deserves more weight than an instant screen swap.
+function TheatricalBg({ src }: { src: string }) {
+  if (REDUCED_MOTION) return <img className="bg" src={src} alt="" />;
+  return (
+    <motion.img
+      className="bg"
+      src={src}
+      alt=""
+      initial={{ opacity: 0, scale: 1.12, filter: 'grayscale(1) brightness(0.5)' }}
+      animate={{ opacity: 0.85, scale: 1, filter: 'grayscale(0) brightness(1)' }}
+      transition={{ duration: 2.2, ease: 'easeOut' }}
+    />
+  );
+}
+
+// Content (headline, buttons) settles in a beat after the background starts
+// resolving, rather than sitting there instantly while the image is still mid-fade.
+function TheatricalContent({ children }: { children: React.ReactNode }) {
+  if (REDUCED_MOTION) return <div className="content">{children}</div>;
+  return (
+    <motion.div
+      className="content"
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.9, delay: 0.5, ease: 'easeOut' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 export default function App() {
   const screen = useStore((s) => s.screen);
@@ -59,8 +94,8 @@ function DeathScreen() {
   const moves = useStore((s) => s.moves);
   return (
     <div className="screen">
-      <img className="bg" src="./art/ui/death-screen.webp" alt="" />
-      <div className="content">
+      <TheatricalBg src="./art/ui/death-screen.webp" />
+      <TheatricalContent>
         <h2>Your adventuring days are over.<br />Score: {score} in {moves} moves.</h2>
         <div className="btns">
           <button onClick={restartGame}>Restart</button>
@@ -75,7 +110,7 @@ function DeathScreen() {
             Restore
           </button>
         </div>
-      </div>
+      </TheatricalContent>
     </div>
   );
 }
@@ -86,8 +121,8 @@ function VictoryScreen() {
   const moves = useStore((s) => s.moves);
   return (
     <div className="screen">
-      <img className="bg" src="./art/ui/victory-screen.webp" alt="" />
-      <div className="content">
+      <TheatricalBg src="./art/ui/victory-screen.webp" />
+      <TheatricalContent>
         <img className="logo" src="./art/ui/logotype.webp" alt="ZORK" />
         <h2>
           Master Adventurer — {score} points in {moves} moves.<br />
@@ -96,7 +131,7 @@ function VictoryScreen() {
         <div className="btns">
           <button onClick={restartGame}>Play Again</button>
         </div>
-      </div>
+      </TheatricalContent>
     </div>
   );
 }
