@@ -350,6 +350,21 @@ body {
 .modal .vol { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
 .modal input[type='range'] { flex: 1; accent-color: var(--accent); }
 
+/* ---------- save/load slots modal ---------- */
+.save-slots { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+.save-slot {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border: 1px solid #3a331f; padding: 10px 12px; flex-wrap: wrap;
+}
+.save-slot-info { display: flex; flex-direction: column; gap: 2px; color: #cfc7b2; font-size: 13.5px; }
+.save-slot-info strong { color: var(--caption-bg); font-family: 'IM Fell English SC', serif; font-size: 16px; }
+.save-slot-actions { display: flex; gap: 8px; }
+.save-slot-actions button {
+  background: #241f14; color: var(--caption-bg); border: 1px solid var(--accent);
+  padding: 5px 12px; font-size: 13px; cursor: pointer;
+}
+.save-slot-actions button:disabled { opacity: 0.4; cursor: default; }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }

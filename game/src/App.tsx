@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from './state/store';
 import { GameScreen } from './components/GameScreen';
+import { SaveLoadModal } from './components/SaveLoadModal';
 import { Out } from './engine/world';
 
 const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -41,18 +42,20 @@ function TheatricalContent({ children }: { children: React.ReactNode }) {
 export default function App() {
   const screen = useStore((s) => s.screen);
   const [help, setHelp] = useState(false);
+  const [slots, setSlots] = useState(false);
   return (
     <div className="app">
-      {screen === 'play' && <GameScreen onHelp={() => setHelp(true)} />}
-      {screen === 'title' && <TitleScreen onHelp={() => setHelp(true)} />}
-      {screen === 'death' && <DeathScreen />}
+      {screen === 'play' && <GameScreen onHelp={() => setHelp(true)} onSlots={() => setSlots(true)} />}
+      {screen === 'title' && <TitleScreen onHelp={() => setHelp(true)} onSlots={() => setSlots(true)} />}
+      {screen === 'death' && <DeathScreen onSlots={() => setSlots(true)} />}
       {screen === 'victory' && <VictoryScreen />}
       {help && <HelpModal onClose={() => setHelp(false)} />}
+      {slots && <SaveLoadModal onClose={() => setSlots(false)} />}
     </div>
   );
 }
 
-function TitleScreen({ onHelp }: { onHelp: () => void }) {
+function TitleScreen({ onHelp, onSlots }: { onHelp: () => void; onSlots: () => void }) {
   const begin = useStore((s) => s.begin);
   const game = useStore((s) => s.game);
   const applyEvents = useStore((s) => s.applyEvents);
@@ -73,6 +76,7 @@ function TitleScreen({ onHelp }: { onHelp: () => void }) {
         <div className="btns">
           <button onClick={begin}>New Game</button>
           <button onClick={restore}>Restore</button>
+          <button onClick={onSlots}>Save Slots</button>
           <button onClick={onHelp}>How to Play</button>
         </div>
         <p className="fine">
@@ -85,7 +89,7 @@ function TitleScreen({ onHelp }: { onHelp: () => void }) {
   );
 }
 
-function DeathScreen() {
+function DeathScreen({ onSlots }: { onSlots: () => void }) {
   const restartGame = useStore((s) => s.restartGame);
   const game = useStore((s) => s.game);
   const begin = useStore((s) => s.begin);
@@ -109,6 +113,7 @@ function DeathScreen() {
           >
             Restore
           </button>
+          <button onClick={onSlots}>Save Slots</button>
         </div>
       </TheatricalContent>
     </div>

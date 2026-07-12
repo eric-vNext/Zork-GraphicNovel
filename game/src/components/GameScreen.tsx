@@ -14,7 +14,7 @@ const PARTICLE_FLAVOR: Record<string, 'dust' | 'firefly' | 'ember' | 'spore' | '
 
 const QUICK_CHIPS = ['look', 'up', 'down', 'inventory', 'take all', 'open', 'examine', 'read', 'wait', 'save'];
 
-export function GameScreen({ onHelp }: { onHelp: () => void }) {
+export function GameScreen({ onHelp, onSlots }: { onHelp: () => void; onSlots: () => void }) {
   // Pin the app to the visual viewport so the soft keyboard overlays instead of
   // scrolling the page: the panel stays put and only the log compresses.
   useEffect(() => {
@@ -54,7 +54,7 @@ export function GameScreen({ onHelp }: { onHelp: () => void }) {
     <div className="game">
       <Stage />
       <div className="right-col">
-        <StatusBar onHelp={onHelp} />
+        <StatusBar onHelp={onHelp} onSlots={onSlots} />
         <LogView />
         <CommandBar />
       </div>
@@ -244,16 +244,29 @@ function PanelImage({ src, alt, offset, dur, drift }: { src: string; alt: string
   );
 }
 
-function StatusBar({ onHelp }: { onHelp: () => void }) {
+function StatusBar({ onHelp, onSlots }: { onHelp: () => void; onSlots: () => void }) {
   const score = useStore((s) => s.score);
   const moves = useStore((s) => s.moves);
   const health = useStore((s) => s.health);
   const scorePulseSeq = useStore((s) => s.scorePulseSeq);
   const healthLostSeq = useStore((s) => s.healthLostSeq);
   const submit = useStore((s) => s.submit);
+  const game = useStore((s) => s.game);
   const inv = useStore((s) => s.inventoryList);
   const [muted, setMuted] = useState(audio.muted);
   const [showInv, setShowInv] = useState(false);
+
+  const downloadTranscript = () => {
+    const text = game.getTranscript();
+    if (!text) return;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'zork-transcript.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="status">
@@ -279,6 +292,8 @@ function StatusBar({ onHelp }: { onHelp: () => void }) {
       <button onClick={() => setShowInv(!showInv)}>Inventory</button>
       <button onClick={() => submit('save')}>Save</button>
       <button onClick={() => submit('restore')}>Restore</button>
+      <button onClick={onSlots}>Slots</button>
+      <button onClick={downloadTranscript}>Transcript</button>
       <button onClick={() => { audio.setMuted(!muted); setMuted(!muted); }}>{muted ? 'Unmute' : 'Mute'}</button>
       <button onClick={onHelp}>Help</button>
       {showInv && (
