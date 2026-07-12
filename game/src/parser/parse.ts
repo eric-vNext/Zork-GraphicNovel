@@ -272,6 +272,9 @@ export function parse(s: WorldState, input: string): ParseResult {
   if (verb === 'get' && rest[0] === 'out') return { cmd: { verb: 'walk', dir: 'OUT', raw } };
   if (verb === 'swing') verb = 'attack';
   if (verb === 'smash') verb = 'break';
+  // DIG IN OBJECT: ZIL's syntax table has IN as fixed filler before the
+  // object, not a genuine dobj/iobj-splitting preposition (gsyntax.zil:165-167).
+  if (verb === 'dig' && (rest[0] === 'in' || rest[0] === 'into')) rest = rest.slice(1);
 
   // WAIT <n>: ports V-WAIT's OPTIONAL NUM argument (default 3 turns for bare WAIT)
   if (verb === 'wait' && rest.length === 1 && /^\d+$/.test(rest[0])) {
@@ -295,6 +298,20 @@ export function parse(s: WorldState, input: string): ParseResult {
     };
   }
 
+  // leading preposition with nothing before it means only the indirect
+  // object was given (e.g. "dig with shovel", "unlock with key") — the
+  // direct object is missing. Ask for it; completePending() splices the
+  // answer back in right after the verb, e.g. "dig sand with shovel".
+  if (PREPS.has(rest[0]) && !NO_OBJ.has(verb)) {
+    return {
+      ask: {
+        question: `What do you want to ${verbWord}?`,
+        options: [],
+        pending: { raw, slot: 'dobj' },
+      },
+    };
+  }
+
   // split on preposition
   let prep: string | undefined;
   let dTokens: string[] = [];
@@ -302,11 +319,8 @@ export function parse(s: WorldState, input: string): ParseResult {
   let seenPrep = false;
   for (const w of rest) {
     if (!seenPrep && PREPS.has(w) && dTokens.length) { prep = w; seenPrep = true; continue; }
-    if (!seenPrep && PREPS.has(w) && !dTokens.length && (verb === 'look-in' || verb === 'look-under')) continue;
     (seenPrep ? iTokens : dTokens).push(w);
   }
-  // leading prep with no dobj yet: "look under rug" handled above; "dig in sand" =>
-  if (!dTokens.length && iTokens.length) { dTokens = iTokens; iTokens = []; prep = undefined; }
 
   // ALL / AND multi-object handling (dobj only)
   const dWords = dTokens.filter((w) => !NOISE.has(w));
@@ -410,8 +424,16 @@ export function completePending(s: WorldState, pending: PendingParse, answer: st
       }
     }
   }
-  // orphan completion: "open" -> "mailbox"
-  return parse(s, `${pending.raw} ${answer}`);
+  // the answer is itself a fresh, verb-led sentence rather than a bare
+  // noun phrase filling the ellipsis (e.g. player was asked "What do you
+  // want to dig?" and typed a whole new command) — start over instead of
+  // grafting it onto the pending verb.
+  if (VERBS[toks[0]]) return parse(s, answer);
+  // orphan completion: splice the answer in right after the verb word, e.g.
+  // pending.raw "dig with shovel" + answer "sand" => "dig sand with shovel"
+  // (not a naive end-append, which would garble any trailing prep phrase).
+  const rawToks = tokenize(pending.raw);
+  return parse(s, [rawToks[0], ...toks, ...rawToks.slice(1)].join(' '));
 }
 
 function disambiguatedRaw(raw: string, spec: string, id: string): string {
