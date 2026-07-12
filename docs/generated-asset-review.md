@@ -7,13 +7,13 @@
 | Category | Path | Generated | Status |
 |---|---|---|---|
 | Room panels | `assets/rooms/` | **85** | ✅ All Tier-1 + Tier-2 present, QA'd |
-| Event panels | `assets/events/` | **29** | ✅ All Tier-1 + Tier-2 present, QA'd |
+| Event panels | `assets/events/` | **36** | ✅ All Tier-1 + Tier-2 + `asset-plan-v2.md` Tier C present |
 | Character panels | `assets/characters/` | **4** (troll, thief, cyclops, bat) | ✅ Ready |
 | Item close-ups | `assets/items/` | **23** | ✅ All Tier-1 + Tier-2 present |
 | UI & frontispiece | `assets/ui/` | **6** | ✅ Ready (3 with alpha transparency) |
-| **Total images** | | **147** | **All Tier-1 and Tier-2 assets ready** |
-| Music beds | `assets/audio/music/` | 0 | ⏳ Deferred to build phase (see below) |
-| SFX | `assets/audio/sfx/` | 0 | ⏳ Deferred to build phase (see below) |
+| **Total images** | | **154** | **All planned assets ready** |
+| Music beds | `assets/audio/music/` | **10** | ✅ Ready — see "Audio plan status" below |
+| SFX | `assets/audio/sfx/` | **47** | ✅ Ready — includes `asset-plan-v2.md` Tier B additions |
 
 **2026-07-11 update:** the three remaining Tier-2 gaps this doc used to flag —
 `living-room-case-full`, `living-room-trapdoor-closed`, `living-room-trapdoor-open`
@@ -21,6 +21,14 @@
 Every other Tier-2 item in `asset-plan.md` (12 events, 8 items, 7 more room
 variants) had in fact already been generated in an earlier session; this doc's
 "Known nits" section describing them as outstanding was stale.
+
+**2026-07-12 update:** `docs/asset-plan-v2.md`'s full four-tier extension
+pass (new SFX, new event-panel art, new animation techniques, plus wiring
+two pre-existing but never-emitted assets) is complete. 7 new event panels
+(`cyclops-sleeps`, `ghost-curse`, `mirror-warp`, `lamp-smashed`,
+`villain-vanish`, `canary-song`, `thief-gift`) and 9 new SFX (`glass-shatter`,
+`sand-collapse`, `boat-puncture`, `corpse-vanish`, `ghost-curse`,
+`mirror-warp`, `cyclops-yawn`, `rug-drag`, `putty-seal`) shipped.
 
 Masters are ~2430×1620 PNG (~6–7 MB each, ~800 MB total). These are **source masters only** — the build phase converts to resized WebP (~300 KB desktop / ~90 KB mobile variants, ~30 MB shipped total, lazy-loaded per region).
 

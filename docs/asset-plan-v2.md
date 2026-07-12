@@ -1,7 +1,8 @@
 # Extended Asset & Presentation Plan (v2)
 
-**Status: Tier A, B, and D shipped (2026-07-12).** Tier C (new event-panel
-art) is still open — see §3 below.
+**Status: all four tiers (A, B, C, D) shipped (2026-07-12).** This plan is
+complete; see `docs/generated-asset-review.md` for the current total asset
+inventory.
 
 Continuation of `docs/asset-plan.md` (all Tier-1/Tier-2 items from that plan
 are shipped — see `docs/generated-asset-review.md`). This plan catalogs
@@ -144,7 +145,29 @@ kill), `glass-shatter` (three reuse sites), `cyclops-yawn` and
 
 ---
 
-## 3. Tier C — new event-panel illustrations
+## 3. Tier C — new event-panel illustrations ✅ done (2026-07-12)
+
+All 7 primary items shipped (the two "lower priority / consider bundling"
+items, `troll-disarmed` and `boat-puncture`, were deliberately skipped —
+still true that `characters/troll`/`events/troll-fight` cover the troll
+room adequately, and boat-puncture shipped with just its Tier B sfx).
+Generated via `nano-banana-pro/edit` with an existing same-scene asset as
+style reference each time (e.g. `rooms/cyclops-room.png` for
+`cyclops-sleeps`, `events/thief-encounter.png` for `thief-gift`) rather
+than plain text-to-image, to keep character/room consistency with what's
+already shipped. One regeneration needed: `lamp-smashed`'s first pass had
+the white-margin defect `docs/generated-asset-review.md` already documented
+as a known failure mode for this pipeline; adding an explicit
+full-bleed/no-white-margin instruction to the prompt fixed it on retry.
+
+`events/mirror-warp` needed its panel emit placed *after* `ctx.moveTo()`
+in the mirror-room teleport handler, not before — the destination room's
+own `'room'` event would otherwise win the turn per "last panel event
+wins" (see the comment at that call site in `specials.ts`). Harmless here
+since both mirror rooms share the same base art, so nothing is lost by
+letting the warp art be the one that's actually seen. `events/villain-vanish`
+has the same consideration and is thief-only for the same reason (see Tier
+B's note above).
 
 Same "Storm-Lantern Ink" style block from `docs/asset-plan.md` §0 applies
 verbatim to all of these. Suggested prompts are starting points, not final.

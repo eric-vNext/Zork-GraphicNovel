@@ -149,6 +149,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
     if (ctx.verb === 'throw') {
       out.tell('The lamp has smashed into the floor, and the light has gone out.');
       out.emit({ type: 'sfx', name: 'glass-shatter' });
+      out.emit({ type: 'panel', key: 'events/lamp-smashed' });
       ctx.disable('I-LANTERN');
       removeObj(s, 'LAMP');
       moveObj(s, 'BROKEN-LAMP', s.here);
@@ -264,6 +265,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
         moveObj(s, 'BAUBLE', s.here);
         out.tell('The canary chirps, slightly off-key, an aria from a forgotten opera. From out of the greenery flies a lovely songbird. It perches on a limb just over your head and opens its beak to sing. As it does so a beautiful brass bauble drops from its mouth, bounces off the top of your head, and lands glimmering in the grass. As the canary winds down, the songbird flies away.');
         out.emit({ type: 'sfx', name: 'treasure-chime' });
+        out.emit({ type: 'panel', key: 'events/canary-song' });
         return true;
       }
       out.tell('The canary chirps blithely, if somewhat tinnily, for a short time.');
@@ -573,6 +575,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       } else {
         out.tell(`The thief places the ${objDef(item).desc} in his bag and thanks you politely.`);
       }
+      out.emit({ type: 'panel', key: 'events/thief-gift' });
       s.thiefEngrossed = true;
       return true;
     }
@@ -800,8 +803,14 @@ function weaponFunction(ctx: Ctx, weapon: string, villain: string, defeated: () 
 function mirrorHandler(ctx: Ctx): boolean {
     const { s, out } = ctx;
     if (ctx.verb === 'touch' || ctx.verb === 'rub') {
-      if (s.here === 'MIRROR-ROOM-1') { out.emit({ type: 'sfx', name: 'mirror-warp' }); out.emit({ type: 'shake' }); ctx.moveTo('MIRROR-ROOM-2', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); return true; }
-      if (s.here === 'MIRROR-ROOM-2') { out.emit({ type: 'sfx', name: 'mirror-warp' }); out.emit({ type: 'shake' }); ctx.moveTo('MIRROR-ROOM-1', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); return true; }
+      // Panel order matters here: moveTo's own 'room' event would win over an
+      // earlier dramatic-panel emit ("last panel event wins" -- see
+      // docs/handoff-2026-07-11.md), so events/mirror-warp is emitted AFTER
+      // the move. The destination's own base art is identical either way
+      // (both mirror rooms share the same 'mirror-room' art key), so nothing
+      // informational is lost by letting the warp art win the turn.
+      if (s.here === 'MIRROR-ROOM-1') { out.emit({ type: 'sfx', name: 'mirror-warp' }); out.emit({ type: 'shake' }); ctx.moveTo('MIRROR-ROOM-2', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); out.emit({ type: 'panel', key: 'events/mirror-warp' }); return true; }
+      if (s.here === 'MIRROR-ROOM-2') { out.emit({ type: 'sfx', name: 'mirror-warp' }); out.emit({ type: 'shake' }); ctx.moveTo('MIRROR-ROOM-1', false); out.tell('There is a rumble from deep within the earth and the room shakes.'); ctx.perform('look'); out.emit({ type: 'panel', key: 'events/mirror-warp' }); return true; }
       return false;
     }
     if (ctx.verb === 'break') {

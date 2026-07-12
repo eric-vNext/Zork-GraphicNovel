@@ -145,6 +145,8 @@ export const EVENT_PANELS = new Set([
   'events/door-slam', 'events/echo', 'events/dam-button', 'events/machine-diamond',
   'events/slide-ride', 'events/cyclops-odysseus', 'events/prayer-teleport', 'events/xyzzy',
   'events/sword-glow',
+  'events/cyclops-sleeps', 'events/ghost-curse', 'events/mirror-warp', 'events/lamp-smashed',
+  'events/villain-vanish', 'events/canary-song', 'events/thief-gift',
   'characters/troll', 'characters/thief', 'characters/cyclops', 'characters/bat',
   'rooms/living-room-trapdoor-open', 'rooms/living-room-trapdoor-closed', 'rooms/living-room-case-full',
   'rooms/grating-clearing', 'rooms/grating-clearing-open', 'rooms/grating-room-open',
