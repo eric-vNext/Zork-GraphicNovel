@@ -116,7 +116,7 @@ function Stage() {
     <div className="stage">
       <ShakeWrap seq={shakeSeq}>
         {dark ? (
-          <DarknessPanel turns={grueTurns} />
+          <DarknessPanel turns={grueTurns} art={panel} />
         ) : (
           <AnimatePresence mode="sync">
             <PanelImage
@@ -275,7 +275,7 @@ function Atmosphere() {
 // agrees with "you are likely to be eaten by a grue." The growl is emitted by
 // the engine when the pitch-black line prints. Eyes remain (static under
 // reduced motion) as the readable signal either way.
-function DarknessPanel({ turns }: { turns: number }) {
+function DarknessPanel({ turns, art }: { turns: number; art: string }) {
   const close = Math.min(1, turns / 3); // grue strikes around 2–3 turns
   return (
     <motion.div
@@ -285,6 +285,9 @@ function DarknessPanel({ turns }: { turns: number }) {
       animate={{ opacity: 1 }}
       transition={{ duration: REDUCED_MOTION ? 0.2 : 0.7, ease: 'easeOut' }}
     >
+      {/* The room you're actually in, dimmed almost to black — barely-there
+          texture so the dark reads as a place, not a void. */}
+      <img className="darkness-art" src={`./art/${art}.webp`} alt="" aria-hidden draggable={false} />
       <div className="grue-eyes" aria-hidden>
         <span className="grue-eye" />
         <span className="grue-eye" />
