@@ -185,7 +185,10 @@ body {
   min-height: 3.2em;
   overflow-y: auto;
   padding: 14px 18px 6px;
-  scroll-behavior: smooth;
+  /* No smooth scroll: this log appends every turn and auto-follows the tail.
+     A smooth glide fires intermediate scroll events far from the bottom, which
+     the follow logic would misread as the user scrolling away. Snap instantly. */
+  overflow-anchor: none;
 }
 .log::-webkit-scrollbar { width: 8px; }
 .log::-webkit-scrollbar-thumb { background: #33302a; border-radius: 4px; }

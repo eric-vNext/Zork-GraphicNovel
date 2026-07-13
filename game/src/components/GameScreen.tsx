@@ -1,5 +1,5 @@
 // Main play screen: panel (Framer Motion transitions) + log + command bar.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '../state/store';
 import { audio } from '../audio/audioManager';
@@ -344,11 +344,25 @@ function StatusBar({ onHelp }: { onHelp: () => void }) {
 function LogView() {
   const log = useStore((s) => s.log);
   const ref = useRef<HTMLDivElement>(null);
-  const stick = useRef(true);
+  // `pinned` = follow the tail. We must not let our own scroll-to-bottom turn
+  // this off: `.log` has `scroll-behavior: smooth`, so setting scrollTop glides
+  // through many "far from bottom" positions, and a naive distance check would
+  // read those mid-glide frames as "the user scrolled away" and stop following.
+  const pinned = useRef(true);
+  const lastTop = useRef(0);
+  const cmdCount = useRef(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = ref.current;
-    if (el && stick.current) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    // A newly entered command means the player just acted — always follow it,
+    // even if they'd scrolled up to read history. We count command echoes
+    // rather than checking the last line, because the echo and its response
+    // arrive in the same render (the echo is not the final line).
+    const cmds = log.reduce((n, l) => n + (l.cls === 'cmd' ? 1 : 0), 0);
+    if (cmds > cmdCount.current) pinned.current = true;
+    cmdCount.current = cmds;
+    if (pinned.current) el.scrollTop = el.scrollHeight;
   }, [log]);
 
   return (
@@ -359,7 +373,13 @@ function LogView() {
       aria-live="polite"
       onScroll={(e) => {
         const el = e.currentTarget;
-        stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+        const top = el.scrollTop;
+        // Only a genuine *upward* scroll unfollows; the smooth auto-scroll only
+        // ever moves the view down toward the tail, so it never trips this.
+        // Returning to near the bottom re-arms follow.
+        if (top < lastTop.current - 4) pinned.current = false;
+        else if (el.scrollHeight - top - el.clientHeight < 60) pinned.current = true;
+        lastTop.current = top;
       }}
     >
       {log.map((l) => {
