@@ -535,3 +535,18 @@ body {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* Safe-area insets for iOS full-screen (viewport-fit=cover + black-translucent
+   status bar). In the landscape side-by-side layout the right column hugs the
+   top-right of the screen, where the status-bar icons / notch overlay the page —
+   so the menu button, quick-command chips, and command bar need to be inset.
+   Placed last so these override the base padding. Portrait needs none: the top
+   is the full-bleed art, and there's no side notch. */
+@media (min-width: 640px) and (orientation: landscape) {
+  .status {
+    padding-top: calc(6px + env(safe-area-inset-top));
+    padding-right: calc(12px + env(safe-area-inset-right));
+  }
+  .chips { padding-right: calc(12px + env(safe-area-inset-right)); }
+  .cmdbar { padding-right: calc(12px + env(safe-area-inset-right)); }
+}
