@@ -195,31 +195,33 @@ body {
   mask-image: radial-gradient(circle at 50% 46%, rgba(0,0,0,0.45) 0%, #000 78%);
   pointer-events: none;
 }
-.grue-eyes {
-  position: relative;
+.grue-field { position: absolute; inset: 0; pointer-events: none; }
+/* A pair of eyes somewhere in the room. Position (left/top) and depth (scale)
+   are randomized per appearance in JS to suggest grues at different distances;
+   opacity fades the pair in and out as it opens and slinks away. */
+.grue-pair {
+  position: absolute;
   display: flex;
-  /* eyes converge and swell as --close (0..1) rises with time in the dark */
-  gap: calc(64px - var(--close, 0) * 34px);
-  transform: scale(calc(1 + var(--close, 0) * 0.7));
-  animation: grue-drift 7.5s ease-in-out infinite;
+  gap: 18px;
+  transform: translate(-50%, -50%) scale(var(--depth, 1));
+  opacity: 0;
+  transition: opacity 0.9s ease-in-out;
+  will-change: opacity, transform;
 }
+.grue-pair.on { opacity: var(--maxop, 0.85); }
 .grue-eye {
-  width: 26px;
-  height: 13px;
+  width: 23px;
+  height: 12px;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 45%, #ffe07a 0%, #ff8a1e 45%, #b23a00 78%, #3a1200 100%);
-  box-shadow: 0 0 14px 3px rgba(255,120,30, calc(0.45 + var(--close, 0) * 0.5)),
-              0 0 34px 8px rgba(255,90,20, calc(0.18 + var(--close, 0) * 0.4));
-  animation: grue-blink 6.2s ease-in-out infinite;
-}
-.grue-eye:nth-child(2) { animation-delay: 0.15s; }
-@keyframes grue-drift {
-  0%, 100% { transform: scale(calc(1 + var(--close, 0) * 0.7)) translate(-3px, 1px); }
-  50% { transform: scale(calc(1 + var(--close, 0) * 0.7)) translate(4px, -2px); }
+  /* red, with a hot core dropping to deep blood-red */
+  background: radial-gradient(circle at 50% 45%, #ff6242 0%, #e51d13 40%, #8c0c08 76%, #260302 100%);
+  box-shadow: 0 0 12px 3px rgba(224,26,18,0.72), 0 0 30px 8px rgba(190,16,10,0.42);
+  animation: grue-blink var(--bd, 5s) ease-in-out infinite;
+  animation-delay: var(--bdelay, 0s);
 }
 @keyframes grue-blink {
-  0%, 46%, 54%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(0.08); }
+  0%, 42%, 58%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.07); }
 }
 .room-caption {
   position: absolute;

@@ -280,7 +280,6 @@ function DarknessPanel({ turns, art }: { turns: number; art: string }) {
   return (
     <motion.div
       className="darkness"
-      style={{ '--close': close } as React.CSSProperties}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: REDUCED_MOTION ? 0.2 : 0.7, ease: 'easeOut' }}
@@ -288,11 +287,83 @@ function DarknessPanel({ turns, art }: { turns: number; art: string }) {
       {/* The room you're actually in, dimmed almost to black — barely-there
           texture so the dark reads as a place, not a void. */}
       <img className="darkness-art" src={`./art/${art}.webp`} alt="" aria-hidden draggable={false} />
-      <div className="grue-eyes" aria-hidden>
-        <span className="grue-eye" />
-        <span className="grue-eye" />
-      </div>
+      <GrueEyes close={close} />
     </motion.div>
+  );
+}
+
+interface EyePair {
+  slot: number;
+  gen: number;      // regenerated each appearance — also the React key
+  x: number; y: number; // % position in the room
+  depth: number;    // scale (distance): smaller = farther/dimmer
+  visible: boolean;
+  blinkDur: number; blinkDelay: number;
+}
+
+// Grue eyes as roving pairs: each fades in at a random spot and size (depth),
+// blinks, then slinks away and reappears elsewhere. One pair is almost always
+// present; a second grue joins now and then — more often the longer the lamp
+// stays out (close). Under reduced motion it collapses to a single static pair.
+function GrueEyes({ close }: { close: number }) {
+  const [pairs, setPairs] = useState<Record<number, EyePair>>({});
+  const closeRef = useRef(close);
+  closeRef.current = close;
+
+  useEffect(() => {
+    if (REDUCED_MOTION) {
+      setPairs({ 0: { slot: 0, gen: 0, x: 50, y: 46, depth: 0.9 + close * 0.5, visible: true, blinkDur: 0, blinkDelay: 0 } });
+      return;
+    }
+    let alive = true;
+    const timers = new Set<number>();
+    const after = (ms: number, fn: () => void) => {
+      const id = window.setTimeout(() => { timers.delete(id); if (alive) fn(); }, ms);
+      timers.add(id);
+    };
+    const make = (slot: number): EyePair => {
+      const c = closeRef.current;
+      return {
+        slot, gen: Math.random(),
+        x: 12 + Math.random() * 76,
+        y: 30 + Math.random() * 44,
+        depth: Math.min(1.5, 0.5 + Math.random() * 0.6 + c * 0.5), // closes in over time
+        visible: false,
+        blinkDur: 3.5 + Math.random() * 4,
+        blinkDelay: -Math.random() * 4,
+      };
+    };
+    const cycle = (slot: number, primary: boolean) => {
+      const p = make(slot);
+      setPairs((ps) => ({ ...ps, [slot]: p }));
+      after(50, () => setPairs((ps) => (ps[slot]?.gen === p.gen ? { ...ps, [slot]: { ...ps[slot], visible: true } } : ps)));
+      const life = 3000 + Math.random() * 4500;
+      after(life, () => {
+        setPairs((ps) => (ps[slot]?.gen === p.gen ? { ...ps, [slot]: { ...ps[slot], visible: false } } : ps));
+        const c = closeRef.current;
+        const gap = primary ? 600 + Math.random() * 1500 : (2400 + Math.random() * 6000) * (1 - c * 0.5);
+        after(gap + 900, () => cycle(slot, primary));
+      });
+    };
+    cycle(0, true);
+    after(1200 + Math.random() * 2500, () => cycle(1, false));
+    return () => { alive = false; timers.forEach((id) => clearTimeout(id)); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="grue-field" aria-hidden>
+      {Object.values(pairs).map((p) => (
+        <div
+          key={`${p.slot}-${p.gen}`}
+          className={`grue-pair${p.visible ? ' on' : ''}`}
+          style={{ left: `${p.x}%`, top: `${p.y}%`, '--depth': p.depth, '--maxop': Math.min(1, 0.5 + p.depth * 0.4) } as React.CSSProperties}
+        >
+          <span className="grue-eye" style={{ '--bd': `${p.blinkDur}s`, '--bdelay': `${p.blinkDelay}s` } as React.CSSProperties} />
+          <span className="grue-eye" style={{ '--bd': `${p.blinkDur}s`, '--bdelay': `${p.blinkDelay - 0.12}s` } as React.CSSProperties} />
+        </div>
+      ))}
+    </div>
   );
 }
 
