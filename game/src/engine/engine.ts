@@ -5,7 +5,7 @@ import { newState, Out, fset, fclear, fset$, moveObj, roomLit, DATA, roomDef, PL
 import type { Ctx } from './ctx';
 import { parse, completePending, type PendingParse, type Command } from '../parser/parse';
 import { perform, goTo, enterRoom } from './verbs';
-import { clocker, DAEMONS } from './daemons';
+import { clocker, DAEMONS, candleTicksRemaining } from './daemons';
 import { fightStrength } from './melee';
 import { jigsUp } from './death';
 import { describeRoom } from './describe';
@@ -137,6 +137,22 @@ export class Game {
     }
 
     if (!raw) { out.tell('I beg your pardon?'); return out.events; }
+
+    // TEMP DEBUG (added to investigate a user-reported candle-burnout bug;
+    // delete this block once that's resolved): reports the candles' total
+    // remaining turns of light without costing a turn or touching state.
+    if (/^candlelife$/i.test(raw)) {
+      const remaining = candleTicksRemaining(s);
+      const lit = fset$(s, 'CANDLES', 'ONBIT');
+      const burnedOut = fset$(s, 'CANDLES', 'RMUNGBIT');
+      out.tell(
+        `[debug] candleIdx=${s.counters.candleIdx} lit=${lit} burnedOut=${burnedOut} ` +
+        `daemonTick=${s.daemons['I-CANDLES']?.tick ?? 'n/a'} daemonEnabled=${!!s.daemons['I-CANDLES']?.enabled} ` +
+        `totalTurnsOfLightLeft=${remaining}`,
+        'system',
+      );
+      return out.events;
+    }
 
     // echo command back in log styling is handled by UI; here: AGAIN
     if (/^(g|again)$/i.test(raw)) {

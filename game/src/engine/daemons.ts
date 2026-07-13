@@ -25,6 +25,26 @@ const CANDLE_TABLE: Array<[number, string | null]> = [
   [0, null],
 ];
 
+// TEMP DEBUG helper (added to investigate a user-reported candle-burnout
+// bug; safe to delete once that's resolved). Reports total turns of light
+// left, summing the current daemon's live countdown (if lit) plus every
+// remaining full-length stage after it — mirrors how relighting always
+// grants a fresh interval for the current stage rather than resuming a
+// partial one (see the 'light' handler in specials.ts).
+export function candleTicksRemaining(s: import('./types').WorldState): number | null {
+  if (fset$(s, 'CANDLES', 'RMUNGBIT')) return 0;
+  const idx = s.counters.candleIdx;
+  let total = 0;
+  const d = s.daemons['I-CANDLES'];
+  if (fset$(s, 'CANDLES', 'ONBIT') && d?.enabled) {
+    total += d.tick;
+    for (let i = idx + 1; i < CANDLE_TABLE.length && CANDLE_TABLE[i][0] > 0; i++) total += CANDLE_TABLE[i][0];
+  } else {
+    for (let i = idx; i < CANDLE_TABLE.length && CANDLE_TABLE[i][0] > 0; i++) total += CANDLE_TABLE[i][0];
+  }
+  return total;
+}
+
 export const DAEMONS: Record<string, Daemon> = {
   'I-LANTERN': (ctx) => {
     const { s, out } = ctx;
