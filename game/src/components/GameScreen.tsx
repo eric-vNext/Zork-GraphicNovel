@@ -294,7 +294,22 @@ function StatusBar({ onHelp }: { onHelp: () => void }) {
   const [musicVol, setMusicVolState] = useState(audio.musicVol);
   const [sfxVol, setSfxVolState] = useState(audio.sfxVol);
   const [showInv, setShowInv] = useState(false);
-  const [showSound, setShowSound] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Collapse the action buttons into one menu: the toolbar overflows off-screen
+  // in landscape (the text column is only ~44% wide), hiding Saves/Sound/Help.
+  // Close on outside tap or Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [menuOpen]);
 
   const downloadTranscript = () => {
     const text = game.getTranscript();
@@ -307,6 +322,9 @@ function StatusBar({ onHelp }: { onHelp: () => void }) {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // Run a menu action, then close the popover.
+  const act = (fn: () => void) => () => { setMenuOpen(false); fn(); };
 
   return (
     <div className="status">
@@ -329,44 +347,53 @@ function StatusBar({ onHelp }: { onHelp: () => void }) {
         {[0, 1, 2].map((i) => <span key={i} className={i < health ? 'lit' : ''} />)}
       </motion.span>
       <span className="spacer" />
-      <button onClick={() => setShowInv(!showInv)}>Inventory</button>
-      <button onClick={() => openSlots('save')}>Saves</button>
-      <button onClick={() => submit('restart')}>Restart</button>
-      <button onClick={downloadTranscript}>Transcript</button>
-      <button onClick={() => setShowSound(!showSound)} aria-expanded={showSound}>
-        {muted ? 'Sound: off' : 'Sound'}
-      </button>
-      <button onClick={onHelp}>Help</button>
-      {showInv && (
-        <div style={{ flexBasis: '100%', fontFamily: 'Source Serif 4, serif', color: '#e8e2d5', fontSize: 14 }}>
-          {inv.length ? `Carrying: ${inv.join(', ')}` : 'You are empty-handed.'}
-        </div>
-      )}
-      {showSound && (
-        <div className="sound-panel">
-          <button
-            className={muted ? 'toggled' : ''}
-            onClick={() => { const m = !muted; audio.setMuted(m); setMuted(m); }}
-          >
-            {muted ? 'Unmute' : 'Mute'}
-          </button>
-          <label>
-            Music
-            <input
-              type="range" min={0} max={1} step={0.05} value={musicVol} disabled={muted}
-              onChange={(e) => { const v = Number(e.target.value); audio.setMusicVol(v); setMusicVolState(v); }}
-            />
-          </label>
-          <label>
-            SFX
-            <input
-              type="range" min={0} max={1} step={0.05} value={sfxVol} disabled={muted}
-              onChange={(e) => { const v = Number(e.target.value); audio.setSfxVol(v); setSfxVolState(v); }}
-              onPointerUp={() => { if (!muted) audio.sfx('ui-click'); }}
-            />
-          </label>
-        </div>
-      )}
+      <div className="menu-wrap" ref={menuRef}>
+        <button
+          className="menu-btn"
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label="Menu"
+        >
+          ☰ Menu{muted ? ' · muted' : ''}
+        </button>
+        {menuOpen && (
+          <div className="menu-pop" role="menu">
+            <button role="menuitem" aria-expanded={showInv} onClick={() => setShowInv((v) => !v)}>Inventory</button>
+            {showInv && (
+              <div className="menu-inv">{inv.length ? inv.join(', ') : 'You are empty-handed.'}</div>
+            )}
+            <button role="menuitem" onClick={act(() => openSlots('save'))}>Saves</button>
+            <button role="menuitem" onClick={act(() => submit('restart'))}>Restart</button>
+            <button role="menuitem" onClick={act(downloadTranscript)}>Transcript</button>
+            <button role="menuitem" onClick={act(onHelp)}>How to Play</button>
+            <div className="menu-sep" />
+            <div className="sound-panel">
+              <button
+                className={muted ? 'toggled' : ''}
+                onClick={() => { const m = !muted; audio.setMuted(m); setMuted(m); }}
+              >
+                {muted ? 'Unmute' : 'Mute'}
+              </button>
+              <label>
+                Music
+                <input
+                  type="range" min={0} max={1} step={0.05} value={musicVol} disabled={muted}
+                  onChange={(e) => { const v = Number(e.target.value); audio.setMusicVol(v); setMusicVolState(v); }}
+                />
+              </label>
+              <label>
+                SFX
+                <input
+                  type="range" min={0} max={1} step={0.05} value={sfxVol} disabled={muted}
+                  onChange={(e) => { const v = Number(e.target.value); audio.setSfxVol(v); setSfxVolState(v); }}
+                  onPointerUp={() => { if (!muted) audio.sfx('ui-click'); }}
+                />
+              </label>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
