@@ -65,3 +65,41 @@ describe('region-flavored treasure-chime remap', () => {
     expect(audio.calls.at(-1)).toBe('sword-clash-1');
   });
 });
+
+describe('transition + water ambience sfx', () => {
+  beforeEach(() => { vi.resetModules(); });
+
+  it('plays a page-turn on panel change and water-flow when arriving at a watery room', async () => {
+    const { useStore } = await import('../src/state/store');
+    const { audio } = await import('../src/audio/audioManager') as unknown as { audio: { calls: string[] } };
+
+    const store = useStore.getState();
+    audio.calls.length = 0;
+    useStore.setState({ screen: 'play' });
+
+    // First room comes from the title panel — the page-turn is suppressed there.
+    store.applyEvents([{ type: 'room', room: 'WEST-OF-HOUSE' }]);
+    expect(audio.calls).not.toContain('page-turn');
+
+    // Moving to a new room changes the panel -> page-turn whoosh.
+    store.applyEvents([{ type: 'room', room: 'NORTH-OF-HOUSE' }]);
+    expect(audio.calls).toContain('page-turn');
+
+    // Arriving at a river room swells the water ambience.
+    store.applyEvents([{ type: 'room', room: 'RIVER-2' }]);
+    expect(audio.calls).toContain('water-flow');
+  });
+
+  it('does not play water-flow at the reservoir once it has been drained', async () => {
+    const { useStore } = await import('../src/state/store');
+    const { audio } = await import('../src/audio/audioManager') as unknown as { audio: { calls: string[] } };
+
+    const store = useStore.getState();
+    audio.calls.length = 0;
+    useStore.setState({ screen: 'play' });
+    store.game.s.gflags['LOW-TIDE'] = true; // dam drained -> reservoir bed is dry
+
+    store.applyEvents([{ type: 'room', room: 'RESERVOIR' }]);
+    expect(audio.calls).not.toContain('water-flow');
+  });
+});

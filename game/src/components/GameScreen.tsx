@@ -291,7 +291,10 @@ function StatusBar({ onHelp }: { onHelp: () => void }) {
   const openSlots = useStore((s) => s.openSlots);
   const inv = useStore((s) => s.inventoryList);
   const [muted, setMuted] = useState(audio.muted);
+  const [musicVol, setMusicVolState] = useState(audio.musicVol);
+  const [sfxVol, setSfxVolState] = useState(audio.sfxVol);
   const [showInv, setShowInv] = useState(false);
+  const [showSound, setShowSound] = useState(false);
 
   const downloadTranscript = () => {
     const text = game.getTranscript();
@@ -330,11 +333,38 @@ function StatusBar({ onHelp }: { onHelp: () => void }) {
       <button onClick={() => openSlots('save')}>Saves</button>
       <button onClick={() => submit('restart')}>Restart</button>
       <button onClick={downloadTranscript}>Transcript</button>
-      <button onClick={() => { audio.setMuted(!muted); setMuted(!muted); }}>{muted ? 'Unmute' : 'Mute'}</button>
+      <button onClick={() => setShowSound(!showSound)} aria-expanded={showSound}>
+        {muted ? 'Sound: off' : 'Sound'}
+      </button>
       <button onClick={onHelp}>Help</button>
       {showInv && (
         <div style={{ flexBasis: '100%', fontFamily: 'Source Serif 4, serif', color: '#e8e2d5', fontSize: 14 }}>
           {inv.length ? `Carrying: ${inv.join(', ')}` : 'You are empty-handed.'}
+        </div>
+      )}
+      {showSound && (
+        <div className="sound-panel">
+          <button
+            className={muted ? 'toggled' : ''}
+            onClick={() => { const m = !muted; audio.setMuted(m); setMuted(m); }}
+          >
+            {muted ? 'Unmute' : 'Mute'}
+          </button>
+          <label>
+            Music
+            <input
+              type="range" min={0} max={1} step={0.05} value={musicVol} disabled={muted}
+              onChange={(e) => { const v = Number(e.target.value); audio.setMusicVol(v); setMusicVolState(v); }}
+            />
+          </label>
+          <label>
+            SFX
+            <input
+              type="range" min={0} max={1} step={0.05} value={sfxVol} disabled={muted}
+              onChange={(e) => { const v = Number(e.target.value); audio.setSfxVol(v); setSfxVolState(v); }}
+              onPointerUp={() => { if (!muted) audio.sfx('ui-click'); }}
+            />
+          </label>
         </div>
       )}
     </div>

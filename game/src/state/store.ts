@@ -62,6 +62,14 @@ const TREASURE_CHIME_BY_REGION: Record<string, string> = {
   endgame: 'treasure-chime-endgame',
 };
 
+// Rooms on or beside moving water: entering them swells a water ambience over
+// the region bed. The reservoir only counts while flooded (drained = dry bed).
+const WATER_ROOMS = new Set([
+  'RIVER-1', 'RIVER-2', 'RIVER-3', 'RIVER-4', 'RIVER-5',
+  'IN-STREAM', 'STREAM-VIEW', 'RESERVOIR', 'RESERVOIR-NORTH', 'RESERVOIR-SOUTH',
+  'ARAGAIN-FALLS', 'SANDY-BEACH', 'SHORE', 'WHITE-CLIFFS-NORTH', 'WHITE-CLIFFS-SOUTH',
+]);
+
 interface GameStore {
   game: Game;
   screen: Screen;
@@ -247,6 +255,11 @@ export const useStore = create<GameStore>((set, get) => ({
           }
           if (e.room === 'ENTRANCE-TO-HADES' && !s.gflags['LLD-FLAG']) audio.layerHades(true);
           else audio.layerHades(false);
+          // Water ambience over the bed when arriving at a watery room. The
+          // reservoir is only wet at high tide.
+          if (WATER_ROOMS.has(e.room) && !(e.room.startsWith('RESERVOIR') && s.gflags['LOW-TIDE'])) {
+            audio.sfx('water-flow');
+          }
           break;
         }
         case 'panel': {
@@ -288,9 +301,25 @@ export const useStore = create<GameStore>((set, get) => ({
       }
     }
 
-    // darkness panel
+    // Darkness panel — driven by lighting state, not just movement, so the art
+    // can't show a lit room while the text says "pitch black" (e.g. after you
+    // extinguish the lamp in place). When the lamp comes back on without a room
+    // change, restore the current room's art so the panel doesn't stay stuck on
+    // the grue warning.
     const dark = !roomLit(s) && !s.dead;
-    if (dark && sawRoom) { panel = 'events/grue-warning'; panelIsEvent = true; }
+    if (dark) {
+      panel = 'events/grue-warning';
+      panelIsEvent = true;
+    } else if (st.dark && !sawRoom && !panelIsEvent) {
+      panel = `rooms/${roomArtFor(s.here, s.gflags, (o, f) => fset$(s, o, f), caseTreasureList(s).length)}`;
+    }
+
+    // Page-turn whoosh on any panel change during play — the graphic-novel
+    // conceit made audible. Skipped on the death/victory screens, which have
+    // their own stingers, and on the opening title-to-first-room reveal.
+    if (panel !== st.panel && screen === 'play' && st.panel !== 'ui/title-screen') {
+      audio.sfx('page-turn');
+    }
 
     const wounds = s.counters.wounds ?? 0;
     const health = Math.max(0, 3 - wounds);
