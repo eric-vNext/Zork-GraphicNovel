@@ -189,7 +189,7 @@ body {
   height: 100%;
   object-fit: cover;
   object-position: center 35%;
-  opacity: 0.16;
+  opacity: 0.18;
   filter: brightness(0.7) saturate(0.7);
   -webkit-mask-image: radial-gradient(circle at 50% 46%, rgba(0,0,0,0.45) 0%, #000 78%);
   mask-image: radial-gradient(circle at 50% 46%, rgba(0,0,0,0.45) 0%, #000 78%);

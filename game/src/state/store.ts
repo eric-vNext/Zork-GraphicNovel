@@ -304,15 +304,18 @@ export const useStore = create<GameStore>((set, get) => ({
     }
 
     // Darkness — driven by lighting state, not just movement. The DarknessPanel
-    // renders the grue eyes over the current room's art dimmed almost to black
-    // (just enough texture to read as a real place), so `panel` must hold that
-    // room's art rather than a stand-in. Keep it pointed at the room the player
-    // is actually in whenever no room event set it this turn — while dark, and
-    // on the turn the lamp comes back on in place.
+    // renders the grue eyes over the current room's art, dimmed almost to black
+    // (just enough texture to read as a real place). While dark, `panel` must
+    // therefore always be the art of the room the player is actually in
+    // (s.here) — never the grue-warning stand-in the engine emits on look, and
+    // never a stale panel from before. On the turn the lamp comes back on in
+    // place (no room event), restore that room's art the same way.
     const dark = !roomLit(s) && !s.dead;
-    if ((dark || st.dark) && !sawRoom && !panelIsEvent) {
+    if (dark) {
       panel = `rooms/${roomArtFor(s.here, s.gflags, (o, f) => fset$(s, o, f), caseTreasureList(s).length)}`;
       panelIsEvent = false;
+    } else if (st.dark && !sawRoom && !panelIsEvent) {
+      panel = `rooms/${roomArtFor(s.here, s.gflags, (o, f) => fset$(s, o, f), caseTreasureList(s).length)}`;
     }
 
     // Page-turn whoosh on any panel change during play — the graphic-novel
