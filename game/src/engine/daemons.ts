@@ -6,7 +6,7 @@ import { jigsUp } from './death';
 import { fightDaemon } from './melee';
 import { thiefDaemon } from './thief';
 import {
-  fset, fclear, fset$, moveObj, removeObj, inPlayer, roomOf,
+  fset, fclear, fset$, moveObj, inPlayer, roomOf,
   roomLit, roomDef,
 } from './world';
 
@@ -54,18 +54,24 @@ export const DAEMONS: Record<string, Daemon> = {
     const [, msg] = CANDLE_TABLE[idx];
     const next = idx + 1;
     if (next < CANDLE_TABLE.length && CANDLE_TABLE[next][0] > 0) {
-      if (msg && inPlayer(s, 'CANDLES')) out.tell(msg);
+      if (msg && (inPlayer(s, 'CANDLES') || roomOf(s, 'CANDLES') === s.here)) out.tell(msg);
       s.counters.candleIdx = next;
       ctx.queue('I-CANDLES', CANDLE_TABLE[next][0]);
     } else {
-      if (inPlayer(s, 'CANDLES')) {
+      if (inPlayer(s, 'CANDLES') || roomOf(s, 'CANDLES') === s.here) {
         out.tell("You'd better have more light than from the pair of candles.");
         out.emit({ type: 'sfx', name: 'lamp-off' }); // parity with I-LANTERN's own burnout sfx
       }
+      // LIGHT-INT (1actions.zil:2328) only clears ONBIT and sets RMUNGBIT — the
+      // burnt-out candles remain a real (if useless) object, exactly like the
+      // lamp's own burnout above. There is no removeObj() in the original; a
+      // stray one here used to delete the candles outright, which meant any
+      // burnout that happened while they weren't in hand (e.g. left in a
+      // basket) made them vanish from the game with no explanation, and any
+      // "take candles" after that failed with a bogus "can't see" error.
       fclear(s, 'CANDLES', 'ONBIT');
       fclear(s, 'CANDLES', 'FLAMEBIT');
       fset(s, 'CANDLES', 'RMUNGBIT');
-      removeObj(s, 'CANDLES');
       checkNowDark(ctx);
     }
   },
