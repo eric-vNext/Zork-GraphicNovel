@@ -318,11 +318,15 @@ export const useStore = create<GameStore>((set, get) => ({
       panel = `rooms/${roomArtFor(s.here, s.gflags, (o, f) => fset$(s, o, f), caseTreasureList(s).length)}`;
     }
 
-    // Page-turn whoosh on any panel change during play — the graphic-novel
-    // conceit made audible. Skipped on the death/victory screens, which have
-    // their own stingers, and on the opening title-to-first-room reveal.
+    // Sound on a panel change during play. The troll snarls (troll-grunt) the
+    // moment you first see him — i.e. when his room art appears; his fighting
+    // art carries its own grunt (troll-grunt2 via melee FIGHT_SFX), so no
+    // page-turn over it. Everything else gets the page-turn whoosh — the
+    // graphic-novel conceit made audible. Skipped on the death/victory screens
+    // (their own stingers) and the opening title-to-first-room reveal.
     if (panel !== st.panel && screen === 'play' && st.panel !== 'ui/title-screen') {
-      audio.sfx('page-turn');
+      if (panel === 'rooms/troll-room') audio.sfx('troll-grunt');
+      else if (panel !== 'events/troll-fight') audio.sfx('page-turn');
     }
 
     const wounds = s.counters.wounds ?? 0;

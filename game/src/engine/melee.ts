@@ -71,7 +71,9 @@ const VILLAIN_DEFS: Record<string, { best: string; bestAdv: number; msgs: MeleeT
 };
 const FIGHT_VILLAINS = ['TROLL', 'THIEF'];
 const FIGHT_PANEL: Record<string, string> = { TROLL: 'events/troll-fight', THIEF: 'events/thief-encounter' };
-const FIGHT_SFX: Record<string, string> = { TROLL: 'troll-grunt', THIEF: 'thief-snicker' };
+// troll-grunt is his first-sight snarl (played when the troll-room art appears,
+// see state/store.ts); troll-grunt2 is his combat grunt, shown with the fight art.
+const FIGHT_SFX: Record<string, string> = { TROLL: 'troll-grunt2', THIEF: 'thief-snicker' };
 const DEATH_PANEL: Record<string, string> = { TROLL: 'characters/troll', THIEF: 'characters/thief' };
 
 /** Current villain strength; negative = unconscious, 0 = dead. */
