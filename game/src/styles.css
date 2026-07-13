@@ -180,7 +180,8 @@ body {
   flex-basis: 100%;
   display: flex;
   align-items: center;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 10px 18px;
   padding: 4px 2px 2px;
   color: var(--accent);
   font-size: 12.5px;
@@ -188,6 +189,13 @@ body {
 .sound-panel label { display: flex; align-items: center; gap: 7px; }
 .sound-panel input[type='range'] { width: 110px; accent-color: var(--accent); cursor: pointer; }
 .sound-panel input[type='range']:disabled { opacity: 0.4; cursor: default; }
+/* On phones the row can't hold two 110px sliders side by side — give each
+   control its own full-width row with a comfortably wide, thumb-sized track. */
+@media (max-width: 480px) {
+  .sound-panel { gap: 12px 14px; }
+  .sound-panel label { flex: 1 1 100%; }
+  .sound-panel input[type='range'] { flex: 1; width: auto; }
+}
 .health { display: flex; gap: 3px; }
 .health span { width: 10px; height: 14px; border-radius: 40% 40% 30% 30%; background: #3a352a; }
 .health span.lit { background: linear-gradient(#ffd97a, #c8742a); box-shadow: 0 0 6px #ffb84a88; }
