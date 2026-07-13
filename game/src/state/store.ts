@@ -86,6 +86,7 @@ interface GameStore {
   chips: string[];           // disambiguation options
   inventoryList: string[];
   dark: boolean;
+  grueTurns: number;         // consecutive turns in darkness — drives the grue eyes closing in
   shakeSeq: number;          // bumped on a dramatic hit/explosion/collapse — triggers a screen shake
   scorePulseSeq: number;     // bumped whenever score increases — triggers a status-bar pulse
   healthLostSeq: number;     // bumped whenever a health pip is lost — triggers a pip reaction
@@ -129,6 +130,7 @@ export const useStore = create<GameStore>((set, get) => ({
   chips: [],
   inventoryList: [],
   dark: false,
+  grueTurns: 0,
   shakeSeq: 0,
   scorePulseSeq: 0,
   healthLostSeq: 0,
@@ -343,6 +345,7 @@ export const useStore = create<GameStore>((set, get) => ({
         health,
         inventoryList: inventory(s).map((o) => DATA.objects[o]?.desc ?? o),
         dark,
+        grueTurns: s.grueTurns ?? 0,
         shakeSeq: shakeBumps > 0 ? prev.shakeSeq + 1 : prev.shakeSeq,
         scorePulseSeq: scoreGained ? prev.scorePulseSeq + 1 : prev.scorePulseSeq,
         healthLostSeq: healthLost ? prev.healthLostSeq + 1 : prev.healthLostSeq,

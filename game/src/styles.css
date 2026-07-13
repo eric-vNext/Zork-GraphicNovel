@@ -116,6 +116,95 @@ body {
 .particles-firefly .particle { background: #ffe9a8; box-shadow: 0 0 6px 2px rgba(255,233,168,0.85); }
 .particles-ember .particle { background: #ff8a4a; box-shadow: 0 0 5px 1px rgba(255,110,40,0.8); }
 .particles-spore .particle { background: #b9d9c8; box-shadow: 0 0 4px rgba(185,217,200,0.6); }
+
+/* ---------- ambient light overlays (region atmosphere) ---------- */
+.atmos {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  will-change: opacity, transform, background-position;
+}
+/* Guttering warm lantern/candle light. */
+.atmos-flicker {
+  background: radial-gradient(58% 52% at 32% 42%, rgba(255,178,88,0.16), transparent 72%);
+  animation: atmos-flicker 6.5s ease-in-out infinite;
+}
+@keyframes atmos-flicker {
+  0%, 100% { opacity: 0.55; }
+  22% { opacity: 0.9; }
+  38% { opacity: 0.62; }
+  55% { opacity: 1; }
+  70% { opacity: 0.6; }
+  84% { opacity: 0.82; }
+}
+/* Slow drifting mist. */
+.atmos-fog {
+  background: linear-gradient(100deg, transparent 0%, rgba(198,208,220,0.05) 38%, rgba(198,208,220,0.12) 55%, rgba(198,208,220,0.04) 72%, transparent 100%);
+  background-size: 220% 100%;
+  animation: atmos-fog 34s linear infinite;
+}
+@keyframes atmos-fog {
+  from { background-position: 0% 0; }
+  to { background-position: 220% 0; }
+}
+/* Rippling water caustics. */
+.atmos-shimmer {
+  background: repeating-linear-gradient(78deg, transparent 0 20px, rgba(150,205,225,0.06) 20px 27px, transparent 27px 46px);
+  background-size: 200% 100%;
+  animation: atmos-shimmer 8s linear infinite;
+}
+@keyframes atmos-shimmer {
+  from { background-position: 0 0; }
+  to { background-position: 46px 8px; }
+}
+/* Coal-fire ember glow rising from below. */
+.atmos-ember {
+  background: radial-gradient(120% 62% at 50% 118%, rgba(255,112,40,0.2), transparent 62%);
+  animation: atmos-ember 5.5s ease-in-out infinite;
+}
+@keyframes atmos-ember {
+  0%, 100% { opacity: 0.55; transform: translateY(2%); }
+  50% { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- the dark (grue eyes) ---------- */
+.darkness {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 46%, #0a0a0c 0%, #050506 55%, #000 100%);
+}
+.grue-eyes {
+  position: relative;
+  display: flex;
+  /* eyes converge and swell as --close (0..1) rises with time in the dark */
+  gap: calc(64px - var(--close, 0) * 34px);
+  transform: scale(calc(1 + var(--close, 0) * 0.7));
+  animation: grue-drift 7.5s ease-in-out infinite;
+}
+.grue-eye {
+  width: 26px;
+  height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, #ffe07a 0%, #ff8a1e 45%, #b23a00 78%, #3a1200 100%);
+  box-shadow: 0 0 14px 3px rgba(255,120,30, calc(0.45 + var(--close, 0) * 0.5)),
+              0 0 34px 8px rgba(255,90,20, calc(0.18 + var(--close, 0) * 0.4));
+  animation: grue-blink 6.2s ease-in-out infinite;
+}
+.grue-eye:nth-child(2) { animation-delay: 0.15s; }
+@keyframes grue-drift {
+  0%, 100% { transform: scale(calc(1 + var(--close, 0) * 0.7)) translate(-3px, 1px); }
+  50% { transform: scale(calc(1 + var(--close, 0) * 0.7)) translate(4px, -2px); }
+}
+@keyframes grue-blink {
+  0%, 46%, 54%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.08); }
+}
 .room-caption {
   position: absolute;
   left: 14px;

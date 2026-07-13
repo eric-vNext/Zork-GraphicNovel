@@ -12,6 +12,15 @@ const PARTICLE_FLAVOR: Record<string, 'dust' | 'firefly' | 'ember' | 'spore' | '
   temple: 'spore', dam: 'ember', mine: 'ember', endgame: 'firefly',
 };
 
+// A slow, screen-blended light overlay per region on top of the panel art:
+// a guttering warm lantern glow in the lit caves and house, drifting mist in
+// the maze and temple, a caustic water sheen at the dam/river, an ember glow
+// rising in the coal mine. Purely additive light — never obscures the art.
+const ATMOSPHERE: Record<string, 'flicker' | 'fog' | 'shimmer' | 'ember' | 'none'> = {
+  above: 'none', house: 'flicker', underground: 'flicker', maze: 'fog',
+  temple: 'fog', dam: 'shimmer', mine: 'ember', endgame: 'none',
+};
+
 const QUICK_CHIPS = ['look', 'up', 'down', 'inventory', 'take all', 'open', 'examine', 'read', 'wait', 'save'];
 
 export function GameScreen({ onHelp }: { onHelp: () => void }) {
@@ -94,6 +103,8 @@ function Stage() {
   const submit = useStore((s) => s.submit);
   const travelDir = useStore((s) => s.travelDir);
   const shakeSeq = useStore((s) => s.shakeSeq);
+  const dark = useStore((s) => s.dark);
+  const grueTurns = useStore((s) => s.grueTurns);
 
   const dur = isEvent ? 0.6 : 0.42;
   const drift = IDLE_DRIFT[seq % IDLE_DRIFT.length];
@@ -104,21 +115,26 @@ function Stage() {
   return (
     <div className="stage">
       <ShakeWrap seq={shakeSeq}>
-        <AnimatePresence mode="sync">
-          <PanelImage
-            key={seq}
-            src={`./art/${panel}.webp`}
-            alt={roomName}
-            offset={offset}
-            dur={dur}
-            drift={drift}
-          />
-        </AnimatePresence>
+        {dark ? (
+          <DarknessPanel turns={grueTurns} />
+        ) : (
+          <AnimatePresence mode="sync">
+            <PanelImage
+              key={seq}
+              src={`./art/${panel}.webp`}
+              alt={roomName}
+              offset={offset}
+              dur={dur}
+              drift={drift}
+            />
+          </AnimatePresence>
+        )}
       </ShakeWrap>
-      <Particles />
+      {!dark && <Atmosphere />}
+      {!dark && <Particles />}
       <Vignette />
       <TreasureFlash />
-      {roomName && <div className="room-caption">{roomName}</div>}
+      {roomName && !dark && <div className="room-caption">{roomName}</div>}
       <button
         className="compass"
         aria-label="compass: tap toward a direction to walk"
@@ -241,6 +257,39 @@ function Particles() {
     <div className={`particles particles-${flavor}`}>
       {particles.map((p) => <span key={p.id} className="particle" style={p.style} />)}
     </div>
+  );
+}
+
+// Region-flavored light overlay (flicker / fog / shimmer / ember). CSS-only,
+// screen-blended; prefers-reduced-motion stops the animation via the blanket
+// rule in styles.css, leaving a faint static tint that's harmless.
+function Atmosphere() {
+  const region = useStore((s) => s.region);
+  const kind = ATMOSPHERE[region] ?? 'none';
+  if (kind === 'none') return null;
+  return <div className={`atmos atmos-${kind}`} aria-hidden />;
+}
+
+// The dark: near-black with a pair of grue eyes that drift, blink, and — the
+// longer the lamp stays out (grueTurns) — grow and close in, so the art finally
+// agrees with "you are likely to be eaten by a grue." The growl is emitted by
+// the engine when the pitch-black line prints. Eyes remain (static under
+// reduced motion) as the readable signal either way.
+function DarknessPanel({ turns }: { turns: number }) {
+  const close = Math.min(1, turns / 3); // grue strikes around 2–3 turns
+  return (
+    <motion.div
+      className="darkness"
+      style={{ '--close': close } as React.CSSProperties}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: REDUCED_MOTION ? 0.2 : 0.7, ease: 'easeOut' }}
+    >
+      <div className="grue-eyes" aria-hidden>
+        <span className="grue-eye" />
+        <span className="grue-eye" />
+      </div>
+    </motion.div>
   );
 }
 
