@@ -154,6 +154,19 @@ export class Game {
       return out.events;
     }
 
+    // TEMP DEBUG (added alongside candlelife to let the user finish a test
+    // playthrough past the candle-fuse gotcha; delete this block together
+    // with candlelife once testing wraps up): resets the candles to a full
+    // fresh 35-turn budget. Does not change whether they're currently lit —
+    // if they were burned out (RMUNGBIT), light them again to resume use.
+    if (/^rechargecandles$/i.test(raw)) {
+      s.counters.candleIdx = 0;
+      fclear(s, 'CANDLES', 'RMUNGBIT');
+      if (s.daemons['I-CANDLES']) s.daemons['I-CANDLES'].enabled = false;
+      out.tell('[debug] Candles recharged to a full 35 turns of light.', 'system');
+      return out.events;
+    }
+
     // echo command back in log styling is handled by UI; here: AGAIN
     if (/^(g|again)$/i.test(raw)) {
       if (!this.lastCmd) { out.tell('again what?'); return out.events; }
