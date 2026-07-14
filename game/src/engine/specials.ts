@@ -134,7 +134,9 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
       const idx = s.counters.lampIdx;
       const ticksLeft = [100, 70, 15, 0][idx] || 0;
       if (ticksLeft > 0) ctx.queue('I-LANTERN', ticksLeft);
-      if (wasDark) { out.emit({ type: 'panel', key: 'events/lamp-lit' }); ctx.perform('look'); }
+      // Just re-describe the room; the store's darkness block swaps the real
+      // room art back in now that it is lit (no lamp-lit stand-in panel).
+      if (wasDark) ctx.perform('look');
       return true;
     }
     if (ctx.verb === 'lamp-off' || ctx.verb === 'extinguish') {

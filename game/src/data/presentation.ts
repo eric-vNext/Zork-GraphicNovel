@@ -152,7 +152,7 @@ export function roomArtFor(
 
 // Panels that actually exist in public/art (fallback = keep current panel).
 export const EVENT_PANELS = new Set([
-  'events/mailbox-open', 'events/lamp-lit', 'events/grue-warning', 'events/grue-death',
+  'events/mailbox-open', 'events/grue-warning', 'events/grue-death',
   'events/troll-fight', 'events/thief-encounter', 'events/egg-opened', 'events/case-deposit',
   'events/exorcism', 'events/boat-launch', 'events/falls-death', 'events/flood-death',
   'events/bat-abduction', 'events/gas-explosion', 'events/resurrection', 'events/map-appears',
