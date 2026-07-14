@@ -270,6 +270,12 @@ export const useStore = create<GameStore>((set, get) => ({
           // a panel it always stole the just-entered room's art ("last panel
           // event wins"). Render it as a fly-in card over the room instead.
           if (key === 'events/sword-glow') { flashCard = { art: key }; break; }
+          // Lamp-lit is emitted when the lamp comes on in a dark room, followed
+          // by an in-place `look` that carries no room event. Left as the base
+          // panel it stuck (panelIsEvent blocks the darkness restore below), so
+          // the player kept seeing the generic lamp-lit art instead of the room
+          // they just lit. Flash it over the restored room art like sword-glow.
+          if (key === 'events/lamp-lit') { flashCard = { art: key }; break; }
           if (EVENT_PANELS.has(key) || key.startsWith('rooms/') || key.startsWith('items/')) {
             panel = key;
             panelIsEvent = key.startsWith('events/') || key.startsWith('characters/') || key.startsWith('items/');
