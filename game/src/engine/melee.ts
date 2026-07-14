@@ -218,6 +218,11 @@ function heroBlow(ctx: Ctx, villain: string, weapon: string): void {
   const dweapon = findWeapon(s, villain);
 
   out.emit({ type: 'sfx', name: pickOne(ctx, ['sword-clash-1', 'sword-clash-2']) });
+  // The villain reacts audibly to being struck (troll-grunt2 / thief-snicker),
+  // layered over the weapon clash. Without this, a quick kill or a fight where
+  // the troll keeps getting disarmed plays only sword clashes and the troll's
+  // combat growl is never heard — the fight art is meant to carry his grunt.
+  out.emit({ type: 'sfx', name: FIGHT_SFX[villain] });
   out.emit({ type: 'panel', key: FIGHT_PANEL[villain] });
 
   let res: Outcome;
