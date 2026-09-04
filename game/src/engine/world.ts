@@ -1,34 +1,49 @@
 // World-state container and object-tree operations (ports gmain.zil helpers).
-import worldGen from '../data/world.gen.json';
+import { activeGame } from '../data/games';
 import type { WorldData, WorldState, RoomDef, ObjDef, GameEvent } from './types';
+import { SAVE_VERSION } from './types';
 
-export const DATA = worldGen as unknown as WorldData;
+/**
+ * The active game's rooms and objects. A getter pair rather than a plain
+ * object so that `selectGame()` swaps the world under every existing
+ * `DATA.rooms[...]` call site without any of them having to change.
+ */
+export const DATA: WorldData = {
+  get rooms() { return activeGame().world.rooms; },
+  get objects() { return activeGame().world.objects; },
+};
 export const PLAYER = 'ADVENTURER';
 
-export const DIRS = ['NORTH', 'SOUTH', 'EAST', 'WEST', 'NE', 'NW', 'SE', 'SW', 'UP', 'DOWN', 'IN', 'OUT', 'LAND', 'CROSS'] as const;
+// `<DIRECTIONS ...>` across the three games. Zork I omits CROSS; Zork III adds
+// ENTER, which it uses as its IN direction on the mirror-box rooms (see
+// utils/extract-world.py).
+export const DIRS = ['NORTH', 'SOUTH', 'EAST', 'WEST', 'NE', 'NW', 'SE', 'SW', 'UP', 'DOWN', 'IN', 'OUT', 'LAND', 'CROSS', 'ENTER'] as const;
 
 export function roomDef(id: string): RoomDef { return DATA.rooms[id]; }
 export function objDef(id: string): ObjDef { return DATA.objects[id]; }
 export function isRoom(id: string): boolean { return id in DATA.rooms; }
 
 export function newState(): WorldState {
+  const def = activeGame();
   const locs: Record<string, string | null> = {};
   const oflags: Record<string, Record<string, true>> = {};
-  for (const [id, o] of Object.entries(DATA.objects)) {
+  for (const [id, o] of Object.entries(def.world.objects)) {
     locs[id] = o.in ?? null;
     const f: Record<string, true> = {};
     for (const fl of o.flags) f[fl] = true;
     oflags[id] = f;
   }
   return {
-    here: 'WEST-OF-HOUSE',
+    saveVersion: SAVE_VERSION,
+    game: def.number,
+    here: def.startRoom,
     locs, oflags,
     gflags: {},
     touched: {}, scoredRooms: {}, scoredTakes: {}, scoredCase: {}, fdescGone: {},
     daemons: {},
     counters: { score: 0, moves: 0, deaths: 0, matches: 6, wounds: 0, lampIdx: 0, lampTick: 100, candleIdx: 0, candleTick: 20, loadAllowed: 100 },
-    thiefRoom: 'ROUND-ROOM', // matches THIEF's initial (IN ROUND-ROOM) in 1dungeon.zil
-    thiefEngrossed: false,
+    actorRooms: { ...def.actorRooms },
+    actorFlags: {},
     verbosity: 'brief',
     dead: false, won: false,
     grueTurns: 0,

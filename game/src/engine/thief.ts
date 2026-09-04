@@ -96,7 +96,7 @@ export function thiefDaemon(ctx: Ctx): void {
     }
     s.gflags['THIEF-HERE'] = false;
     fset(s, 'THIEF', 'INVISIBLE');
-    s.thiefRoom = nextThiefRoom(s.thiefRoom);
+    s.actorRooms.THIEF = nextThiefRoom(s.actorRooms.THIEF);
     return;
   }
 
@@ -104,9 +104,9 @@ export function thiefDaemon(ctx: Ctx): void {
   // player has ever been there — this is what makes it "room-graph pathing"
   // rather than appearance probabilities: treasures can now vanish from
   // rooms the player isn't even standing in.
-  if (s.thiefRoom !== 'TREASURE-ROOM' && s.touched[s.thiefRoom]) {
-    robRoom(ctx, s.thiefRoom);
-    stealJunk(ctx, s.thiefRoom);
+  if (s.actorRooms.THIEF !== 'TREASURE-ROOM' && s.touched[s.actorRooms.THIEF]) {
+    robRoom(ctx, s.actorRooms.THIEF);
+    stealJunk(ctx, s.actorRooms.THIEF);
   }
 
   // Encounter check: he only manifests where the player actually is, and
@@ -114,7 +114,7 @@ export function thiefDaemon(ctx: Ctx): void {
   // isn't his kind of territory).
   const hereRoom = roomDef(s.here);
   const trollHere = roomOf(s, 'TROLL') === s.here && !fset$(s, 'TROLL', 'INVISIBLE');
-  if (s.thiefRoom === s.here && !hereRoom.flags.includes('ONBIT') && !trollHere && prob(ctx, 30)) {
+  if (s.actorRooms.THIEF === s.here && !hereRoom.flags.includes('ONBIT') && !trollHere && prob(ctx, 30)) {
     out.tell('Someone carrying a large bag is casually leaning against one of the walls here. He does not speak, but it is clear from his aspect that the bag will be taken only over his dead body.');
     out.emit({ type: 'panel', key: 'characters/thief' });
     out.emit({ type: 'sfx', name: 'thief-snicker' });
@@ -124,5 +124,5 @@ export function thiefDaemon(ctx: Ctx): void {
     return;
   }
 
-  s.thiefRoom = nextThiefRoom(s.thiefRoom);
+  s.actorRooms.THIEF = nextThiefRoom(s.actorRooms.THIEF);
 }

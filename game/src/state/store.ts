@@ -168,7 +168,7 @@ export const useStore = create<GameStore>((set, get) => ({
     const { game } = get();
     try {
       const json = game.exportSave();
-      await writeSaveSlot({ slot, json, ...saveMeta(JSON.parse(json)), timestamp: Date.now() });
+      await writeSaveSlot({ game: game.s.game, slot, json, ...saveMeta(JSON.parse(json)), timestamp: Date.now() });
       get().setActiveSlot(slot);
       set((st) => ({ log: [...st.log, { id: lineId++, text: 'Ok.', cls: 'system' }] }));
       return true;
@@ -181,7 +181,7 @@ export const useStore = create<GameStore>((set, get) => ({
   loadSlot: async (slot) => {
     const { screen } = get();
     try {
-      const record = await readSaveSlot(slot);
+      const record = await readSaveSlot(get().game.s.game, slot);
       if (!record) { set({ slotsOpen: 'load' }); return false; }
       if (screen !== 'play') get().begin();
       const out = new Out();

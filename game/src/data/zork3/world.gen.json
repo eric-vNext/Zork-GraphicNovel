@@ -1,0 +1,4563 @@
+{
+ "rooms": {
+  "CP-ANTE": {
+   "exits": {
+    "WEST": {
+     "to": "CP-OUT"
+    },
+    "NORTH": {
+     "to": "MUSEUM-ENTRANCE"
+    },
+    "UP": {
+     "to": "MUSEUM-ENTRANCE"
+    },
+    "DOWN": {
+     "per": "CPENTER"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "STAIRS"
+   ],
+   "pseudo": [],
+   "desc": "Royal Puzzle Entrance",
+   "action": "CPANT-ROOM"
+  },
+  "CP-OUT": {
+   "exits": {
+    "NORTH": {
+     "to": "CP-ANTE"
+    },
+    "UP": {
+     "to": "CP-ANTE"
+    },
+    "EAST": {
+     "to": "CP",
+     "ifFlag": "CP-FLAG",
+     "elseMsg": "The steel door is closed."
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "CPDOOR",
+    "STAIRS"
+   ],
+   "pseudo": [],
+   "desc": "Side Room",
+   "action": "CPOUT-ROOM"
+  },
+  "CP": {
+   "exits": {
+    "NORTH": {
+     "per": "CPEXIT"
+    },
+    "SOUTH": {
+     "per": "CPEXIT"
+    },
+    "EAST": {
+     "per": "CPEXIT"
+    },
+    "WEST": {
+     "per": "CPEXIT"
+    },
+    "NE": {
+     "per": "CPEXIT"
+    },
+    "NW": {
+     "per": "CPEXIT"
+    },
+    "SE": {
+     "per": "CPEXIT"
+    },
+    "UP": {
+     "per": "CPEXIT"
+    },
+    "SW": {
+     "per": "CPEXIT"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "CPLADDER",
+    "CPDOOR",
+    "CPEWL",
+    "CPWWL",
+    "CPNWL",
+    "CPSWL"
+   ],
+   "pseudo": [],
+   "desc": "Room in a Puzzle",
+   "action": "CP-ROOM"
+  },
+  "MRD": {
+   "exits": {
+    "NORTH": {
+     "to": "FRONT-DOOR"
+    },
+    "NE": {
+     "to": "FRONT-DOOR"
+    },
+    "NW": {
+     "to": "FRONT-DOOR"
+    },
+    "SOUTH": {
+     "per": "MRGO"
+    },
+    "SE": {
+     "per": "MRGO"
+    },
+    "SW": {
+     "per": "MRGO"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "ROSE",
+    "CHANNEL",
+    "GUARDIAN",
+    "WOODEN-WALL"
+   ],
+   "pseudo": [],
+   "desc": "Hallway",
+   "ldesc": " ",
+   "action": "MRDF"
+  },
+  "MRG": {
+   "exits": {
+    "NORTH": {
+     "per": "MRGO"
+    },
+    "NW": {
+     "per": "MRGO"
+    },
+    "NE": {
+     "per": "MRGO"
+    },
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "SOUTH": {
+     "per": "MRGO"
+    },
+    "SW": {
+     "per": "MRGO"
+    },
+    "SE": {
+     "per": "MRGO"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Hallway",
+   "ldesc": " ",
+   "action": "GUARDIANS"
+  },
+  "MRC": {
+   "exits": {
+    "NORTH": {
+     "per": "MRGO"
+    },
+    "NW": {
+     "per": "MRGO"
+    },
+    "NE": {
+     "per": "MRGO"
+    },
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "SOUTH": {
+     "per": "MRGO"
+    },
+    "SW": {
+     "per": "MRGO"
+    },
+    "SE": {
+     "per": "MRGO"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "ROSE",
+    "CHANNEL",
+    "GUARDIAN",
+    "WOODEN-WALL"
+   ],
+   "pseudo": [],
+   "desc": "Hallway",
+   "ldesc": " ",
+   "action": "MRCF"
+  },
+  "MRB": {
+   "exits": {
+    "NORTH": {
+     "per": "MRGO"
+    },
+    "NW": {
+     "per": "MRGO"
+    },
+    "NE": {
+     "per": "MRGO"
+    },
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "SOUTH": {
+     "per": "MRGO"
+    },
+    "SW": {
+     "per": "MRGO"
+    },
+    "SE": {
+     "per": "MRGO"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "ROSE",
+    "CHANNEL",
+    "WOODEN-WALL"
+   ],
+   "pseudo": [],
+   "desc": "Hallway",
+   "ldesc": " ",
+   "action": "MRBF"
+  },
+  "MRA": {
+   "exits": {
+    "NORTH": {
+     "per": "MRGO"
+    },
+    "NW": {
+     "per": "MRGO"
+    },
+    "NE": {
+     "per": "MRGO"
+    },
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "SOUTH": {
+     "to": "MREYE"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "ROSE",
+    "CHANNEL",
+    "WOODEN-WALL"
+   ],
+   "pseudo": [],
+   "desc": "Hallway",
+   "ldesc": " ",
+   "action": "MRAF"
+  },
+  "MRDE": {
+   "exits": {
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "WEST": {
+     "per": "MIRIN"
+    },
+    "NORTH": {
+     "to": "FRONT-DOOR"
+    },
+    "SOUTH": {
+     "to": "MRG"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Narrow Room",
+   "ldesc": " ",
+   "action": "MRDEW"
+  },
+  "MRDW": {
+   "exits": {
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "WEST": {
+     "per": "MIRIN"
+    },
+    "NORTH": {
+     "to": "FRONT-DOOR"
+    },
+    "SOUTH": {
+     "to": "MRG"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Narrow Room",
+   "ldesc": " ",
+   "action": "MRDEW"
+  },
+  "MRGE": {
+   "exits": {
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "WEST": {
+     "per": "MIRIN"
+    },
+    "NORTH": {
+     "to": "MRD"
+    },
+    "SOUTH": {
+     "to": "MRC"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Narrow Room",
+   "ldesc": " ",
+   "action": "GUARDIANS"
+  },
+  "MRGW": {
+   "exits": {
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "EAST": {
+     "per": "MIRIN"
+    },
+    "NORTH": {
+     "to": "MRD"
+    },
+    "SOUTH": {
+     "to": "MRC"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Narrow Room",
+   "ldesc": " ",
+   "action": "GUARDIANS"
+  },
+  "MRCE": {
+   "exits": {
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "WEST": {
+     "per": "MIRIN"
+    },
+    "NORTH": {
+     "to": "MRG"
+    },
+    "SOUTH": {
+     "to": "MRB"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Narrow Room",
+   "ldesc": " ",
+   "action": "MRCEW"
+  },
+  "MRCW": {
+   "exits": {
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "EAST": {
+     "per": "MIRIN"
+    },
+    "NORTH": {
+     "to": "MRG"
+    },
+    "SOUTH": {
+     "to": "MRB"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Narrow Room",
+   "ldesc": " ",
+   "action": "MRCEW"
+  },
+  "MRBE": {
+   "exits": {
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "WEST": {
+     "per": "MIRIN"
+    },
+    "NORTH": {
+     "to": "MRC"
+    },
+    "SOUTH": {
+     "to": "MRA"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Narrow Room",
+   "ldesc": " ",
+   "action": "MRBEW"
+  },
+  "MRBW": {
+   "exits": {
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "EAST": {
+     "per": "MIRIN"
+    },
+    "NORTH": {
+     "to": "MRC"
+    },
+    "SOUTH": {
+     "to": "MRA"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Narrow Room",
+   "ldesc": " ",
+   "action": "MRBEW"
+  },
+  "MRAE": {
+   "exits": {
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "WEST": {
+     "per": "MIRIN"
+    },
+    "NORTH": {
+     "to": "MRB"
+    },
+    "SOUTH": {
+     "to": "MREYE"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Narrow Room",
+   "ldesc": " ",
+   "action": "MRAEW"
+  },
+  "MRAW": {
+   "exits": {
+    "ENTER": {
+     "per": "MIRIN"
+    },
+    "EAST": {
+     "per": "MIRIN"
+    },
+    "NORTH": {
+     "to": "MRB"
+    },
+    "SOUTH": {
+     "to": "MREYE"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MIRROR",
+    "PANEL",
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Narrow Room",
+   "ldesc": " ",
+   "action": "MRAEW"
+  },
+  "IN-MIRROR": {
+   "exits": {
+    "OUT": {
+     "per": "MIROUT"
+    },
+    "NORTH": {
+     "per": "MIROUT"
+    },
+    "SOUTH": {
+     "per": "MIROUT"
+    },
+    "NW": {
+     "per": "MIROUT"
+    },
+    "NE": {
+     "per": "MIROUT"
+    },
+    "SE": {
+     "per": "MIROUT"
+    },
+    "SW": {
+     "per": "MIROUT"
+    },
+    "WEST": {
+     "per": "MIROUT"
+    },
+    "EAST": {
+     "per": "MIROUT"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "ROSE",
+    "CHANNEL",
+    "GUARDIAN"
+   ],
+   "pseudo": [],
+   "desc": "Inside Mirror",
+   "ldesc": " ",
+   "action": "MAGIC-MIRROR"
+  },
+  "MR-ANTE": {
+   "exits": {
+    "SOUTH": {
+     "to": "MSTAIRS",
+     "ifDoor": "SECRET-DOOR"
+    },
+    "UP": {
+     "to": "MSTAIRS",
+     "ifDoor": "SECRET-DOOR"
+    },
+    "NORTH": {
+     "to": "MREYE"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "SECRET-DOOR",
+    "STAIRS"
+   ],
+   "pseudo": [
+    "TORCH",
+    "TORCHE"
+   ],
+   "desc": "Button Room",
+   "ldesc": "You are at the southern end of a long hall. To the south, stairs ascend\ninto darkness. To the north the corridor is illuminated by torches set\nhigh in the walls, out of reach. On one wall is a red button."
+  },
+  "MREYE": {
+   "exits": {
+    "NORTH": {
+     "per": "MRGO"
+    },
+    "NW": {
+     "per": "MRGO"
+    },
+    "NE": {
+     "per": "MRGO"
+    },
+    "SOUTH": {
+     "to": "MR-ANTE"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Beam Room",
+   "ldesc": " ",
+   "action": "MREYE-ROOM"
+  },
+  "MSTAIRS": {
+   "exits": {
+    "NORTH": {
+     "to": "MR-ANTE",
+     "ifDoor": "SECRET-DOOR",
+     "elseMsg": "You can't go that way."
+    },
+    "DOWN": {
+     "to": "MR-ANTE",
+     "ifDoor": "SECRET-DOOR",
+     "elseMsg": "You can't go that way."
+    },
+    "SW": {
+     "to": "DAMP-PASSAGE"
+    },
+    "SE": {
+     "to": "DEAD-END"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [
+    "SECRET-DOOR",
+    "STAIRS"
+   ],
+   "pseudo": [],
+   "desc": "Engravings Room",
+   "action": "MSTAIRS-F"
+  },
+  "DEAD-END": {
+   "exits": {
+    "WEST": {
+     "to": "DAMP-PASSAGE"
+    },
+    "NW": {
+     "to": "MSTAIRS"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Dead End",
+   "ldesc": "You have come to the end of two adjoining passages to the west and the\nnorthwest."
+  },
+  "DAMP-PASSAGE": {
+   "exits": {
+    "WEST": {
+     "to": "JUNCTION"
+    },
+    "EAST": {
+     "to": "DEAD-END"
+    },
+    "NE": {
+     "to": "MSTAIRS"
+    },
+    "NORTH": {
+     "msg": "The opening is blocked by tons of debris."
+    },
+    "UP": {
+     "msg": "The channel is too steep and the moss too slippery."
+    },
+    "SOUTH": {
+     "msg": "The channel is too steep and the moss too slippery."
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [
+    "MOSS",
+    "RUBBLE",
+    "WATER-CHANNEL"
+   ],
+   "pseudo": [],
+   "desc": "Damp Passage",
+   "ldesc": "This is a particularly damp spot even by dungeon standards. You can see\nthe junction to the west, and two similar passages to the east and northeast.\nA wide stone channel steeply descends into the room from the south. It is\ncovered with slippery moss and lichen. The channel crosses the room, but the\nopening where it once continued north is now blocked by rubble."
+  },
+  "EAST-CORRIDOR": {
+   "exits": {
+    "NORTH": {
+     "to": "NORTH-CORRIDOR"
+    },
+    "SOUTH": {
+     "to": "SOUTH-CORRIDOR"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "East Corridor",
+   "ldesc": "This is a hall with polished marble walls. It widens slightly as it turns\nwest at its northern and southern ends."
+  },
+  "WEST-CORRIDOR": {
+   "exits": {
+    "NORTH": {
+     "to": "NORTH-CORRIDOR"
+    },
+    "SOUTH": {
+     "to": "SOUTH-CORRIDOR"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "West Corridor",
+   "ldesc": "This is a hall with polished marble walls. It widens slightly as it turns\neast at its northern and southern ends."
+  },
+  "SOUTH-CORRIDOR": {
+   "exits": {
+    "EAST": {
+     "to": "EAST-CORRIDOR"
+    },
+    "WEST": {
+     "to": "WEST-CORRIDOR"
+    },
+    "NORTH": {
+     "per": "BRONZE-DOOR-EXIT"
+    },
+    "SOUTH": {
+     "to": "BEHIND-DOOR"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "BRONZE-DOOR"
+   ],
+   "pseudo": [],
+   "desc": "South Corridor",
+   "action": "SOUTH-CORRIDOR-F"
+  },
+  "BEHIND-DOOR": {
+   "exits": {
+    "NORTH": {
+     "to": "SOUTH-CORRIDOR"
+    },
+    "SOUTH": {
+     "to": "FRONT-DOOR",
+     "ifDoor": "DUNGEON-DOOR"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "DUNGEON-DOOR",
+    "DUNGEON-PANEL"
+   ],
+   "pseudo": [],
+   "desc": "Narrow Corridor",
+   "action": "BEHIND-DOOR-F"
+  },
+  "FRONT-DOOR": {
+   "exits": {
+    "NORTH": {
+     "to": "BEHIND-DOOR",
+     "ifDoor": "DUNGEON-DOOR"
+    },
+    "ENTER": {
+     "to": "BEHIND-DOOR",
+     "ifDoor": "DUNGEON-DOOR"
+    },
+    "SOUTH": {
+     "per": "MRGO"
+    },
+    "SE": {
+     "to": "MRDE"
+    },
+    "SW": {
+     "to": "MRDW"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MASTER",
+    "DUNGEON-DOOR",
+    "DUNGEON-PANEL",
+    "WOODEN-WALL"
+   ],
+   "pseudo": [],
+   "desc": "Dungeon Entrance",
+   "ldesc": " ",
+   "action": "FRONT-DOOR-F"
+  },
+  "NORTH-CORRIDOR": {
+   "exits": {
+    "EAST": {
+     "to": "EAST-CORRIDOR"
+    },
+    "WEST": {
+     "to": "WEST-CORRIDOR"
+    },
+    "NORTH": {
+     "to": "PARAPET"
+    },
+    "SOUTH": {
+     "to": "CELL",
+     "ifDoor": "CELL-DOOR"
+    },
+    "ENTER": {
+     "to": "CELL",
+     "ifDoor": "CELL-DOOR"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MASTER",
+    "CELL-DOOR",
+    "PARAPET-OBJ",
+    "FLAMING-PIT"
+   ],
+   "pseudo": [],
+   "desc": "North Corridor",
+   "ldesc": " ",
+   "action": "NORTH-CORRIDOR-F"
+  },
+  "PARAPET": {
+   "exits": {
+    "SOUTH": {
+     "to": "NORTH-CORRIDOR"
+    },
+    "NORTH": {
+     "msg": "You would be burned to a crisp in no time."
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MASTER",
+    "PARAPET-OBJ",
+    "FLAMING-PIT"
+   ],
+   "pseudo": [],
+   "desc": "Parapet",
+   "ldesc": " ",
+   "action": "PARAPET-F"
+  },
+  "CELL": {
+   "exits": {
+    "OUT": {
+     "to": "NORTH-CORRIDOR",
+     "ifDoor": "CELL-DOOR"
+    },
+    "NORTH": {
+     "to": "NORTH-CORRIDOR",
+     "ifDoor": "CELL-DOOR"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "MASTER",
+    "BRONZE-DOOR",
+    "CELL-DOOR",
+    "PARAPET-OBJ",
+    "FLAMING-PIT"
+   ],
+   "pseudo": [],
+   "desc": "Prison Cell",
+   "ldesc": " ",
+   "action": "CELL-ROOM"
+  },
+  "PRISON-CELL": {
+   "exits": {
+    "OUT": {
+     "msg": "The door is securely fastened."
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "LOCKED-DOOR",
+    "MASTER",
+    "FLAMING-PIT"
+   ],
+   "pseudo": [],
+   "desc": "Prison Cell",
+   "ldesc": "You are in a bare prison cell. Its wooden door is securely fastened, and\nyou can see only flames and smoke through its small window."
+  },
+  "GOOD-CELL": {
+   "exits": {
+    "OUT": {
+     "to": "NIRVANA",
+     "ifDoor": "BRONZE-DOOR"
+    },
+    "SOUTH": {
+     "to": "NIRVANA",
+     "ifDoor": "BRONZE-DOOR"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "GOOD-LOCKED-DOOR",
+    "MASTER",
+    "BRONZE-DOOR",
+    "FLAMING-PIT"
+   ],
+   "pseudo": [],
+   "desc": "Prison Cell",
+   "ldesc": " ",
+   "action": "NCELL-ROOM"
+  },
+  "NIRVANA": {
+   "exits": {},
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Treasury of Zork",
+   "ldesc": "This is a large room, richly appointed in a style that bespeaks exquisite\ntaste. To judge from its contents, it is the ultimate storehouse of the\nwealth of the Great Underground Empire.\n\nThere are chests containing precious jewels, mountains of\nzorkmids, rare paintings, ancient statuary, and beguiling curios.\n\nOn one wall is an annotated map of the Empire, showing the locations of\nvarious troves of treasure, and of many superior scenic views.\n\nOn a desk at the far end of the room are stock certificates\nrepresenting a controlling interest in FrobozzCo International, the\nmultinational conglomerate and parent company of\nthe Frobozz Magic Boat Co., etc.\n\n",
+   "action": "NIRVANA-F"
+  },
+  "TIGHT-SQUEEZE": {
+   "exits": {
+    "WEST": {
+     "to": "CREEPY-CRAWL"
+    },
+    "EAST": {
+     "to": "ROCKY-ROOM"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Tight Squeeze",
+   "ldesc": "This is a very low and narrow passage leading east to west."
+  },
+  "ROCKY-ROOM": {
+   "exits": {
+    "SOUTH": {
+     "to": "WIDE-HALL"
+    },
+    "WEST": {
+     "to": "TIGHT-SQUEEZE"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "MOSS",
+    "CRYSTALS"
+   ],
+   "pseudo": [],
+   "desc": "Crystal Grotto",
+   "ldesc": "This is a chamber of breathtaking beauty. Mighty stalagmites form\ncrystalline-encrusted rock formations. Phosphorescent mosses, fed by\na trickle of water from above, make the crystals glow and sparkle with\nevery color of the rainbow. There is an opening to the west, and a\nman-made passage heads south."
+  },
+  "WIDE-HALL": {
+   "exits": {
+    "NORTH": {
+     "to": "ROCKY-ROOM"
+    },
+    "SOUTH": {
+     "to": "MUSEUM-ANTE"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Royal Hall",
+   "ldesc": "This is the north end of a large hall with a vaulted ceiling. A long, tiled\nhallway leads north through a tall arch. Although the purpose of\nthis room is unclear, there is a large rendering of the Royal Seal of Lord\nDimwit Flathead carved on the wall."
+  },
+  "MUSEUM-ANTE": {
+   "exits": {
+    "NORTH": {
+     "to": "WIDE-HALL"
+    },
+    "EAST": {
+     "to": "MUSEUM-ENTRANCE",
+     "ifFlag": "CLEFT-FLAG",
+     "elseMsg": "The great iron door is rusted shut."
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [
+    "IRON-DOOR",
+    "CLEFT"
+   ],
+   "pseudo": [],
+   "desc": "Great Door",
+   "action": "MUSEUM-ANTE-F"
+  },
+  "MUSEUM-ENTRANCE": {
+   "exits": {
+    "EAST": {
+     "to": "JEWEL-ROOM",
+     "ifDoor": "JEWEL-DOOR"
+    },
+    "WEST": {
+     "to": "MUSEUM-ANTE",
+     "ifFlag": "CLEFT-FLAG",
+     "elseMsg": "The iron door is rusted shut."
+    },
+    "SOUTH": {
+     "to": "CP-ANTE"
+    },
+    "DOWN": {
+     "to": "CP-ANTE"
+    },
+    "NORTH": {
+     "to": "TECH-MUSEUM",
+     "ifDoor": "WOODEN-DOOR"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "IRON-DOOR",
+    "JEWEL-DOOR",
+    "WOODEN-DOOR",
+    "STAIRS",
+    "CLEFT"
+   ],
+   "pseudo": [],
+   "desc": "Museum Entrance",
+   "action": "MUSEUM-ENTRANCE-F"
+  },
+  "JEWEL-ROOM": {
+   "exits": {
+    "WEST": {
+     "to": "MUSEUM-ENTRANCE",
+     "ifDoor": "JEWEL-DOOR"
+    },
+    "OUT": {
+     "to": "MUSEUM-ENTRANCE",
+     "ifDoor": "JEWEL-DOOR"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "JEWEL-DOOR"
+   ],
+   "pseudo": [],
+   "desc": "Jewel Room",
+   "action": "JEWEL-ROOM-F"
+  },
+  "TECH-MUSEUM": {
+   "exits": {
+    "SOUTH": {
+     "to": "MUSEUM-ENTRANCE",
+     "ifDoor": "WOODEN-DOOR"
+    },
+    "OUT": {
+     "to": "MUSEUM-ENTRANCE",
+     "ifDoor": "WOODEN-DOOR"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "WOODEN-DOOR"
+   ],
+   "pseudo": [],
+   "desc": "Technology Museum",
+   "action": "TECH-MUSEUM-F"
+  },
+  "MID-CP-ANTE": {
+   "exits": {
+    "WEST": {
+     "to": "MID-CP-OUT"
+    },
+    "NORTH": {
+     "to": "MID-MUSEUM-ENTRANCE"
+    },
+    "UP": {
+     "to": "MID-MUSEUM-ENTRANCE"
+    },
+    "DOWN": {
+     "per": "CPENTER"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "STAIRS"
+   ],
+   "pseudo": [],
+   "desc": "Royal Puzzle Entrance",
+   "action": "CPANT-ROOM"
+  },
+  "MID-CP-OUT": {
+   "exits": {
+    "NORTH": {
+     "to": "MID-CP-ANTE"
+    },
+    "EAST": {
+     "msg": "The steel door is closed."
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "CPDOOR",
+    "STAIRS"
+   ],
+   "pseudo": [],
+   "desc": "Side Room",
+   "action": "CPOUT-ROOM"
+  },
+  "MID-MUSEUM-ENTRANCE": {
+   "exits": {
+    "EAST": {
+     "to": "MID-JEWEL-ROOM",
+     "ifDoor": "JEWEL-DOOR"
+    },
+    "WEST": {
+     "msg": "The iron door is rusted shut."
+    },
+    "SOUTH": {
+     "to": "MID-CP-ANTE"
+    },
+    "DOWN": {
+     "to": "MID-CP-ANTE"
+    },
+    "NORTH": {
+     "to": "MID-TECH-MUSEUM",
+     "ifDoor": "WOODEN-DOOR"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "IRON-DOOR",
+    "JEWEL-DOOR",
+    "WOODEN-DOOR",
+    "STAIRS"
+   ],
+   "pseudo": [],
+   "desc": "Museum Entrance",
+   "action": "MUSEUM-ENTRANCE-F"
+  },
+  "MID-JEWEL-ROOM": {
+   "exits": {
+    "WEST": {
+     "to": "MID-MUSEUM-ENTRANCE",
+     "ifDoor": "JEWEL-DOOR"
+    },
+    "OUT": {
+     "to": "MID-MUSEUM-ENTRANCE",
+     "ifDoor": "JEWEL-DOOR"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "JEWEL-DOOR"
+   ],
+   "pseudo": [],
+   "desc": "Jewel Room",
+   "action": "JEWEL-ROOM-F"
+  },
+  "MID-TECH-MUSEUM": {
+   "exits": {
+    "SOUTH": {
+     "to": "MID-MUSEUM-ENTRANCE",
+     "ifDoor": "WOODEN-DOOR"
+    },
+    "OUT": {
+     "to": "MID-MUSEUM-ENTRANCE",
+     "ifDoor": "WOODEN-DOOR"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "WOODEN-DOOR"
+   ],
+   "pseudo": [],
+   "desc": "Technology Museum",
+   "action": "TECH-MUSEUM-F"
+  },
+  "OLD-TECH-MUSEUM": {
+   "exits": {
+    "SOUTH": {
+     "to": "OLD-MUSEUM-ENTRANCE",
+     "ifDoor": "WOODEN-DOOR"
+    },
+    "OUT": {
+     "to": "OLD-MUSEUM-ENTRANCE",
+     "ifDoor": "WOODEN-DOOR"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "WOODEN-DOOR",
+    "ROBOT"
+   ],
+   "pseudo": [],
+   "desc": "Technology Museum",
+   "action": "OLD-TECH-MUSEUM-F"
+  },
+  "OLD-JEWEL-ROOM": {
+   "exits": {
+    "WEST": {
+     "to": "OLD-MUSEUM-ENTRANCE",
+     "ifDoor": "JEWEL-DOOR"
+    },
+    "OUT": {
+     "to": "OLD-MUSEUM-ENTRANCE",
+     "ifDoor": "JEWEL-DOOR"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "JEWEL-DOOR",
+    "ROBOT"
+   ],
+   "pseudo": [],
+   "desc": "Jewel Room",
+   "action": "OLD-TECH-MUSEUM-F"
+  },
+  "OLD-MUSEUM-ENTRANCE": {
+   "exits": {
+    "EAST": {
+     "to": "OLD-JEWEL-ROOM",
+     "ifDoor": "JEWEL-DOOR"
+    },
+    "WEST": {
+     "msg": "The guards locked the iron door behind them."
+    },
+    "NORTH": {
+     "to": "OLD-TECH-MUSEUM",
+     "ifDoor": "WOODEN-DOOR"
+    },
+    "SOUTH": {
+     "msg": "The stairs end blindly to the south."
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "WOODEN-DOOR",
+    "JEWEL-DOOR",
+    "IRON-DOOR",
+    "ROBOT"
+   ],
+   "pseudo": [],
+   "desc": "Museum Entrance",
+   "action": "OLD-TECH-MUSEUM-F"
+  },
+  "CREEPY-CRAWL": {
+   "exits": {
+    "NORTH": {
+     "to": "JUNCTION"
+    },
+    "SOUTH": {
+     "to": "FOGGY-ROOM"
+    },
+    "SW": {
+     "to": "SHADOW-1"
+    },
+    "EAST": {
+     "to": "TIGHT-SQUEEZE"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Creepy Crawl",
+   "ldesc": "You are in a dark and quite creepy crawlway with passages leaving to the\nnorth, east, south, and southwest.",
+   "action": "CREEPY-CRAWL-F"
+  },
+  "SHADOW-1": {
+   "exits": {
+    "NE": {
+     "msg": "Towering walls of rock bar your way."
+    },
+    "NORTH": {
+     "msg": "Towering walls of rock bar your way."
+    },
+    "SOUTH": {
+     "to": "SHADOW-5"
+    },
+    "EAST": {
+     "to": "CREEPY-CRAWL"
+    },
+    "NW": {
+     "to": "SHADOW-2"
+    },
+    "WEST": {
+     "to": "SHADOW-3"
+    },
+    "SW": {
+     "to": "SHADOW-4"
+    },
+    "SE": {
+     "to": "FOGGY-ROOM"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Land of Shadow",
+   "ldesc": "You are at the eastern end of a dark, featureless landscape of shallow\nhills. Paths to the east and southeast reenter the rock.",
+   "action": "SHADOW-ROOMS"
+  },
+  "SHADOW-2": {
+   "exits": {
+    "NE": {
+     "msg": "A stone wall blocks the way."
+    },
+    "NORTH": {
+     "to": "CLEARING"
+    },
+    "NW": {
+     "msg": "A stone wall blocks the way."
+    },
+    "SE": {
+     "to": "SHADOW-1"
+    },
+    "SW": {
+     "to": "SHADOW-7"
+    },
+    "SOUTH": {
+     "to": "SHADOW-3"
+    },
+    "WEST": {
+     "to": "SHADOW-8"
+    },
+    "EAST": {
+     "to": "SHADOW-1"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [
+    "RUBBLE",
+    "STONE-WALL"
+   ],
+   "pseudo": [],
+   "desc": "Land of Shadow",
+   "ldesc": "You are in a shadowy land of low, rolling hills stretching out to the west\nand south. The land is bordered to the north by a massive stone wall.\nAncient and weathered, the wall has crumbled enough at one point to permit\npassage.",
+   "action": "SHADOW-ROOMS"
+  },
+  "SHADOW-3": {
+   "exits": {
+    "NW": {
+     "to": "SHADOW-8"
+    },
+    "NE": {
+     "to": "SHADOW-1"
+    },
+    "SE": {
+     "to": "SHADOW-1"
+    },
+    "SW": {
+     "to": "SHADOW-6"
+    },
+    "NORTH": {
+     "to": "SHADOW-2"
+    },
+    "SOUTH": {
+     "to": "SHADOW-4"
+    },
+    "WEST": {
+     "to": "SHADOW-7"
+    },
+    "EAST": {
+     "to": "SHADOW-1"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [
+    "MIST"
+   ],
+   "desc": "Land of Shadow",
+   "ldesc": "You are in a dark and shadowy land. All around you are gentle hills and\neerie shadows. Far above, shrouded in mist, you can barely make out the\nceiling of the enormous cavern that spans this entire land.",
+   "action": "SHADOW-ROOMS"
+  },
+  "SHADOW-4": {
+   "exits": {
+    "NORTH": {
+     "to": "SHADOW-3"
+    },
+    "EAST": {
+     "to": "SHADOW-1"
+    },
+    "NE": {
+     "to": "SHADOW-1"
+    },
+    "SE": {
+     "to": "SHADOW-5"
+    },
+    "SOUTH": {
+     "to": "SHADOW-5"
+    },
+    "SW": {
+     "msg": "The ground becomes too soft to walk on in that direction."
+    },
+    "WEST": {
+     "to": "SHADOW-6"
+    },
+    "NW": {
+     "to": "SHADOW-7"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Land of Shadow",
+   "ldesc": "You are in an ominously dark land of rolling hills. The ground becomes\nsofter to the south.",
+   "action": "SHADOW-ROOMS"
+  },
+  "SHADOW-5": {
+   "exits": {
+    "NORTH": {
+     "to": "SHADOW-4"
+    },
+    "NW": {
+     "to": "SHADOW-6"
+    },
+    "NE": {
+     "to": "SHADOW-1"
+    },
+    "SE": {
+     "msg": "The quicksand prevents movement in that direction."
+    },
+    "WEST": {
+     "msg": "The quicksand prevents movement in that direction."
+    },
+    "SOUTH": {
+     "msg": "The quicksand prevents movement in that direction."
+    },
+    "SW": {
+     "msg": "The quicksand prevents movement in that direction."
+    },
+    "EAST": {
+     "msg": "The quicksand prevents movement in that direction."
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [
+    "QUICKS"
+   ],
+   "desc": "Land of Shadow",
+   "ldesc": "You are at the southern end of a shadowy land. The ground here is quite\nsoft, and the area is surrounded by quicksand on most sides. North of here\nis a terrain of shallow hills.",
+   "action": "SHADOW-ROOMS"
+  },
+  "SHADOW-6": {
+   "exits": {
+    "NORTH": {
+     "to": "SHADOW-7"
+    },
+    "NW": {
+     "to": "FLATHEAD-OCEAN"
+    },
+    "WEST": {
+     "to": "FLATHEAD-OCEAN"
+    },
+    "DOWN": {
+     "to": "FLATHEAD-OCEAN"
+    },
+    "SE": {
+     "to": "SHADOW-5"
+    },
+    "EAST": {
+     "to": "SHADOW-4"
+    },
+    "NE": {
+     "to": "SHADOW-3"
+    },
+    "SOUTH": {
+     "msg": "The quicksand prevents movement in that direction."
+    },
+    "SW": {
+     "msg": "The quicksand prevents movement in that direction."
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [
+    "QUICKS"
+   ],
+   "desc": "Land of Shadow",
+   "ldesc": "You are near the southern end of the land of shadow. The ground here is\nsoft and spongy, and it becomes quicksand to the south. North and east of here\nare gentle, rolling hills. A gentle sea breeze wafts over a steeply sloping\npath to the west.",
+   "action": "SHADOW-ROOMS"
+  },
+  "SHADOW-7": {
+   "exits": {
+    "NE": {
+     "to": "SHADOW-2"
+    },
+    "EAST": {
+     "to": "SHADOW-3"
+    },
+    "SE": {
+     "to": "SHADOW-4"
+    },
+    "SOUTH": {
+     "to": "SHADOW-6"
+    },
+    "NORTH": {
+     "to": "SHADOW-8"
+    },
+    "DOWN": {
+     "to": "FLATHEAD-OCEAN"
+    },
+    "NW": {
+     "to": "FLATHEAD-OCEAN"
+    },
+    "WEST": {
+     "to": "FLATHEAD-OCEAN"
+    },
+    "SW": {
+     "to": "FLATHEAD-OCEAN"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Land of Shadow",
+   "ldesc": "You are in a land of dark shadows and shallow hills, which stretch out in all\ndirections. To the west, the land dips sharply.",
+   "action": "SHADOW-ROOMS"
+  },
+  "SHADOW-8": {
+   "exits": {
+    "SOUTH": {
+     "to": "SHADOW-7"
+    },
+    "EAST": {
+     "to": "SHADOW-2"
+    },
+    "SE": {
+     "to": "SHADOW-3"
+    },
+    "SW": {
+     "to": "FLATHEAD-OCEAN"
+    },
+    "WEST": {
+     "to": "FLATHEAD-OCEAN"
+    },
+    "NE": {
+     "msg": "A stone wall blocks the way."
+    },
+    "NW": {
+     "msg": "A stone wall blocks the way."
+    },
+    "DOWN": {
+     "to": "FLATHEAD-OCEAN"
+    },
+    "NORTH": {
+     "to": "CLIFF"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [
+    "RUBBLE",
+    "STONE-WALL"
+   ],
+   "pseudo": [],
+   "desc": "Land of Shadow",
+   "ldesc": "You are standing atop a steep cliff, looking west over a vast ocean.\nFar below, the surf pounds at a sandy beach. To the south and east are\nrolling hills filled with eerie shadows. A path cut into the face of the\ncliff descends toward the beach. To the north is a tall stone wall,\nwhich ends at the cliff edge. It was obviously built long ago, and\ndirectly north is a spot where you could climb over the rubble of the\ndecaying wall.",
+   "action": "SHADOW-ROOMS"
+  },
+  "FLATHEAD-OCEAN": {
+   "exits": {
+    "NORTH": {
+     "to": "CLIFF-BASE"
+    },
+    "ENTER": {
+     "msg": "Between the rocks, wind, and waves, you wouldn't last a minute."
+    },
+    "WEST": {
+     "msg": "Between the rocks, wind, and waves, you wouldn't last a minute."
+    },
+    "SW": {
+     "msg": "Between the rocks, wind, and waves, you wouldn't last a minute."
+    },
+    "NW": {
+     "msg": "Between the rocks, wind, and waves, you wouldn't last a minute."
+    },
+    "SE": {
+     "to": "SHADOW-6"
+    },
+    "NE": {
+     "to": "SHADOW-8"
+    },
+    "EAST": {
+     "to": "SHADOW-7"
+    },
+    "SOUTH": {
+     "msg": "The quicksand prevents movement here."
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [],
+   "pseudo": [
+    "QUICKS",
+    "MIST"
+   ],
+   "desc": "Flathead Ocean",
+   "action": "FLATHEAD-OCEAN-F"
+  },
+  "ZORK2-STAIR": {
+   "exits": {
+    "NORTH": {
+     "msg": "The stairs are endless."
+    },
+    "UP": {
+     "msg": "The stairs are endless."
+    },
+    "SOUTH": {
+     "to": "JUNCTION"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "STAIRS"
+   ],
+   "pseudo": [],
+   "desc": "Endless Stair",
+   "ldesc": "You are at the bottom of a seemingly endless stair, winding its way\nupward beyond your vision. An eerie light, coming from all around you,\ncasts strange shadows on the walls. To the south is a dark and winding\ntrail."
+  },
+  "JUNCTION": {
+   "exits": {
+    "WEST": {
+     "to": "CLEARING"
+    },
+    "NORTH": {
+     "to": "ZORK2-STAIR"
+    },
+    "SOUTH": {
+     "to": "CREEPY-CRAWL"
+    },
+    "EAST": {
+     "to": "DAMP-PASSAGE"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Junction",
+   "ldesc": "You are at the junction of a north-south passage and an east-west\npassage. To the north, you can make out the bottom of a stairway. The\nways to the east and south are relatively cramped, but a wider trail\nleads to the west."
+  },
+  "CLEARING": {
+   "exits": {
+    "SW": {
+     "to": "SHADOW-2"
+    },
+    "NW": {
+     "to": "SLOPE"
+    },
+    "SOUTH": {
+     "msg": "A stone wall blocks your way."
+    },
+    "SE": {
+     "msg": "A stone wall blocks your way."
+    },
+    "WEST": {
+     "to": "CLIFF"
+    },
+    "EAST": {
+     "to": "JUNCTION"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [
+    "RUBBLE",
+    "STONE-WALL"
+   ],
+   "pseudo": [
+    "MIST"
+   ],
+   "desc": "Barren Area",
+   "ldesc": "You are west of the junction, where the rock-bound passage widens out\ninto a large, flat area. Although the land here is barren, you can see\nvegetation to the west. South of here is a mighty wall of stone, ancient\nand crumbling. To the southwest the wall has decayed enough to form an\nopening, through which seeps a thin mist. A trail dips sharply into\nrocky terrain to the northwest."
+  },
+  "SLOPE": {
+   "exits": {
+    "SE": {
+     "to": "CLEARING"
+    },
+    "UP": {
+     "to": "CLEARING"
+    },
+    "SW": {
+     "to": "CLIFF-BASE"
+    },
+    "DOWN": {
+     "to": "CLIFF-BASE"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [
+    "RUBBLE"
+   ],
+   "pseudo": [],
+   "desc": "Hairpin Loop",
+   "ldesc": "You are at a sharp turn on a narrow and steeply sloping path, strewn\nwith boulders of various sizes. The path climbs sharply toward a\ndesolate plain to the southeast. Southwest of here the path winds down\nto the base of a cliff."
+  },
+  "CLIFF-BASE": {
+   "exits": {
+    "UP": {
+     "msg": "You can't get up the rock face."
+    },
+    "SOUTH": {
+     "to": "FLATHEAD-OCEAN"
+    },
+    "NE": {
+     "to": "SLOPE"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "LEDGE"
+   ],
+   "pseudo": [],
+   "desc": "Cliff Base",
+   "ldesc": "You are at the base of a steep cliff. Directly above you is a wide\nledge and far above that some natural sunlight can be seen. To the\nnortheast is a steeply climbing path and the ground becomes sandy toward\nthe south.",
+   "action": "CLIFF-BASE-F"
+  },
+  "CLIFF": {
+   "exits": {
+    "DOWN": {
+     "to": "CLIFF-LEDGE",
+     "ifFlag": "ROPE-FLAG",
+     "elseMsg": "The drop would kill you."
+    },
+    "UP": {
+     "msg": "There's no tree here suitable for climbing."
+    },
+    "SW": {
+     "to": "SHADOW-8"
+    },
+    "EAST": {
+     "to": "CLEARING"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "GLOBAL-MAN",
+    "RUBBLE",
+    "STONE-WALL",
+    "CLIFF-OBJECT"
+   ],
+   "pseudo": [
+    "MIST"
+   ],
+   "desc": "Cliff",
+   "action": "CLIFF-F"
+  },
+  "CLIFF-LEDGE": {
+   "exits": {
+    "UP": {
+     "msg": "You attempt the climb but slide back down."
+    },
+    "DOWN": {
+     "to": "CLIFF-BASE"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "RUBBLE",
+    "GLOBAL-ROPE",
+    "GLOBAL-MAN",
+    "LEDGE",
+    "CLIFF-OBJECT"
+   ],
+   "pseudo": [],
+   "desc": "Cliff Ledge",
+   "action": "CLIFF-LEDGE-F"
+  },
+  "FOGGY-ROOM": {
+   "exits": {
+    "NORTH": {
+     "to": "CREEPY-CRAWL"
+    },
+    "SOUTH": {
+     "to": "LAKE-SHORE"
+    },
+    "WEST": {
+     "to": "SHADOW-1"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Foggy Room",
+   "ldesc": "You are in a dank passage filled with a wispy fog. A spooky passageway\nleads north and a wider path heads off to the south. To the west, the\npath leaves the rock and enters an eerie, shadowy land."
+  },
+  "LAKE-SHORE": {
+   "exits": {
+    "SE": {
+     "to": "AQ-VIEW"
+    },
+    "DOWN": {
+     "to": "AQ-VIEW"
+    },
+    "SOUTH": {
+     "msg": "If you really want to enter the lake, you should say so."
+    },
+    "SW": {
+     "msg": "The sheer rock face prevents movement along the lake shore."
+    },
+    "NORTH": {
+     "to": "FOGGY-ROOM"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [
+    "LAKE",
+    "STAIRS"
+   ],
+   "pseudo": [
+    "SHORE",
+    "BEACH"
+   ],
+   "desc": "Lake Shore",
+   "ldesc": "You are in a wide cavern on the north shore of a small lake. Some\npolished stone steps lead to the southeast and a sheer rock face\nprevents any movement around the lake to the southwest. The cavern is\ndimly lit from above."
+  },
+  "AQ-VIEW": {
+   "exits": {
+    "NW": {
+     "to": "LAKE-SHORE"
+    },
+    "UP": {
+     "to": "LAKE-SHORE"
+    },
+    "DOWN": {
+     "msg": "The drop would be fatal."
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "AQUEDUCT",
+    "STAIRS"
+   ],
+   "pseudo": [],
+   "desc": "Aqueduct View",
+   "ldesc": "This is a small balcony carved into a near-vertical cliff. To the east,\nstretching from north to south, stands a monumental aqueduct supported by\nmighty stone pillars, some of which are starting to crumble from age. You\nfeel a sense of loss and sadness as you ponder this once-proud structure and\nthe failure of the Empire which created this and other engineering marvels.\nSome stone steps lead up to the northwest."
+  },
+  "ON-LAKE": {
+   "exits": {
+    "NORTH": {
+     "to": "LAKE-SHORE"
+    },
+    "SOUTH": {
+     "to": "SOUTH-SHORE"
+    },
+    "SE": {
+     "msg": "The swamp is impassable."
+    },
+    "EAST": {
+     "msg": "The swamp is impassable."
+    },
+    "NE": {
+     "msg": "The swamp is impassable."
+    },
+    "WEST": {
+     "to": "FAR-SHORE"
+    },
+    "NW": {
+     "to": "FAR-SHORE"
+    },
+    "SW": {
+     "to": "SOUTH-SHORE"
+    },
+    "DOWN": {
+     "to": "IN-LAKE"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "NONLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "LAKE",
+    "FISH"
+   ],
+   "pseudo": [
+    "SWAMP"
+   ],
+   "desc": "On the Lake",
+   "ldesc": "You are floating on the surface of the lake. The water is ice cold and\nyour ability to survive here for long is very questionable. A swim north\nputs you at your starting point. Conditions to the east are poor where\nthe lake turns into swamp. The west and south shores are suitable for\nwalking, however.",
+   "action": "ON-LAKE-F"
+  },
+  "IN-LAKE": {
+   "exits": {
+    "UP": {
+     "to": "ON-LAKE"
+    },
+    "DOWN": {
+     "msg": "You are already at the bottom of the lake."
+    },
+    "NORTH": {
+     "to": "IN-LAKE"
+    },
+    "SOUTH": {
+     "to": "IN-LAKE"
+    },
+    "EAST": {
+     "to": "IN-LAKE"
+    },
+    "WEST": {
+     "to": "IN-LAKE"
+    },
+    "NE": {
+     "to": "IN-LAKE"
+    },
+    "NW": {
+     "to": "IN-LAKE"
+    },
+    "SE": {
+     "to": "IN-LAKE"
+    },
+    "SW": {
+     "to": "IN-LAKE"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "NONLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "LAKE",
+    "FISH"
+   ],
+   "pseudo": [],
+   "desc": "Underwater",
+   "ldesc": "You are below the surface of the lake. It turns out that the lake is quite\nshallow and the bottom is only a few feet below you. Considering the frigid\ntemperature of the water, you should probably not plan an extended stay.\nThe lake bottom is sandy and a few hearty plants and algae live there.",
+   "action": "IN-LAKE-F"
+  },
+  "FAR-SHORE": {
+   "exits": {
+    "EAST": {
+     "msg": "If you want to enter the lake, you should say so."
+    },
+    "SOUTH": {
+     "to": "VIEW-ROOM"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "LAKE"
+   ],
+   "pseudo": [
+    "SHORE",
+    "BEACH"
+   ],
+   "desc": "Western Shore",
+   "ldesc": "You are on the western shore of the lake. The ground here is quite\nhard, but a few sickly reeds manage to grow near the water's edge. The\nonly path leads into the rock to the south."
+  },
+  "VIEW-ROOM": {
+   "exits": {
+    "NORTH": {
+     "to": "FAR-SHORE"
+    }
+   },
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Scenic Vista",
+   "ldesc": "",
+   "action": "VIEW-ROOM-F"
+  },
+  "LADDER-TOP": {
+   "exits": {
+    "DOWN": {
+     "to": "LADDER-BOTTOM"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [
+    "LADDER",
+    "STAIRS"
+   ],
+   "pseudo": [],
+   "ldesc": "This is a very small room. In the corner is a rickety wooden\nladder, leading downward. It might be safe to descend. There is\nalso a staircase leading upward.",
+   "desc": "Ladder Top"
+  },
+  "LADDER-BOTTOM": {
+   "exits": {
+    "SOUTH": {
+     "to": "DEAD-END-5"
+    },
+    "WEST": {
+     "to": "TIMBER-ROOM"
+    },
+    "UP": {
+     "to": "LADDER-TOP"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [
+    "LADDER"
+   ],
+   "pseudo": [],
+   "ldesc": "This is a rather wide room. On one side is the bottom of a\nnarrow wooden ladder. To the west and the south are passages\nleaving the room.",
+   "desc": "Ladder Bottom"
+  },
+  "DEAD-END-5": {
+   "exits": {
+    "NORTH": {
+     "to": "LADDER-BOTTOM"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Dead End",
+   "ldesc": "You have come to a dead end in the mine.\n\nThere is a small pile of coal here."
+  },
+  "TIMBER-ROOM": {
+   "exits": {
+    "EAST": {
+     "to": "LADDER-BOTTOM"
+    },
+    "WEST": {
+     "to": "LOWER-SHAFT",
+     "ifFlag": "EMPTY-HANDED",
+     "elseMsg": "You cannot fit through this passage with that load."
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "ldesc": "This is a long and narrow passage, which is cluttered with broken\ntimbers. A wide passage comes from the east and turns at the\nwest end of the room into a very narrow passageway. From the west\ncomes a strong draft.",
+   "desc": "Timber Room",
+   "action": "NO-OBJS"
+  },
+  "LOWER-SHAFT": {
+   "exits": {
+    "SOUTH": {
+     "to": "MACHINE-ROOM"
+    },
+    "OUT": {
+     "to": "TIMBER-ROOM"
+    },
+    "EAST": {
+     "to": "TIMBER-ROOM"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Drafty Room",
+   "action": "NO-OBJS"
+  },
+  "MACHINE-ROOM": {
+   "exits": {},
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Machine Room"
+  },
+  "ROOM-8": {
+   "exits": {
+    "EAST": {
+     "msg": "You are repelled from the exit by a fierce wind."
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "ldesc": "This is a small chamber carved out of the rock at the end of a short crawl.\nOn the wall is crudely chiseled the number \"8\". The only apparent exit,\nto the east, seems to be a blur and a loud, whirring sound resounds through\nthe rock.",
+   "desc": "Room 8"
+  },
+  "ZORK-IV": {
+   "exits": {},
+   "flags": [
+    "ONBIT",
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Sacrificial Altar",
+   "action": "ZORK-IV-F"
+  },
+  "SOUTH-SHORE": {
+   "exits": {
+    "EAST": {
+     "msg": "The swamp is too thick."
+    },
+    "UP": {
+     "to": "DARK-1"
+    },
+    "NORTH": {
+     "msg": "If you want to go into the lake, you should say so."
+    },
+    "SOUTH": {
+     "to": "DARK-1"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "LAKE"
+   ],
+   "pseudo": [
+    "BEACH",
+    "SWAMP"
+   ],
+   "desc": "Southern Shore",
+   "ldesc": "You are on the south shore of the lake. Rock formations prevent\nmovement to the west and thickening swamp to the east makes the going\nall but impossible. To the south, where the beach meets a rock\nformation, you can make out a dark passage sloping steeply upward into the\nrock."
+  },
+  "DARK-1": {
+   "exits": {
+    "NORTH": {
+     "to": "SOUTH-SHORE"
+    },
+    "SOUTH": {
+     "to": "DARK-2"
+    },
+    "UP": {
+     "to": "DARK-2"
+    },
+    "DOWN": {
+     "to": "SOUTH-SHORE"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Dark Place"
+  },
+  "DARK-2": {
+   "exits": {
+    "NORTH": {
+     "to": "DARK-1"
+    },
+    "EAST": {
+     "to": "KEY-ROOM"
+    },
+    "UP": {
+     "to": "KEY-ROOM"
+    },
+    "DOWN": {
+     "to": "DARK-1"
+    }
+   },
+   "flags": [
+    "RLANDBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Dark Place"
+  },
+  "KEY-ROOM": {
+   "exits": {
+    "WEST": {
+     "to": "DARK-2"
+    },
+    "DOWN": {
+     "to": "AQ-1",
+     "ifFlag": "COVER-MOVED",
+     "elseMsg": "You can't walk through a piece of metal."
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [],
+   "pseudo": [],
+   "desc": "Key Room",
+   "action": "KEY-ROOM-F"
+  },
+  "AQ-1": {
+   "exits": {
+    "UP": {
+     "msg": "The hole is too far above your head."
+    },
+    "SOUTH": {
+     "msg": "You can't climb the dried-up waterfall."
+    },
+    "NORTH": {
+     "to": "AQ-2"
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "AQUEDUCT",
+    "WATER-CHANNEL",
+    "MOSS"
+   ],
+   "pseudo": [
+    "WATERF"
+   ],
+   "desc": "Aqueduct",
+   "ldesc": "You are in a wide stone channel, part of the water supply system for the\nGreat Underground Empire. The source of water was a waterfall to the south,\nwhich has long since dried up. Water flowed along the aqueduct to the north.\nThis region is lit from above, although the source of light is not apparent."
+  },
+  "AQ-2": {
+   "exits": {
+    "NORTH": {
+     "to": "AQ-3",
+     "ifFlag": "AQ-FLAG",
+     "elseMsg": "The arch before you is broken."
+    },
+    "SOUTH": {
+     "to": "AQ-1"
+    },
+    "DOWN": {
+     "msg": "It's a long way down...."
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "AQUEDUCT",
+    "WATER-CHANNEL",
+    "MOSS"
+   ],
+   "pseudo": [
+    "ARCH"
+   ],
+   "desc": "High Arch",
+   "action": "AQ-2-F"
+  },
+  "AQ-3": {
+   "exits": {
+    "NORTH": {
+     "to": "DAMP-PASSAGE"
+    },
+    "DOWN": {
+     "to": "DAMP-PASSAGE"
+    },
+    "SOUTH": {
+     "to": "AQ-2",
+     "ifFlag": "AQ-FLAG",
+     "elseMsg": "The arch to the south is broken."
+    }
+   },
+   "flags": [
+    "RLANDBIT",
+    "ONBIT"
+   ],
+   "globals": [
+    "AQUEDUCT",
+    "WATER-CHANNEL",
+    "MOSS"
+   ],
+   "pseudo": [
+    "ARCH"
+   ],
+   "desc": "Water Slide",
+   "action": "AQ-3-F"
+  }
+ },
+ "objects": {
+  "RUBBLE": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "ROCK",
+    "ROCKS",
+    "BOULDER",
+    "RUBBLE"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "rubble"
+  },
+  "DEBRIS": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "DUST",
+    "DEBRIS"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "dust and debris"
+  },
+  "CHASM": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "CHASM",
+    "GORGE",
+    "RAVINE"
+   ],
+   "adjectives": [
+    "ROCKY",
+    "DEEP"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "chasm",
+   "action": "CHASM-FCN"
+  },
+  "TUNNEL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "PASSAGE",
+    "CRAWLWAY"
+   ],
+   "adjectives": [
+    "DARK",
+    "SMOKY"
+   ],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "tunnel",
+   "action": "TUNNEL-OBJECT"
+  },
+  "EAST-WALL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "WALL"
+   ],
+   "adjectives": [
+    "EAST",
+    "EASTERN"
+   ],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "eastern wall",
+   "action": "RANDOM-WALL"
+  },
+  "SOUTH-WALL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "WALL"
+   ],
+   "adjectives": [
+    "SOUTH",
+    "SOUTHE"
+   ],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "southern wall",
+   "action": "RANDOM-WALL"
+  },
+  "WEST-WALL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "WALL"
+   ],
+   "adjectives": [
+    "WEST",
+    "WESTERN"
+   ],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "western wall",
+   "action": "RANDOM-WALL"
+  },
+  "NORTH-WALL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "WALL"
+   ],
+   "adjectives": [
+    "NORTH",
+    "NORTHE"
+   ],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "northern wall",
+   "action": "RANDOM-WALL"
+  },
+  "GLOBAL-WATER": {
+   "flags": [
+    "DRINKBIT"
+   ],
+   "synonyms": [
+    "WATER",
+    "QUANTITY"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "water",
+   "action": "WATER-FCN"
+  },
+  "WATER": {
+   "flags": [
+    "TAKEBIT",
+    "DRINKBIT"
+   ],
+   "synonyms": [
+    "WATER",
+    "QUANTITY",
+    "LIQUID",
+    "H2O"
+   ],
+   "adjectives": [],
+   "desc": "quantity of water",
+   "action": "WATER-FCN",
+   "ldesc": "There is some water here.",
+   "size": 4
+  },
+  "BROKEN-LAMP": {
+   "flags": [
+    "TAKEBIT"
+   ],
+   "synonyms": [
+    "LAMP",
+    "LANTERN"
+   ],
+   "adjectives": [
+    "BROKEN",
+    "BRASS"
+   ],
+   "desc": "broken lantern",
+   "size": 15
+  },
+  "LAMP": {
+   "flags": [
+    "TAKEBIT",
+    "LIGHTBIT"
+   ],
+   "synonyms": [
+    "LAMP",
+    "LANTERN"
+   ],
+   "adjectives": [
+    "BRASS"
+   ],
+   "in": "CP-ANTE",
+   "desc": "lamp",
+   "fdesc": "Your old friend, the brass lantern, is at your feet.",
+   "action": "LANTERN",
+   "size": 15
+  },
+  "SWORD": {
+   "flags": [
+    "TAKEBIT",
+    "WEAPONBIT",
+    "TRYTAKEBIT"
+   ],
+   "synonyms": [
+    "SWORD",
+    "ORCRIST",
+    "GLAMDRING",
+    "BLADE"
+   ],
+   "adjectives": [
+    "ELVISH",
+    "OLD",
+    "ANTIQUE"
+   ],
+   "in": "STONE",
+   "desc": "sword",
+   "action": "SWORD-FCN",
+   "size": 25,
+   "value": 0
+  },
+  "WARNING-NOTE": {
+   "flags": [
+    "TAKEBIT",
+    "READBIT",
+    "BURNBIT"
+   ],
+   "synonyms": [
+    "NOTE",
+    "WARNING",
+    "TEXT"
+   ],
+   "adjectives": [
+    "WARNING",
+    "SMALL"
+   ],
+   "in": "CP-ANTE",
+   "desc": "warning note",
+   "fdesc": "Lying on the ground is a small note of some kind.",
+   "size": 2,
+   "text": "Warning:\n\nThe Royal Puzzle is dangerous and it is possible to become\ntrapped within its confines. Please do not enter the puzzle after hours\nwhen museum personnel are not present.\n\nThe Management"
+  },
+  "CP-SLOT": {
+   "flags": [
+    "NDESCBIT",
+    "OPENBIT"
+   ],
+   "synonyms": [
+    "CPSLT",
+    "SLIT",
+    "SLOT"
+   ],
+   "adjectives": [
+    "SMALL"
+   ],
+   "desc": "small slot",
+   "action": "CP-SLOT-FCN",
+   "capacity": 4
+  },
+  "CPDOOR": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "DOOR"
+   ],
+   "adjectives": [
+    "STEEL",
+    "METAL"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "steel door",
+   "action": "CPDOOR-F"
+  },
+  "LORE-BOOK": {
+   "flags": [
+    "TAKEBIT",
+    "READBIT"
+   ],
+   "synonyms": [
+    "BOOK",
+    "LORE",
+    "TEXT"
+   ],
+   "adjectives": [
+    "LORE",
+    "OLD",
+    "STRANGE"
+   ],
+   "desc": "very ancient book",
+   "ldesc": "There is an old book here.",
+   "fdesc": "Nestled inside the niche is an old and dusty book.",
+   "text": "The book is written in a strong and elegant hand and is full of strange,\nwondrous pictures. The text, penned in many colours, is in a tongue unknown\nto you. The words seem to change colour as you read them.\nThe book itself is very old and the pages dry and brittle.",
+   "size": 4,
+   "action": "LORE-BOOK-F"
+  },
+  "CPEWL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "WALL"
+   ],
+   "adjectives": [
+    "EAST",
+    "EASTERN"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "eastern wall",
+   "action": "CPWALL-OBJECT"
+  },
+  "CPWWL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "WALL"
+   ],
+   "adjectives": [
+    "WEST",
+    "WESTERN"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "western wall",
+   "action": "CPWALL-OBJECT"
+  },
+  "CPSWL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "WALL"
+   ],
+   "adjectives": [
+    "SOUTH"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "southern wall",
+   "action": "CPWALL-OBJECT"
+  },
+  "CPNWL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "WALL"
+   ],
+   "adjectives": [
+    "NORTH"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "northern wall",
+   "action": "CPWALL-OBJECT"
+  },
+  "CPLADDER": {
+   "flags": [],
+   "synonyms": [
+    "LADDER"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "ladder",
+   "action": "CPLADDER-OBJECT"
+  },
+  "INTDIR": {
+   "flags": [
+    "TOOLBIT"
+   ],
+   "synonyms": [
+    "INTDIR"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "direction"
+  },
+  "GUARDIAN": {
+   "flags": [
+    "ACTORBIT"
+   ],
+   "synonyms": [
+    "STATUE",
+    "GUARDIAN",
+    "GUARD",
+    "GUARDS"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "Guardians of Zork",
+   "action": "GUARDIANS"
+  },
+  "ROSE": {
+   "flags": [],
+   "synonyms": [
+    "ROSE"
+   ],
+   "adjectives": [
+    "COMPASS"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "compass rose",
+   "action": "ROSE-F"
+  },
+  "MASTER": {
+   "flags": [
+    "ACTORBIT"
+   ],
+   "synonyms": [
+    "MASTER",
+    "MAN"
+   ],
+   "adjectives": [
+    "DUNGEON"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "dungeon master",
+   "action": "MASTER-F"
+  },
+  "DUNGEON-MASTER": {
+   "flags": [
+    "ACTORBIT"
+   ],
+   "synonyms": [
+    "MASTER",
+    "DUNGEON",
+    "MAN"
+   ],
+   "adjectives": [
+    "DUNGEON"
+   ],
+   "in": "BEHIND-DOOR",
+   "desc": "dungeon master",
+   "ldesc": "The dungeon master is quietly leaning on his staff here.",
+   "action": "DUNGEON-MASTER-F"
+  },
+  "MIRROR": {
+   "flags": [],
+   "synonyms": [
+    "MIRROR",
+    "STRUCTURE"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "mirror",
+   "action": "MIRROR-FUNCTION"
+  },
+  "PANEL": {
+   "flags": [],
+   "synonyms": [
+    "PANEL"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "panel",
+   "action": "PANEL-FUNCTION"
+  },
+  "CHANNEL": {
+   "flags": [],
+   "synonyms": [
+    "CHANNEL",
+    "HOLE"
+   ],
+   "adjectives": [
+    "STONE"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "stone channel"
+  },
+  "WOODEN-WALL": {
+   "flags": [],
+   "synonyms": [
+    "WALL"
+   ],
+   "adjectives": [
+    "WOOD",
+    "WOODEN"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "wooden wall",
+   "action": "WOODEN-WALL-F"
+  },
+  "RUNES": {
+   "flags": [
+    "NDESCBIT",
+    "READBIT"
+   ],
+   "synonyms": [
+    "ENGRAV",
+    "TEXT",
+    "WALL",
+    "RUNES"
+   ],
+   "adjectives": [
+    "CARVED"
+   ],
+   "in": "MSTAIRS",
+   "desc": "runes",
+   "action": "RUNES-F"
+  },
+  "T-BAR": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "T-BAR",
+    "BAR"
+   ],
+   "adjectives": [],
+   "in": "IN-MIRROR",
+   "desc": "T-bar",
+   "action": "T-BAR-F"
+  },
+  "BLACK-PANEL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "WALL",
+    "PANEL"
+   ],
+   "adjectives": [
+    "BLACK"
+   ],
+   "in": "IN-MIRROR",
+   "desc": "black panel",
+   "action": "MPANELS"
+  },
+  "BRONZE-DOOR": {
+   "flags": [
+    "CONTBIT",
+    "DOORBIT",
+    "INVISIBLE"
+   ],
+   "synonyms": [
+    "DOOR"
+   ],
+   "adjectives": [
+    "BRONZE"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "bronze door",
+   "action": "BRONZE-DOOR-F"
+  },
+  "CELL-DOOR": {
+   "flags": [
+    "CONTBIT",
+    "DOORBIT"
+   ],
+   "synonyms": [
+    "DOOR"
+   ],
+   "adjectives": [
+    "WOOD",
+    "WOODEN",
+    "CELL"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "cell door",
+   "action": "CELL-DOOR-F"
+  },
+  "COMPASS-ARROW": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "ARROW"
+   ],
+   "adjectives": [
+    "COMPASS"
+   ],
+   "in": "IN-MIRROR",
+   "desc": "compass arrow"
+  },
+  "DIAL-BUTTON": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "BUTTON"
+   ],
+   "adjectives": [
+    "LARGE"
+   ],
+   "in": "PARAPET",
+   "desc": "large button",
+   "action": "DIALBUTTON"
+  },
+  "GOOD-LOCKED-DOOR": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "DOOR"
+   ],
+   "adjectives": [
+    "LOCKED",
+    "WOOD",
+    "WOODEN",
+    "CELL"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "cell door",
+   "action": "LOCKED-DOOR-F"
+  },
+  "LOCKED-DOOR": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "DOOR"
+   ],
+   "adjectives": [
+    "LOCKED",
+    "WOOD",
+    "WOODEN",
+    "CELL"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "cell door",
+   "action": "LOCKED-DOOR-F"
+  },
+  "LONG-POLE": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "POLE"
+   ],
+   "adjectives": [
+    "LONG",
+    "CENTER"
+   ],
+   "in": "IN-MIRROR",
+   "desc": "long pole"
+  },
+  "MAHOGANY-PANEL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "WALL",
+    "PANEL"
+   ],
+   "adjectives": [
+    "MAHOGANY"
+   ],
+   "in": "IN-MIRROR",
+   "desc": "mahogany panel",
+   "action": "MENDS"
+  },
+  "FLAMING-PIT": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "PIT",
+    "ABYSS"
+   ],
+   "adjectives": [
+    "FIERY",
+    "FLAMING"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "flaming pit",
+   "action": "FLAMING-PIT-F"
+  },
+  "PARAPET-OBJ": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "PARAPET"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "parapet",
+   "action": "PARAPET-OBJ-F"
+  },
+  "PINE-PANEL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "PANEL",
+    "WALL"
+   ],
+   "adjectives": [
+    "PINE"
+   ],
+   "in": "IN-MIRROR",
+   "desc": "pine panel",
+   "action": "MENDS"
+  },
+  "BEAM": {
+   "flags": [
+    "NDESCBIT",
+    "OPENBIT",
+    "CONTBIT"
+   ],
+   "synonyms": [
+    "BEAM",
+    "LIGHT"
+   ],
+   "adjectives": [
+    "RED"
+   ],
+   "in": "MREYE",
+   "desc": "red beam of light",
+   "capacity": 100,
+   "action": "BEAM-FUNCTION"
+  },
+  "RED-BUTTON": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "BUTTON"
+   ],
+   "adjectives": [
+    "RED"
+   ],
+   "in": "MR-ANTE",
+   "desc": "red button",
+   "action": "MRSWITCH"
+  },
+  "RED-PANEL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "PANEL",
+    "WALL"
+   ],
+   "adjectives": [
+    "RED"
+   ],
+   "in": "IN-MIRROR",
+   "desc": "red panel",
+   "action": "MPANELS"
+  },
+  "SHORT-POLE": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "POLE",
+    "POST",
+    "HANDGRIP",
+    "GRIP"
+   ],
+   "adjectives": [
+    "SHORT",
+    "SMALL",
+    "HAND"
+   ],
+   "in": "IN-MIRROR",
+   "desc": "short pole",
+   "action": "SHORT-POLE-F"
+  },
+  "SUNDIAL": {
+   "flags": [
+    "NDESCBIT",
+    "TURNBIT"
+   ],
+   "synonyms": [
+    "DIAL",
+    "INDICATOR",
+    "ARROW",
+    "SUNDIAL"
+   ],
+   "adjectives": [
+    "INDICATOR",
+    "SUN"
+   ],
+   "in": "PARAPET",
+   "desc": "sundial",
+   "action": "DIAL"
+  },
+  "YELLOW-PANEL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "PANEL",
+    "WALL"
+   ],
+   "adjectives": [
+    "YELLOW"
+   ],
+   "in": "IN-MIRROR",
+   "desc": "yellow panel",
+   "action": "MPANELS"
+  },
+  "WHITE-PANEL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "PANEL",
+    "WALL"
+   ],
+   "adjectives": [
+    "WHITE"
+   ],
+   "in": "IN-MIRROR",
+   "desc": "white panel",
+   "action": "MPANELS"
+  },
+  "WOODEN-BAR": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "BAR"
+   ],
+   "adjectives": [
+    "WOOD",
+    "WOODEN"
+   ],
+   "in": "IN-MIRROR",
+   "desc": "wooden bar"
+  },
+  "DUNGEON-PANEL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "PANEL"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "panel",
+   "action": "DUNGEON-PANEL-F"
+  },
+  "DUNGEON-DOOR": {
+   "flags": [
+    "NDESCBIT",
+    "DOORBIT",
+    "CONTBIT"
+   ],
+   "synonyms": [
+    "DOOR"
+   ],
+   "adjectives": [
+    "WOOD",
+    "WOODEN"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "wooden door",
+   "action": "DUNGEON-DOOR-F"
+  },
+  "SECRET-DOOR": {
+   "flags": [
+    "DOORBIT",
+    "CONTBIT",
+    "INVISIBLE"
+   ],
+   "synonyms": [
+    "DOOR"
+   ],
+   "adjectives": [
+    "SECRET"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "secret door",
+   "action": "SECRET-DOOR-F"
+  },
+  "OLD-MAN": {
+   "flags": [
+    "ACTORBIT"
+   ],
+   "synonyms": [
+    "MAN"
+   ],
+   "adjectives": [
+    "OLD"
+   ],
+   "desc": "old man",
+   "action": "OLD-MAN-F",
+   "descFcn": "OLD-MAN-F"
+  },
+  "CP-HOLE": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "HOLE"
+   ],
+   "adjectives": [
+    "ROUND"
+   ],
+   "in": "CP-ANTE",
+   "desc": "hole",
+   "action": "CP-HOLE-F"
+  },
+  "VOICES": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "VOICE",
+    "VOICES",
+    "GUARDS",
+    "OFFICI"
+   ],
+   "adjectives": [
+    "ARMED"
+   ],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "voices",
+   "action": "VOICES-F"
+  },
+  "CRYSTALS": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "CRYSTAL",
+    "STALAG"
+   ],
+   "adjectives": [],
+   "in": "ROCKY-ROOM",
+   "desc": "rock structure"
+  },
+  "ROYAL-SEAL": {
+   "flags": [
+    "NDESCBIT",
+    "READBIT"
+   ],
+   "synonyms": [
+    "SEAL",
+    "CARVIN",
+    "RENDER"
+   ],
+   "adjectives": [
+    "LARGE",
+    "ROYAL"
+   ],
+   "in": "WIDE-HALL",
+   "desc": "Royal Seal of Dimwit Flathead",
+   "text": "The Seal is vintage Flathead, with signs of excess nearly everywhere.\nIt shows a curiously flat-headed figure wearing a gaudy crown,\nsurrounded by the Crown Jewels of the Empire."
+  },
+  "CLEFT": {
+   "flags": [
+    "DOORBIT",
+    "OPENBIT",
+    "INVISIBLE"
+   ],
+   "synonyms": [
+    "CLEFT"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "cleft",
+   "action": "CLEFT-F"
+  },
+  "TIME-MACHINE": {
+   "flags": [
+    "VEHBIT",
+    "OPENBIT",
+    "CONTBIT"
+   ],
+   "synonyms": [
+    "MACHINE",
+    "TEMPORIZER"
+   ],
+   "adjectives": [
+    "TIME",
+    "GOLD",
+    "GOLDEN"
+   ],
+   "in": "TECH-MUSEUM",
+   "desc": "gold machine",
+   "capacity": 100,
+   "descFcn": "TIME-MACHINE-F",
+   "action": "TIME-MACHINE-F"
+  },
+  "PRESSURIZER": {
+   "flags": [],
+   "synonyms": [
+    "MACHINE",
+    "DRYER",
+    "PRESSURIZER"
+   ],
+   "adjectives": [
+    "GRAY",
+    "GREY",
+    "WASHING"
+   ],
+   "in": "TECH-MUSEUM",
+   "desc": "grey machine",
+   "action": "MUSEUM-PIECES",
+   "descFcn": "MUSEUM-PIECES"
+  },
+  "SPINNER": {
+   "flags": [],
+   "synonyms": [
+    "MACHINE",
+    "PIPES",
+    "WIRES",
+    "MOTORS"
+   ],
+   "adjectives": [
+    "BLACK"
+   ],
+   "in": "TECH-MUSEUM",
+   "desc": "black machine",
+   "descFcn": "MUSEUM-PIECES",
+   "action": "MUSEUM-PIECES"
+  },
+  "TM-BUTTON": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "BUTTON"
+   ],
+   "adjectives": [],
+   "in": "TIME-MACHINE",
+   "desc": "button",
+   "action": "TM-BUTTON-F"
+  },
+  "TM-HOLLOW": {
+   "flags": [
+    "NDESCBIT",
+    "OPENBIT",
+    "CONTBIT"
+   ],
+   "synonyms": [
+    "AREA"
+   ],
+   "adjectives": [
+    "SMALL",
+    "HOLLOW"
+   ],
+   "in": "TIME-MACHINE",
+   "desc": "seat",
+   "capacity": 20,
+   "action": "TM-HOLLOW-F"
+  },
+  "TM-SEAT": {
+   "flags": [
+    "NDESCBIT",
+    "OPENBIT",
+    "CONTBIT",
+    "SURFACEBIT"
+   ],
+   "synonyms": [
+    "SEAT",
+    "CHAIR"
+   ],
+   "adjectives": [],
+   "in": "TIME-MACHINE",
+   "desc": "seat",
+   "capacity": 20,
+   "action": "TM-SEAT-F"
+  },
+  "TM-DIAL": {
+   "flags": [
+    "NDESCBIT",
+    "TURNBIT"
+   ],
+   "synonyms": [
+    "DIAL",
+    "CONSOLE",
+    "DISPLAY"
+   ],
+   "adjectives": [],
+   "in": "TIME-MACHINE",
+   "desc": "dial",
+   "action": "TM-DIAL-F"
+  },
+  "IRON-DOOR": {
+   "flags": [
+    "DOORBIT",
+    "CONTBIT"
+   ],
+   "synonyms": [
+    "DOOR"
+   ],
+   "adjectives": [
+    "IRON"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "iron door",
+   "action": "IRON-DOOR-F"
+  },
+  "JEWEL-DOOR": {
+   "flags": [
+    "DOORBIT",
+    "CONTBIT"
+   ],
+   "synonyms": [
+    "DOOR"
+   ],
+   "adjectives": [
+    "STONE",
+    "EAST"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "stone door",
+   "action": "JEWEL-DOOR-F"
+  },
+  "WOODEN-DOOR": {
+   "flags": [
+    "DOORBIT",
+    "CONTBIT",
+    "OPENBIT"
+   ],
+   "synonyms": [
+    "DOOR"
+   ],
+   "adjectives": [
+    "WOODEN",
+    "WOOD",
+    "NORTH"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "wooden door",
+   "action": "WOODEN-DOOR-F"
+  },
+  "SCEPTRE": {
+   "flags": [
+    "TAKEBIT",
+    "NDESCBIT",
+    "TRYTAKEBIT"
+   ],
+   "synonyms": [
+    "SCEPTRE",
+    "JEWELS"
+   ],
+   "adjectives": [
+    "CROWN"
+   ],
+   "in": "PEDESTAL",
+   "desc": "sceptre",
+   "size": 30,
+   "action": "CROWN-JEWELS-F"
+  },
+  "JEWELLED-KNIFE": {
+   "flags": [
+    "TAKEBIT",
+    "NDESCBIT",
+    "TRYTAKEBIT"
+   ],
+   "synonyms": [
+    "KNIFE",
+    "JEWELS"
+   ],
+   "adjectives": [
+    "JEWELLED",
+    "CROWN"
+   ],
+   "in": "PEDESTAL",
+   "desc": "jewelled knife",
+   "size": 20,
+   "action": "CROWN-JEWELS-F"
+  },
+  "RING": {
+   "flags": [
+    "TAKEBIT",
+    "NDESCBIT",
+    "TRYTAKEBIT",
+    "WEARBIT"
+   ],
+   "synonyms": [
+    "RING",
+    "JEWELS"
+   ],
+   "adjectives": [
+    "GOLDEN",
+    "CROWN"
+   ],
+   "in": "PEDESTAL",
+   "desc": "golden ring",
+   "size": 5,
+   "action": "CROWN-JEWELS-F"
+  },
+  "PEDESTAL": {
+   "flags": [
+    "NDESCBIT",
+    "OPENBIT",
+    "CONTBIT",
+    "SURFACEBIT"
+   ],
+   "synonyms": [
+    "PEDESTAL"
+   ],
+   "adjectives": [],
+   "in": "JEWEL-ROOM",
+   "desc": "pedestal",
+   "capacity": 50,
+   "action": "PEDESTAL-F"
+  },
+  "CAGE": {
+   "flags": [
+    "NDESCBIT",
+    "CONTBIT",
+    "OPENBIT",
+    "SURFACEBIT"
+   ],
+   "synonyms": [
+    "CAGE"
+   ],
+   "adjectives": [
+    "STEEL"
+   ],
+   "in": "JEWEL-ROOM",
+   "desc": "steel cage",
+   "capacity": 5,
+   "action": "CAGE-F"
+  },
+  "TECH-PLAQUE": {
+   "flags": [
+    "NDESCBIT",
+    "READBIT"
+   ],
+   "synonyms": [
+    "PLAQUE",
+    "TEXT"
+   ],
+   "adjectives": [],
+   "in": "TECH-MUSEUM",
+   "desc": "plaque",
+   "action": "TECH-PLAQUE-F"
+  },
+  "PLAQUE": {
+   "flags": [
+    "NDESCBIT",
+    "READBIT"
+   ],
+   "synonyms": [
+    "PLAQUE",
+    "TEXT"
+   ],
+   "adjectives": [
+    "BRONZE"
+   ],
+   "in": "CAGE",
+   "desc": "bronze plaque",
+   "action": "PLAQUE-F"
+  },
+  "ROBOT": {
+   "flags": [],
+   "synonyms": [
+    "ROBOT",
+    "DEVICE"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "robot",
+   "action": "ROBOT-F"
+  },
+  "SHADOW": {
+   "flags": [
+    "ACTORBIT",
+    "TRANSBIT",
+    "CONTBIT",
+    "OPENBIT"
+   ],
+   "synonyms": [
+    "SHADOW",
+    "FIGURE",
+    "MAN",
+    "WOMAN"
+   ],
+   "adjectives": [
+    "HOODED",
+    "CLOAKED"
+   ],
+   "desc": "hooded figure",
+   "action": "SHADOW-F",
+   "descFcn": "SHADOW-F"
+  },
+  "HOOD": {
+   "flags": [
+    "NDESCBIT",
+    "TRYTAKEBIT",
+    "TAKEBIT",
+    "WEARBIT"
+   ],
+   "synonyms": [
+    "HOOD"
+   ],
+   "adjectives": [],
+   "in": "SHADOW",
+   "desc": "hood",
+   "action": "HOOD-F"
+  },
+  "CLOAK": {
+   "flags": [
+    "NDESCBIT",
+    "TRYTAKEBIT",
+    "TAKEBIT",
+    "WEARBIT"
+   ],
+   "synonyms": [
+    "CLOAK"
+   ],
+   "adjectives": [],
+   "in": "SHADOW",
+   "desc": "cloak",
+   "action": "CLOAK-F"
+  },
+  "REEDS": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "REEDS"
+   ],
+   "adjectives": [
+    "SICKLY"
+   ],
+   "in": "FAR-SHORE",
+   "desc": "reeds"
+  },
+  "VIEWING-TABLE": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "TABLE",
+    "SURFACE"
+   ],
+   "adjectives": [
+    "VIEWING"
+   ],
+   "in": "VIEW-ROOM",
+   "desc": "viewing table",
+   "action": "VIEWING-TABLE-F"
+  },
+  "TORCH": {
+   "flags": [
+    "LIGHTBIT",
+    "TAKEBIT",
+    "ONBIT",
+    "FLAMEBIT"
+   ],
+   "synonyms": [
+    "TORCH"
+   ],
+   "adjectives": [],
+   "in": "VIEW-ROOM",
+   "desc": "torch",
+   "fdesc": "Mounted on one wall is a flaming torch, which fills the room with a flickering\nlight.",
+   "action": "TORCH-F"
+  },
+  "FRIED-TORCH": {
+   "flags": [
+    "TAKEBIT"
+   ],
+   "synonyms": [
+    "TORCH"
+   ],
+   "adjectives": [
+    "BURNED",
+    "DEAD"
+   ],
+   "desc": "burned-out torch",
+   "action": "FRIED-TORCH-F"
+  },
+  "CLIFF-OBJECT": {
+   "flags": [],
+   "synonyms": [
+    "CLIFF"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "cliff",
+   "action": "CLIFF-OBJECT-F"
+  },
+  "STONE-WALL": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "WALL"
+   ],
+   "adjectives": [
+    "STONE",
+    "MASSIVE"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "stone wall"
+  },
+  "LAKE": {
+   "flags": [],
+   "synonyms": [
+    "LAKE",
+    "WATER",
+    "SURFACE"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "lake",
+   "action": "LAKE-F"
+  },
+  "AMULET": {
+   "flags": [
+    "TAKEBIT",
+    "WEARBIT",
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "AMULET",
+    "OBJECT"
+   ],
+   "adjectives": [
+    "GOLD",
+    "GOLDEN",
+    "SHINY"
+   ],
+   "desc": "golden amulet"
+  },
+  "SAND": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "SAND",
+    "FLOOR",
+    "BOTTOM"
+   ],
+   "adjectives": [],
+   "in": "IN-LAKE",
+   "desc": "sand",
+   "action": "SAND-F"
+  },
+  "FRIED-LAMP": {
+   "flags": [
+    "TAKEBIT"
+   ],
+   "synonyms": [
+    "LAMP",
+    "LANTERN"
+   ],
+   "adjectives": [
+    "BRASS"
+   ],
+   "desc": "lamp",
+   "size": 10,
+   "action": "FRIED-LAMP-F"
+  },
+  "ALGAE": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "PLANT",
+    "PLANTS",
+    "ALGAE"
+   ],
+   "adjectives": [],
+   "in": "IN-LAKE",
+   "desc": "plants and algae",
+   "action": "ALGAE-F"
+  },
+  "SHINY-OBJECT": {
+   "flags": [
+    "TRYTAKEBIT",
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "OBJECT",
+    "AMULET"
+   ],
+   "adjectives": [
+    "SHINY"
+   ],
+   "in": "IN-LAKE",
+   "desc": "shiny object",
+   "action": "SHINY-OBJECT-F"
+  },
+  "LEDGE": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "LEDGE"
+   ],
+   "adjectives": [
+    "WIDE"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "ledge",
+   "action": "LEDGE-F"
+  },
+  "WAYBREAD": {
+   "flags": [
+    "TAKEBIT",
+    "FOODBIT"
+   ],
+   "synonyms": [
+    "BREAD",
+    "WAYBREAD",
+    "PIECE"
+   ],
+   "adjectives": [
+    "WAY",
+    "FRESH"
+   ],
+   "in": "CLIFF",
+   "desc": "piece of waybread",
+   "ldesc": "A piece of bread is on the ground here.",
+   "fdesc": "It seems as if somebody has been here recently, as there is some fresh\nbread lying beneath one of the other trees.",
+   "size": 3,
+   "action": "WAYBREAD-F"
+  },
+  "ROPE": {
+   "flags": [
+    "NDESCBIT",
+    "TRYTAKEBIT"
+   ],
+   "synonyms": [
+    "ROPE"
+   ],
+   "adjectives": [
+    "LONG"
+   ],
+   "in": "CLIFF",
+   "desc": "rope",
+   "action": "ROPE-F"
+  },
+  "GLOBAL-ROPE": {
+   "flags": [],
+   "synonyms": [
+    "ROPE"
+   ],
+   "adjectives": [
+    "DANGLING"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "rope",
+   "action": "GLOBAL-ROPE-F"
+  },
+  "TREE": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "TREE",
+    "TREES"
+   ],
+   "adjectives": [
+    "LARGE",
+    "TALL"
+   ],
+   "in": "CLIFF",
+   "desc": "tree",
+   "action": "TREE-F"
+  },
+  "STAFF": {
+   "flags": [
+    "TAKEBIT"
+   ],
+   "synonyms": [
+    "STAFF"
+   ],
+   "adjectives": [
+    "WOODEN"
+   ],
+   "desc": "wooden staff",
+   "size": 10,
+   "action": "STAFF-F"
+  },
+  "BROKEN-STAFF": {
+   "flags": [
+    "TAKEBIT"
+   ],
+   "synonyms": [
+    "STAFF"
+   ],
+   "adjectives": [
+    "BROKEN"
+   ],
+   "desc": "broken staff",
+   "size": 10,
+   "action": "STAFF-F"
+  },
+  "CHEST": {
+   "flags": [
+    "TAKEBIT",
+    "CONTBIT"
+   ],
+   "synonyms": [
+    "CHEST"
+   ],
+   "adjectives": [
+    "LOCKED"
+   ],
+   "in": "CLIFF-LEDGE",
+   "desc": "chest",
+   "fdesc": "A large chest, closed and locked, is lying among the boulders.",
+   "size": 40,
+   "capacity": 20,
+   "action": "CHEST-F"
+  },
+  "GLOBAL-MAN": {
+   "flags": [
+    "ACTORBIT"
+   ],
+   "synonyms": [
+    "MAN",
+    "FRIEND"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "man",
+   "action": "GLOBAL-MAN-F"
+  },
+  "VALUABLES": {
+   "flags": [
+    "NDESCBIT",
+    "TAKEBIT"
+   ],
+   "synonyms": [
+    "VALUABLES",
+    "TREASURE",
+    "PILE"
+   ],
+   "adjectives": [
+    "ASSORTED"
+   ],
+   "in": "MAN",
+   "desc": "pile of assorted valuables",
+   "action": "VALUABLES-F"
+  },
+  "MAN": {
+   "flags": [
+    "ACTORBIT",
+    "OPENBIT",
+    "CONTBIT"
+   ],
+   "synonyms": [
+    "MAN",
+    "FRIEND"
+   ],
+   "adjectives": [],
+   "desc": "man",
+   "action": "MAN-F"
+  },
+  "TIMBERS": {
+   "flags": [
+    "TAKEBIT"
+   ],
+   "synonyms": [
+    "TIMBERS",
+    "PILE"
+   ],
+   "adjectives": [
+    "WOODEN",
+    "BROKEN"
+   ],
+   "in": "TIMBER-ROOM",
+   "desc": "broken timber",
+   "size": 50
+  },
+  "LADDER": {
+   "flags": [
+    "NDESCBIT",
+    "CLIMBBIT"
+   ],
+   "synonyms": [
+    "LADDER"
+   ],
+   "adjectives": [
+    "WOODEN",
+    "RICKETY",
+    "NARROW"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "wooden ladder"
+  },
+  "REPELLENT": {
+   "flags": [
+    "TAKEBIT",
+    "READBIT"
+   ],
+   "synonyms": [
+    "REPELLENT",
+    "CAN"
+   ],
+   "adjectives": [
+    "GRUE",
+    "MAGIC"
+   ],
+   "in": "ROOM-8",
+   "desc": "Frobozz Magic Grue Repellent",
+   "action": "REPELLENT-FCN",
+   "fdesc": "A spray can is in the corner. In large type is the legend \"Frobozz Magic\nGrue Repellent.\"",
+   "text": "!!! FROBOZZ MAGIC GRUE REPELLENT !!!\n\nInstructions for use: Apply liberally to creature to be protected.\nDuration of effect is unpredictable. Use only in place of death!\n\n(No warranty expressed or implied)"
+  },
+  "AQUEDUCT": {
+   "flags": [],
+   "synonyms": [
+    "AQUEDUCT",
+    "DUCT",
+    "CHASM"
+   ],
+   "adjectives": [
+    "STONE"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "aqueduct",
+   "action": "AQUEDUCT-F"
+  },
+  "WATER-CHANNEL": {
+   "flags": [],
+   "synonyms": [
+    "CHANNEL"
+   ],
+   "adjectives": [
+    "WATER"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "channel",
+   "action": "WATER-CHANNEL-F"
+  },
+  "MOSS": {
+   "flags": [],
+   "synonyms": [
+    "MOSS",
+    "LICHEN"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "moss and lichen",
+   "action": "MOSS-F"
+  },
+  "COVER": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "COVER"
+   ],
+   "adjectives": [
+    "MANHOLE",
+    "LARGE"
+   ],
+   "in": "KEY-ROOM",
+   "desc": "manhole cover",
+   "action": "COVER-F"
+  },
+  "KEY": {
+   "flags": [
+    "TAKEBIT"
+   ],
+   "synonyms": [
+    "KEY"
+   ],
+   "adjectives": [
+    "STRANGE",
+    "RUSTY",
+    "LONG",
+    "SHORT",
+    "HEAVY",
+    "THIN",
+    "SHARP",
+    "POINTED"
+   ],
+   "in": "KEY-ROOM",
+   "desc": "strange key",
+   "fdesc": "The light from above seems to be focused in the center of the room, where\na single key is lying in the dust.",
+   "size": 10,
+   "action": "KEY-F"
+  },
+  "VIEW-INDICATOR": {
+   "flags": [
+    "NDESCBIT",
+    "READBIT"
+   ],
+   "synonyms": [
+    "INDICATOR",
+    "DIAL"
+   ],
+   "adjectives": [],
+   "in": "VIEW-ROOM",
+   "desc": "indicator",
+   "action": "VIEW-INDICATOR-F"
+  },
+  "VIKING-SHIP": {
+   "flags": [
+    "NDESCBIT",
+    "INVISIBLE"
+   ],
+   "synonyms": [
+    "BOAT",
+    "SHIP",
+    "CRAFT"
+   ],
+   "adjectives": [
+    "VIKING"
+   ],
+   "in": "FLATHEAD-OCEAN",
+   "desc": "Viking Ship"
+  },
+  "VIAL": {
+   "flags": [
+    "TAKEBIT",
+    "CONTBIT"
+   ],
+   "synonyms": [
+    "VIAL",
+    "ODOR",
+    "GIFT"
+   ],
+   "adjectives": [],
+   "desc": "vial",
+   "size": 3,
+   "capacity": 3,
+   "action": "VIAL-F"
+  },
+  "POTION": {
+   "flags": [],
+   "synonyms": [
+    "POTION",
+    "LIQUID",
+    "CONTENTS",
+    "FLUID"
+   ],
+   "adjectives": [
+    "HEAVY",
+    "SWEET",
+    "INVISIBLE",
+    "SMELLING"
+   ],
+   "in": "VIAL",
+   "desc": "heavy but invisible liquid",
+   "size": 2,
+   "action": "POTION-F"
+  },
+  "OCEAN": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "OCEAN",
+    "WATER"
+   ],
+   "adjectives": [
+    "FLATHEAD"
+   ],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "Flathead Ocean",
+   "action": "OCEAN-F"
+  },
+  "STONE": {
+   "flags": [
+    "CONTBIT",
+    "OPENBIT"
+   ],
+   "synonyms": [
+    "ROCK",
+    "STONE"
+   ],
+   "adjectives": [
+    "GREAT"
+   ],
+   "desc": "great rock",
+   "in": "JUNCTION",
+   "descFcn": "STONE-DESC",
+   "capacity": 30,
+   "action": "STONE-F"
+  },
+  "FISH": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "FISH"
+   ],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "fish",
+   "action": "FISH-F"
+  },
+  "GLOBAL-OBJECTS": {
+   "flags": [
+    "RMUNGBIT",
+    "INVISIBLE",
+    "TOUCHBIT",
+    "SURFACEBIT",
+    "TRYTAKEBIT",
+    "OPENBIT",
+    "SEARCHBIT",
+    "TRANSBIT",
+    "ONBIT",
+    "RLANDBIT",
+    "FIGHTBIT",
+    "STAGGERED",
+    "WEARBIT"
+   ],
+   "synonyms": [],
+   "adjectives": []
+  },
+  "LOCAL-GLOBALS": {
+   "flags": [],
+   "synonyms": [
+    "ZZMGCK"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "descFcn": "PATH-OBJECT",
+   "fdesc": "F",
+   "ldesc": "F",
+   "contFcn": "0",
+   "vtype": [
+    "1"
+   ],
+   "size": 0,
+   "capacity": 0
+  },
+  "ROOMS": {
+   "flags": [],
+   "synonyms": [],
+   "adjectives": [],
+   "in": "TO"
+  },
+  "INTNUM": {
+   "flags": [
+    "TOOLBIT"
+   ],
+   "synonyms": [
+    "INTNUM"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "number"
+  },
+  "PSEUDO-OBJECT": {
+   "flags": [],
+   "synonyms": [],
+   "adjectives": [],
+   "in": "LOCAL-GLOBALS",
+   "desc": "pseudo",
+   "action": "CRETIN-FCN"
+  },
+  "IT": {
+   "flags": [
+    "NDESCBIT",
+    "TOUCHBIT"
+   ],
+   "synonyms": [
+    "IT",
+    "THEM",
+    "HER",
+    "HIM"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "random object"
+  },
+  "NOT-HERE-OBJECT": {
+   "flags": [],
+   "synonyms": [],
+   "adjectives": [],
+   "desc": "such thing",
+   "action": "NOT-HERE-OBJECT-F"
+  },
+  "BLESSINGS": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "BLESSINGS",
+    "GRACES"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "blessings"
+  },
+  "STAIRS": {
+   "flags": [
+    "NDESCBIT",
+    "CLIMBBIT"
+   ],
+   "synonyms": [
+    "STAIRS",
+    "STEPS",
+    "STAIRCASE",
+    "STAIRWAY"
+   ],
+   "adjectives": [
+    "STONE",
+    "DARK",
+    "MARBLE",
+    "FORBIDDING",
+    "STEEP"
+   ],
+   "in": "LOCAL-GLOBALS",
+   "desc": "stairs",
+   "action": "STAIRS-F"
+  },
+  "SAILOR": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "SAILOR",
+    "FOOTPAD",
+    "AVIATOR"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "sailor",
+   "action": "SAILOR-FCN"
+  },
+  "GROUND": {
+   "flags": [],
+   "synonyms": [
+    "GROUND",
+    "SAND",
+    "DIRT",
+    "FLOOR"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "ground",
+   "action": "GROUND-FUNCTION"
+  },
+  "GRUE": {
+   "flags": [],
+   "synonyms": [
+    "GRUE"
+   ],
+   "adjectives": [
+    "LURKING",
+    "SINISTER",
+    "HUNGRY",
+    "SILENT"
+   ],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "lurking grue",
+   "action": "GRUE-FUNCTION"
+  },
+  "LUNGS": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "LUNGS",
+    "AIR",
+    "MOUTH",
+    "BREATH"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "blast of air"
+  },
+  "ME": {
+   "flags": [
+    "ACTORBIT"
+   ],
+   "synonyms": [
+    "ME",
+    "MYSELF",
+    "SELF",
+    "CRETIN"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "you",
+   "action": "CRETIN-FCN"
+  },
+  "ADVENTURER": {
+   "flags": [
+    "NDESCBIT",
+    "INVISIBLE",
+    "SACREDBIT",
+    "ACTORBIT"
+   ],
+   "synonyms": [
+    "ADVENTURER"
+   ],
+   "adjectives": [],
+   "desc": "cretin",
+   "strength": 0,
+   "action": "0"
+  },
+  "PATHOBJ": {
+   "flags": [
+    "NDESCBIT"
+   ],
+   "synonyms": [
+    "TRAIL",
+    "PATH"
+   ],
+   "adjectives": [
+    "FOREST",
+    "NARROW",
+    "LONG",
+    "WINDING"
+   ],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "passage",
+   "action": "PATH-OBJECT"
+  },
+  "ZORKMID": {
+   "flags": [],
+   "synonyms": [
+    "ZORKMID"
+   ],
+   "adjectives": [],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "zorkmid",
+   "action": "ZORKMID-FUNCTION"
+  },
+  "HANDS": {
+   "flags": [
+    "NDESCBIT",
+    "TOOLBIT"
+   ],
+   "synonyms": [
+    "PAIR",
+    "HANDS",
+    "HAND"
+   ],
+   "adjectives": [
+    "BARE"
+   ],
+   "in": "GLOBAL-OBJECTS",
+   "desc": "pair of hands"
+  }
+ }
+}

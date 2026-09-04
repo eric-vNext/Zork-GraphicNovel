@@ -25,15 +25,17 @@ export function SaveLoadModal() {
   const loadSlot = useStore((s) => s.loadSlot);
   const closeSlots = useStore((s) => s.closeSlots);
 
+  // Slots are per game, so the panel only ever shows the current game's.
+  const gameNumber = useStore((s) => s.game.s.game);
   const [slots, setSlots] = useState<(SaveSlotRecord | null)[] | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   const refresh = () => {
-    listSaveSlots().then(setSlots).catch(() => setError('Could not read save slots on this device.'));
+    listSaveSlots(gameNumber).then(setSlots).catch(() => setError('Could not read save slots on this device.'));
   };
 
-  useEffect(refresh, []);
+  useEffect(refresh, [gameNumber]);
 
   const canSave = screen === 'play';
 
@@ -58,7 +60,7 @@ export function SaveLoadModal() {
     setBusy(slot);
     setError('');
     try {
-      await deleteSaveSlot(slot);
+      await deleteSaveSlot(gameNumber, slot);
       refresh();
     } catch {
       setError('Delete failed.');

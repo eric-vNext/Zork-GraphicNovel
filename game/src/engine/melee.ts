@@ -13,10 +13,10 @@ import {
   fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, locOf, roomOf,
   PLAYER, DATA, objDef, aName,
 } from './world';
+import { activeGame } from '../data/games';
 
 const STRENGTH_MIN = 2; // <CONSTANT STRENGTH-MIN 2>
 const STRENGTH_MAX = 7; // <CONSTANT STRENGTH-MAX 7>
-const SCORE_MAX = 350;
 const CURE_WAIT = 30;
 
 // ---- blow-result tables (1actions.zil DEF1/DEF2A/DEF2B/DEF3A/DEF3B/DEF3C) ----
@@ -59,8 +59,11 @@ function blowResult(rng: () => number, att: number, def: number): Outcome {
 
 /** FIGHT-STRENGTH: 2..7 scaled by score, minus current wounds when adjusted. */
 export function fightStrength(s: WorldState, adjust = true): number {
+  // <CONSTANT SCORE-MAX> differs per game (350 / 400 / 7), so read it from
+  // the active game rather than baking Zork I's in.
+  const scoreMax = activeGame().scoring.max;
   const base = STRENGTH_MIN +
-    Math.floor(s.counters.score / Math.floor(SCORE_MAX / (STRENGTH_MAX - STRENGTH_MIN)));
+    Math.floor(s.counters.score / Math.max(1, Math.floor(scoreMax / (STRENGTH_MAX - STRENGTH_MIN))));
   return adjust ? base - (s.counters.wounds ?? 0) : base;
 }
 
@@ -88,9 +91,9 @@ function setVstr(s: WorldState, villain: string, n: number): void {
 function villainStrength(s: WorldState, villain: string, weapon?: string): number {
   let od = vstr(s, villain);
   if (od >= 0) {
-    if (villain === 'THIEF' && s.thiefEngrossed) {
+    if (villain === 'THIEF' && s.actorFlags.THIEF_ENGROSSED) {
       if (od > 2) od = 2;
-      s.thiefEngrossed = false;
+      s.actorFlags.THIEF_ENGROSSED = false;
     }
     const vd = VILLAIN_DEFS[villain];
     if (vd && weapon && fset$(s, weapon, 'WEAPONBIT') && weapon === vd.best) {
@@ -471,7 +474,7 @@ export function fightDaemon(ctx: Ctx): void {
   for (const villain of FIGHT_VILLAINS) {
     const present = roomOf(s, villain) === s.here && !fset$(s, villain, 'INVISIBLE');
     if (present) {
-      if (villain === 'THIEF' && s.thiefEngrossed) { s.thiefEngrossed = false; continue; }
+      if (villain === 'THIEF' && s.actorFlags.THIEF_ENGROSSED) { s.actorFlags.THIEF_ENGROSSED = false; continue; }
       if (vstr(s, villain) < 0) {
         // unconscious: growing chance of waking each turn
         const p = s.counters[`WAKE-${villain}`] ?? 0;
@@ -486,7 +489,7 @@ export function fightDaemon(ctx: Ctx): void {
       }
     } else {
       if (fset$(s, villain, 'FIGHTBIT')) villainBusy(ctx, villain);
-      if (villain === 'THIEF') s.thiefEngrossed = false;
+      if (villain === 'THIEF') s.actorFlags.THIEF_ENGROSSED = false;
       fclear(s, PLAYER, 'STAGGERED');
       fclear(s, villain, 'STAGGERED');
       fclear(s, villain, 'FIGHTBIT');

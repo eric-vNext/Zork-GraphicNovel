@@ -599,7 +599,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
         out.tell(`The thief places the ${objDef(item).desc} in his bag and thanks you politely.`);
       }
       out.emit({ type: 'panel', key: 'events/thief-gift' });
-      s.thiefEngrossed = true;
+      s.actorFlags.THIEF_ENGROSSED = true;
       return true;
     }
     return false;
@@ -742,7 +742,7 @@ export const OBJ_ACTIONS: Record<string, Handler> = {
   CHALICE: (ctx) => {
     const { s, out } = ctx;
     if (ctx.verb === 'take' && s.here === 'TREASURE-ROOM' && !s.gflags['THIEF-DEAD'] &&
-        !s.gflags['THIEF-UNCONSCIOUS'] && !s.thiefEngrossed) {
+        !s.gflags['THIEF-UNCONSCIOUS'] && !s.actorFlags.THIEF_ENGROSSED) {
       out.tell('Realizing just in time that the thief is watching you, you relinquish your claim to the chalice.');
       return true;
     }

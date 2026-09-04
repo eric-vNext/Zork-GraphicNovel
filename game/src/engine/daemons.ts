@@ -160,9 +160,9 @@ export const DAEMONS: Record<string, Daemon> = {
     const villainsNear = (dist: number): boolean => {
       const vs = ['TROLL', 'CYCLOPS'].filter((vl) => s.locs[vl] && !fset$(s, vl, 'INVISIBLE') && !s.gflags[`${vl}-DEAD`]);
       const thiefVisibleHere = s.gflags['THIEF-HERE'] && !s.gflags['THIEF-DEAD'];
-      if (dist === 0) return vs.some((vl) => roomOf(s, vl) === s.here) || (thiefVisibleHere && s.thiefRoom === s.here);
+      if (dist === 0) return vs.some((vl) => roomOf(s, vl) === s.here) || (thiefVisibleHere && s.actorRooms.THIEF === s.here);
       const adj = Object.values(roomDef(s.here).exits).map((e) => e.to).filter(Boolean) as string[];
-      return vs.some((vl) => adj.includes(roomOf(s, vl) ?? '')) || (thiefVisibleHere && adj.includes(s.thiefRoom));
+      return vs.some((vl) => adj.includes(roomOf(s, vl) ?? '')) || (thiefVisibleHere && adj.includes(s.actorRooms.THIEF));
     };
     const glow = villainsNear(0) ? 2 : villainsNear(1) ? 1 : 0;
     const prev = s.counters.swordGlow ?? 0;

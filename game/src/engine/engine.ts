@@ -1,6 +1,8 @@
 // The main loop (ports gmain.zil MAIN-LOOP): parse -> perform -> clock,
 // plus system verbs, pending questions, AGAIN, and save/restore.
-import type { WorldState, GameEvent } from './types';
+import type { WorldState, GameEvent, GameNumber } from './types';
+import { SAVE_VERSION } from './types';
+import { activeGame, selectGame, rankFor } from '../data/games';
 import { newState, Out, fset, fclear, fset$, moveObj, roomLit, DATA, roomDef, PLAYER, inventory, objDef } from './world';
 import type { Ctx } from './ctx';
 import { parse, completePending, type PendingParse, type Command } from '../parser/parse';
@@ -9,11 +11,6 @@ import { clocker, DAEMONS, candleTicksRemaining } from './daemons';
 import { fightStrength } from './melee';
 import { jigsUp } from './death';
 import { describeRoom } from './describe';
-
-const RANKS: Array<[number, string]> = [
-  [350, 'Master Adventurer'], [330, 'Wizard'], [300, 'Master'], [200, 'Adventurer'],
-  [100, 'Junior Adventurer'], [50, 'Novice Adventurer'], [25, 'Amateur Adventurer'], [0, 'Beginner'],
-];
 
 const UNKNOWN_WORD_RE = /^I don't know the word "(.+)"\.$/;
 
@@ -28,7 +25,8 @@ export class Game {
   private transcript: string[] = [];
   private pendingRestart = false; // RESTART asked "Y is affirmative", awaiting the answer
 
-  constructor() {
+  constructor(game: GameNumber = 1) {
+    selectGame(game);
     this.s = newState();
     this.initWorld();
   }
@@ -41,13 +39,10 @@ export class Game {
   };
 
   private initWorld(): void {
-    const s = this.s;
-    // daemons that run from the start
-    s.daemons['I-THIEF'] = { tick: -1, enabled: true };
-    s.daemons['I-FIGHT'] = { tick: -1, enabled: true };
-    s.daemons['I-SWORD'] = { tick: -1, enabled: true };
-    s.daemons['I-CYCLOPS'] = { tick: -1, enabled: true };
-    s.daemons['I-FOREST-ROOM'] = { tick: -1, enabled: true };
+    // Daemons that run from the start, per game (ZIL's initial QUEUE/ENABLE).
+    for (const d of activeGame().initialDaemons) {
+      this.s.daemons[d] = { tick: -1, enabled: true };
+    }
   }
 
   private makeCtx(out: Out, cmd?: Partial<Command>): Ctx {
@@ -92,7 +87,7 @@ export class Game {
     s.won = true;
     out.tell('Inside the Barrow', 'room-name');
     out.tell('As you enter the barrow, the door closes inexorably behind you. Around you it is dark, but ahead is an enormous cavern, brightly lit. Through its center runs a wide stream. Spanning the stream is a small wooden footbridge, and beyond a path leads into a dark tunnel. Above the bridge, floating in the air, is a large sign. It reads:  All ye who stand before this bridge have completed a great and perilous adventure which has won you the right to explore the Great Underground Empire. Those who pass over this bridge must be prepared to undertake an even greater adventure that will severely test your skill and bravery!');
-    out.tell(`Your score is ${s.counters.score} (total of 350 points), in ${s.counters.moves} moves. This gives you the rank of Master Adventurer.`, 'system');
+    out.tell(this.scoreLine().replace(/\n/g, ' '), 'system');
     out.emit({ type: 'victory' });
   }
 
@@ -346,10 +341,14 @@ export class Game {
     } else s.grueTurns = 0;
   }
 
+  /** Ports each game's V-SCORE text; the wording differs per game. */
+  private scoreLine(): string {
+    const { score, moves } = this.s.counters;
+    return activeGame().scoring.line(score, moves, rankFor(score));
+  }
+
   private reportScore(out: Out): void {
-    const s = this.s;
-    const rank = RANKS.find(([min]) => s.counters.score >= min)?.[1] ?? 'Beginner';
-    out.tell(`Your score is ${s.counters.score} (total of 350 points), in ${s.counters.moves} moves.\nThis gives you the rank of ${rank}.`, 'system');
+    out.tell(this.scoreLine(), 'system');
   }
 
   // Ports V-RESTART (gverbs.zil): report score, then ask for confirmation.
@@ -361,9 +360,31 @@ export class Game {
   }
 
   exportSave(): string { return JSON.stringify(this.s); }
+
+  /**
+   * Bring a save written before the trilogy refactor up to the current shape.
+   * Pre-v1 saves have no `game` (they can only be Zork I) and carry the thief's
+   * position in the two Zork-I-only fields that `actorRooms`/`actorFlags`
+   * replaced.
+   */
+  private static migrate(raw: any): WorldState {
+    if (!raw || typeof raw !== 'object') throw new Error('not a save');
+    if ((raw.saveVersion ?? 0) < 1) {
+      raw.game = 1;
+      raw.actorRooms = { THIEF: raw.thiefRoom ?? 'ROUND-ROOM' };
+      raw.actorFlags = { THIEF_ENGROSSED: !!raw.thiefEngrossed };
+      delete raw.thiefRoom;
+      delete raw.thiefEngrossed;
+      raw.saveVersion = SAVE_VERSION;
+    }
+    return raw as WorldState;
+  }
+
   importSave(json: string, out: Out): boolean {
     try {
-      this.s = JSON.parse(json);
+      const state = Game.migrate(JSON.parse(json));
+      selectGame(state.game);
+      this.s = state;
       out.tell('Ok.', 'system');
       out.emit({ type: 'room', room: this.s.here });
       describeRoom(this.s, out, true);

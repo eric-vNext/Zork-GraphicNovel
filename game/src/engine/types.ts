@@ -1,4 +1,4 @@
-// Core world-model types, mirroring the ZIL structures in 1dungeon.zil.
+// Core world-model types, mirroring the ZIL structures in each game's NdungeonN.zil.
 
 export interface ExitDef {
   to?: string;       // destination room
@@ -42,11 +42,23 @@ export interface WorldData {
   objects: Record<string, ObjDef>;
 }
 
+/** Which game the state belongs to. ZIL resolved this at compile time via
+ *  `,ZORK-NUMBER`; we resolve it at run time, one active game at a time. */
+export type GameNumber = 1 | 2 | 3;
+
+/** Bumped whenever the shape of a serialized WorldState changes.
+ *  1 = the multi-game refactor (adds `game`, `actorRooms`, `actorFlags`). */
+export const SAVE_VERSION = 1;
+
 export type Verbosity = 'superbrief' | 'brief' | 'verbose';
 
 export interface DaemonState { tick: number; enabled: boolean }
 
 export interface WorldState {
+  /** Serialization version; absent on saves written before the trilogy refactor. */
+  saveVersion: number;
+  /** Which game this state belongs to. */
+  game: GameNumber;
   here: string;
   locs: Record<string, string | null>;          // object -> parent (room, object, 'ADVENTURER', null)
   oflags: Record<string, Record<string, true>>; // runtime object flags
@@ -58,8 +70,12 @@ export interface WorldState {
   fdescGone: Record<string, true>;              // object has been disturbed (fdesc no longer shown)
   daemons: Record<string, DaemonState>;
   counters: Record<string, number>;             // score, moves, deaths, matches, lampIdx/Tick, ...
-  thiefRoom: string;
-  thiefEngrossed: boolean;
+  /** Where each roaming NPC currently is, keyed by object id (Zork I's thief,
+   *  Zork II's wizard, Zork III's shadow and dungeon master). Replaces the
+   *  Zork-I-only `thiefRoom`. */
+  actorRooms: Record<string, string>;
+  /** Per-NPC boolean state (e.g. THIEF_ENGROSSED). Replaces `thiefEngrossed`. */
+  actorFlags: Record<string, boolean>;
   verbosity: Verbosity;
   dead: boolean;
   won: boolean;
