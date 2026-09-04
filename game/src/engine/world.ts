@@ -61,8 +61,18 @@ export function fset$(s: WorldState, obj: string, flag: string): boolean { retur
 export function locOf(s: WorldState, obj: string): string | null { return s.locs[obj] ?? null; }
 export function moveObj(s: WorldState, obj: string, to: string | null): void { s.locs[obj] = to; }
 export function removeObj(s: WorldState, obj: string): void { s.locs[obj] = null; }
+/**
+ * A container's children, in ZIL's `FIRST?`/`NEXT?` order.
+ *
+ * ZIL builds each container's list by pushing, so the object defined *last* in
+ * the source comes out first. Listing in definition order put the brass lantern
+ * above the elvish sword in the Living Room, where the original does the
+ * reverse.
+ */
 export function contents(s: WorldState, container: string): string[] {
-  return Object.keys(s.locs).filter((o) => s.locs[o] === container);
+  const out: string[] = [];
+  for (const o of Object.keys(s.locs)) if (s.locs[o] === container) out.push(o);
+  return out.reverse();
 }
 export function inPlayer(s: WorldState, obj: string): boolean {
   let p = locOf(s, obj);

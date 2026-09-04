@@ -1,0 +1,15 @@
+# Zork I: the opening above ground and into the cellar.
+# One command per line; `#` is a comment.
+open mailbox
+read leaflet
+n
+e
+open window
+enter window
+w
+take lamp
+move rug
+open trap door
+turn on lamp
+d
+n

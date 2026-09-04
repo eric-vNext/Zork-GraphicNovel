@@ -1,0 +1,5 @@
+# Zork II opening — validates the extracted world data against the real game.
+# Only movement and looking; Zork II's specials are not ported yet.
+look
+n
+s

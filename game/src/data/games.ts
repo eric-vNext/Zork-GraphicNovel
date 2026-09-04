@@ -43,6 +43,13 @@ export interface GameDef {
   initialDaemons: string[];
   /** Starting values for `WorldState.actorRooms`. */
   actorRooms: Record<string, string>;
+  /**
+   * Objects each game's GO routine moves before play starts — Zork III puts
+   * the lamp at your feet on the Endless Stair, for instance.
+   */
+  startingMoves?: Array<[object: string, destination: string]>;
+  /** Text GO prints before the version banner (Zork III's dream sequence). */
+  prologue?: string;
   scoring: ScoringDef;
   /** V-VERSION's banner (gverbs.zil:99) and the release/serial line. */
   version: string;
@@ -134,6 +141,16 @@ export const ZORK3: GameDef = {
   startRoom: 'ZORK2-STAIR', // 3dungeon.zil GO
   initialDaemons: ['I-VIEW-CHANGE'],
   actorRooms: {},
+  startingMoves: [['LAMP', 'ZORK2-STAIR']],
+  prologue: 'As in a dream, you see yourself tumbling down a great, dark staircase.\n'
+    + 'All about you are shadowy images of struggles against fierce opponents\n'
+    + 'and diabolical traps. These give way to another round of images: of\n'
+    + 'imposing stone figures, a cool, clear lake, and, now, of an old, yet\n'
+    + 'oddly youthful man. He turns toward you slowly, his long, silver hair\n'
+    + 'dancing about him in a fresh breeze. "You have reached the final test,\n'
+    + 'my friend! You are proved clever and powerful, but this is not yet\n'
+    + 'enough! Seek me when you feel yourself worthy!" The dream dissolves\n'
+    + 'around you as his last words echo through the void....',
   scoring: {
     max: 7,
     ranks: [],

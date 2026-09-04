@@ -1,0 +1,20 @@
+>>>OPENING
+As in a dream, you see yourself tumbling down a great, dark staircase. All about you are shadowy images of struggles against fierce opponents and diabolical traps. These give way to another round of images: of imposing stone figures, a cool, clear lake, and, now, of an old, yet oddly youthful man. He turns toward you slowly, his long, silver hair dancing about him in a fresh breeze. "You have reached the final test, my friend! You are proved clever and powerful, but this is not yet enough! Seek me when you feel yourself worthy!" The dream dissolves around you as his last words echo through the void....
+
+ZORK III: The Dungeon Master
+Infocom interactive fiction - a fantasy story
+Copyright 1982, 1983, 1984, 1986 Infocom, Inc. All rights reserved.
+ZORK is a registered trademark of Infocom, Inc.
+Release 25 / Serial number 860811
+
+Endless Stair
+You are at the bottom of a seemingly endless stair, winding its way upward beyond your vision. An eerie light, coming from all around you, casts strange shadows on the walls. To the south is a dark and winding trail.
+Your old friend, the brass lantern, is at your feet.
+
+>look
+Endless Stair
+You are at the bottom of a seemingly endless stair, winding its way upward beyond your vision. An eerie light, coming from all around you, casts strange shadows on the walls. To the south is a dark and winding trail.
+Your old friend, the brass lantern, is at your feet.
+
+>d
+You can't go that way.

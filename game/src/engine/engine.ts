@@ -39,10 +39,13 @@ export class Game {
   };
 
   private initWorld(): void {
+    const def = activeGame();
     // Daemons that run from the start, per game (ZIL's initial QUEUE/ENABLE).
-    for (const d of activeGame().initialDaemons) {
+    for (const d of def.initialDaemons) {
       this.s.daemons[d] = { tick: -1, enabled: true };
     }
+    // The object moves each game's GO routine makes before the first LOOK.
+    for (const [obj, dest] of def.startingMoves ?? []) this.s.locs[obj] = dest;
   }
 
   private makeCtx(out: Out, cmd?: Partial<Command>): Ctx {
@@ -74,8 +77,12 @@ export class Game {
 
   start(): GameEvent[] {
     const out = new Out();
-    out.tell('ZORK I: The Great Underground Empire', 'system');
-    out.tell('Zork is a registered trademark of Infocom, Inc.\nRevision 88 / Serial number 840726\nGraphic Novel Edition — an open-source port of the historical source release.', 'system');
+    // GO (each game's dungeon file) opens with V-VERSION's banner, after any
+    // prologue the game prints first.
+    const def = activeGame();
+    if (def.prologue) out.tell(def.prologue);
+    out.tell(def.version, 'system');
+    out.tell('Graphic Novel Edition — an open-source port of the historical source release.', 'system');
     out.emit({ type: 'room', room: this.s.here });
     describeRoom(this.s, out, true);
     this.s.touched[this.s.here] = true;

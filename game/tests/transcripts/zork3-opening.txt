@@ -1,0 +1,3 @@
+# Zork III opening — validates the extracted world data against the real game.
+look
+d
