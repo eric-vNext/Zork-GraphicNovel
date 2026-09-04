@@ -118,6 +118,13 @@ v('plugh');
 v('zork');
 v('echo');
 v('odysseus', 'ulysses');
+// gsyntax.zil is shared across the trilogy, so its vocabulary is too. TREASURE
+// and TEMPLE only *do* anything in Zork I, WISH and INCANT only in Zork II, but
+// all three games know the words.
+v('treasure');
+v('temple');
+v('wish');
+v('incant');
 v('swing');
 v('sleep');
 v('curse', 'damn', 'shit', 'fuck');
@@ -290,7 +297,7 @@ export function parse(s: WorldState, input: string): ParseResult {
   const NO_OBJ = new Set(['inventory', 'look', 'wait', 'again', 'score', 'diagnose', 'save', 'restore',
     'restart', 'quit', 'verbose', 'brief', 'superbrief', 'version', 'help', 'xyzzy', 'plugh', 'zork',
     'echo', 'odysseus', 'pray', 'jump', 'sleep', 'curse', 'shout', 'hello', 'listen', 'swim', 'yes', 'no',
-    'launch', 'land', 'bug', 'script', 'unscript']);
+    'launch', 'land', 'bug', 'script', 'unscript', 'treasure', 'temple', 'wish', 'incant']);
   if (!rest.length) {
     if (NO_OBJ.has(verb)) return { cmd: { verb, raw } };
     // orphan: ask for the object

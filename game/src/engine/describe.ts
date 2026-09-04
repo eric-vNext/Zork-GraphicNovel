@@ -1,7 +1,10 @@
-// Room and object description (ports the M-LOOK/describers in gmain.zil).
+// Room and object description (ports DESCRIBE-ROOM / DESCRIBE-OBJECT /
+// PRINT-CONT / FIRSTER in gverbs.zil). Four of those have per-game arms.
 import type { WorldState } from './types';
 import { Out, DATA, roomDef, objDef, contents, fset$, roomLit, seeInside, theName, aName } from './world';
 import { dynamicRoomDesc, dynamicObjDesc } from './specialDescs';
+import { gameNumber } from '../data/games';
+import * as spells from './spells';
 
 export function describeRoom(s: WorldState, out: Out, force = false): void {
   const r = roomDef(s.here);
@@ -16,6 +19,9 @@ export function describeRoom(s: WorldState, out: Out, force = false): void {
     if (dyn) out.tell(dyn);
     else if (r.ldesc) out.tell(r.ldesc.replace(/\n/g, ' '));
   }
+  // gverbs.zil:1653 — Zork I clears TOUCHBIT on maze rooms so they describe
+  // themselves in full every single visit; that disorientation is the puzzle.
+  if (gameNumber() === 1 && r.flags.includes('MAZEBIT')) delete s.touched[s.here];
   describeObjects(s, out);
 }
 
@@ -29,7 +35,8 @@ export function describeObjects(s: WorldState, out: Out): void {
     if (dyn) out.tell(dyn);
     else if (d.fdesc && !s.fdescGone[o]) out.tell(d.fdesc.replace(/\n/g, ' '));
     else if (d.ldesc) out.tell(d.ldesc.replace(/\n/g, ' '));
-    else out.tell(`There is ${aName(o)} here.`);
+    // gverbs.zil:1716 — Zork II notes a floated object in the room listing.
+    else out.tell(`There is ${aName(o)} here${gameNumber() === 2 ? spells.describeSuffix(s, o) : ''}.`);
     // visible contents of open/transparent containers (actors don't spill their
     // held weapon in the room description — that's revealed only in combat text)
     if (!fset$(s, o, 'ACTORBIT')) {
@@ -44,7 +51,15 @@ export function containerListing(s: WorldState, container: string, depth: number
   const inner = contents(s, container).filter((o) => !fset$(s, o, 'INVISIBLE'));
   if (!inner.length) return null;
   const pad = '  '.repeat(depth);
-  const lines = [`${pad}The ${objDef(container).desc} contains:`];
+  // FIRSTER (gverbs.zil:1819): the Zork I trophy case gets its own header.
+  const header = gameNumber() === 1 && container === 'TROPHY-CASE'
+    ? 'Your collection of treasures consists of:'
+    : fset$(s, container, 'SURFACEBIT')
+      ? `Sitting on the ${objDef(container).desc} is:`
+      : fset$(s, container, 'ACTORBIT')
+        ? `The ${objDef(container).desc} is holding:`
+        : `The ${objDef(container).desc} contains:`;
+  const lines = [`${pad}${header}`];
   for (const o of inner) {
     lines.push(`${pad}  ${cap(aName(o).replace(/^an? /, (m) => m))}`);
     const nested = containerListing(s, o, depth + 1);

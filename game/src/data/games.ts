@@ -11,8 +11,10 @@
 // into the engine.
 
 import type { GameNumber, WorldData } from '../engine/types';
-import { installPresentation, type PresentationDef } from './presentation';
+import { installPresentation, placeholderPresentation, type PresentationDef } from './presentation';
 import zork1World from './zork1/world.gen.json';
+import zork2World from './zork2/world.gen.json';
+import zork3World from './zork3/world.gen.json';
 import { ZORK1_PRESENTATION } from './zork1/presentation';
 
 export interface ScoringDef {
@@ -42,7 +44,18 @@ export interface GameDef {
   /** Starting values for `WorldState.actorRooms`. */
   actorRooms: Record<string, string>;
   scoring: ScoringDef;
+  /** V-VERSION's banner (gverbs.zil:99) and the release/serial line. */
+  version: string;
   presentation: PresentationDef;
+  /**
+   * Handlers for the few shared-library branches whose Zork II / III arms call
+   * a routine defined in that game's own actions file. `verbs.ts` looks them up
+   * through `runGameHook`; a game that has not been ported yet simply has none,
+   * and those branches fall through to the generic behaviour.
+   */
+  hooks?: Record<string, (ctx: any) => boolean>;
+  /** False until the game's content is ported; the UI refuses to start it. */
+  playable: boolean;
 }
 
 const moveWord = (moves: number) => (moves === 1 ? 'move' : 'moves');
@@ -60,18 +73,82 @@ export const ZORK1: GameDef = {
   scoring: {
     max: 350,
     ranks: [
-      [350, 'Master Adventurer'], [330, 'Wizard'], [300, 'Master'], [200, 'Adventurer'],
-      [100, 'Junior Adventurer'], [50, 'Novice Adventurer'], [25, 'Amateur Adventurer'],
+      // 1actions.zil V-SCORE tests `<G? ,SCORE n>`, so each threshold is
+      // strictly greater than the number in the source.
+      [350, 'Master Adventurer'], [331, 'Wizard'], [301, 'Master'], [201, 'Adventurer'],
+      [101, 'Junior Adventurer'], [51, 'Novice Adventurer'], [26, 'Amateur Adventurer'],
       [0, 'Beginner'],
     ],
     line: (score, moves, rank) =>
       `Your score is ${score} (total of 350 points), in ${moves} ${moveWord(moves)}.\nThis gives you the rank of ${rank}.`,
   },
+  version: 'ZORK I: The Great Underground Empire\nInfocom interactive fiction - a fantasy story\n'
+    + 'Copyright (c) 1981, 1982, 1983, 1984, 1985, 1986 Infocom, Inc. All rights reserved.\n'
+    + 'ZORK is a registered trademark of Infocom, Inc.\nRelease 88 / Serial number 840726',
   presentation: ZORK1_PRESENTATION,
+  playable: true,
 };
 
-/** Every game the build knows about. Zork II and III land in phases 6-8. */
-export const GAMES: Partial<Record<GameNumber, GameDef>> = { 1: ZORK1 };
+/**
+ * Zork II. World data is extracted; the specials, daemons and art land in
+ * phases 4-5 of docs/Prompt-Trilogy.md, so it is not playable yet — but it is
+ * selectable, which is what makes the shared library's `,ZORK-NUMBER 2` arms
+ * testable before the content exists.
+ */
+export const ZORK2: GameDef = {
+  number: 2,
+  id: 'zork2',
+  title: 'Zork II',
+  subtitle: 'The Wizard of Frobozz',
+  world: zork2World as unknown as WorldData,
+  startRoom: 'INSIDE-BARROW', // 2dungeon.zil GO
+  initialDaemons: ['I-WIZARD'],
+  actorRooms: {},
+  scoring: {
+    max: 400,
+    ranks: [
+      [400, 'Master Adventurer'], [361, 'Wizard'], [321, 'Master'], [241, 'Adventurer'],
+      [161, 'Junior Adventurer'], [81, 'Novice Adventurer'], [41, 'Amateur Adventurer'],
+      [0, 'Beginner'],
+    ],
+    line: (score, moves, rank) =>
+      `Your score is ${score} (total of 400 points), in ${moves} ${moveWord(moves)}.\nThis gives you the rank of ${rank}.`,
+  },
+  version: 'ZORK II: The Wizard of Frobozz\nInfocom interactive fiction - a fantasy story\n'
+    + 'Copyright (c) 1981, 1982, 1983, 1986 Infocom, Inc. All rights reserved.\n'
+    + 'ZORK is a registered trademark of Infocom, Inc.\nRelease 48 / Serial number 840904',
+  presentation: placeholderPresentation(zork2World.rooms, 'wizard', 'underground'),
+  playable: false,
+};
+
+/**
+ * Zork III. Scores nothing: one valued object, `SCORE-MAX 7`, and V-SCORE
+ * reports "potential" with no rank ladder at all (3actions.zil:2066).
+ */
+export const ZORK3: GameDef = {
+  number: 3,
+  id: 'zork3',
+  title: 'Zork III',
+  subtitle: 'The Dungeon Master',
+  world: zork3World as unknown as WorldData,
+  startRoom: 'ZORK2-STAIR', // 3dungeon.zil GO
+  initialDaemons: ['I-VIEW-CHANGE'],
+  actorRooms: {},
+  scoring: {
+    max: 7,
+    ranks: [],
+    line: (score, moves) =>
+      `Your potential is ${score} of a possible 7, in ${moves} ${moveWord(moves)}.`,
+  },
+  version: 'ZORK III: The Dungeon Master\nInfocom interactive fiction - a fantasy story\n'
+    + 'Copyright 1982, 1983, 1984, 1986 Infocom, Inc. All rights reserved.\n'
+    + 'ZORK is a registered trademark of Infocom, Inc.\nRelease 17 / Serial number 840727',
+  presentation: placeholderPresentation(zork3World.rooms, 'dungeon', 'underground'),
+  playable: false,
+};
+
+/** Every game the build knows about. */
+export const GAMES: Partial<Record<GameNumber, GameDef>> = { 1: ZORK1, 2: ZORK2, 3: ZORK3 };
 
 let active: GameDef = ZORK1;
 installPresentation(active.presentation);
@@ -87,12 +164,13 @@ export function activeGame(): GameDef {
 
 /**
  * Make `n` the active game. Idempotent, and safe to call before constructing a
- * `Game` or restoring a save. Throws for a game that isn't built yet, so a
- * stale save can't silently load Zork I's world under Zork II's rules.
+ * `Game` or restoring a save. Selecting a game whose content is not ported yet
+ * is allowed — that is how the shared library's per-game arms get exercised —
+ * but `playable` gates whether the UI will start it.
  */
 export function selectGame(n: GameNumber): GameDef {
   const def = GAMES[n];
-  if (!def) throw new Error(`Zork ${n} is not part of this build yet.`);
+  if (!def) throw new Error(`Zork ${n} is not a known game.`);
   if (def !== active) {
     active = def;
     installPresentation(def.presentation);

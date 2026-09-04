@@ -44,14 +44,41 @@ describe('game registry', () => {
     expect(activeGame().scoring.max).toBe(350);
   });
 
-  it('refuses a game that is not in the build yet', () => {
-    expect(() => selectGame(2)).toThrow(/not part of this build/);
+  it('knows all three games, with II and III not yet playable', () => {
+    expect(selectGame(2).scoring.max).toBe(400);
+    expect(selectGame(2).playable).toBe(false);
+    expect(selectGame(3).scoring.max).toBe(7);
+    expect(selectGame(3).scoring.ranks).toEqual([]);
+    selectGame(1);
+    expect(gameNumber()).toBe(1);
+  });
+
+  it('extracts Zork II and Zork III worlds at full size', () => {
+    expect(Object.keys(selectGame(2).world.rooms)).toHaveLength(86);
+    expect(Object.keys(selectGame(3).world.rooms)).toHaveLength(89);
+    selectGame(1);
+  });
+
+  it('reports Zork III potential rather than a score and rank', () => {
+    const g = new Game(3);
+    expect(txt(g, 'score')).toBe('Your potential is 0 of a possible 7, in 0 moves.');
+    selectGame(1);
   });
 
   it('reports the score with the active game rank ladder', () => {
     const g = new Game();
     expect(txt(g, 'score')).toContain('total of 350 points');
     expect(txt(g, 'score')).toContain('Beginner');
+  });
+
+  // 1actions.zil V-SCORE uses `<G? ,SCORE 330>`, so 330 is still Master.
+  it('uses the source rank thresholds exactly', () => {
+    const g = new Game();
+    g.s.counters.score = 330;
+    expect(txt(g, 'score')).toContain('Master');
+    expect(txt(g, 'score')).not.toContain('Wizard');
+    g.s.counters.score = 331;
+    expect(txt(g, 'score')).toContain('Wizard');
   });
 });
 

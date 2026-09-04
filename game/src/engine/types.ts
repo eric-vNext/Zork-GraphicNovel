@@ -76,6 +76,17 @@ export interface WorldState {
   actorRooms: Record<string, string>;
   /** Per-NPC boolean state (e.g. THIEF_ENGROSSED). Replaces `thiefEngrossed`. */
   actorFlags: Record<string, boolean>;
+  /** Zork II only: the Wizard-of-Frobozz spell layer (see engine/spells.ts). */
+  spell?: {
+    /** `,SPELL?` — the spell currently afflicting the player. */
+    active?: string | null;
+    /** `,SPELL-USED` — the spell word the player last incanted. */
+    used?: string | null;
+    /** `,SPELL-VICTIM` — what the player's wand was pointed at. */
+    victim?: string | null;
+    /** `,WAND-ON` — what the wand is currently aimed at. */
+    wandOn?: string | null;
+  };
   verbosity: Verbosity;
   dead: boolean;
   won: boolean;

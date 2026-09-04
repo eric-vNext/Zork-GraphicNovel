@@ -317,11 +317,9 @@ export class Game {
     return out.events;
   }
 
+  /** V-VERSION (gverbs.zil:99) — the banner differs per game. */
   private printVersion(out: Out): void {
-    out.tell(
-      'ZORK I: The Great Underground Empire\nInfocom interactive fiction - a fantasy story\nCopyright (c) 1981, 1982, 1983, 1984, 1985, 1986 Infocom, Inc. All rights reserved.\nZORK is a registered trademark of Infocom, Inc.\nRelease 88 / Serial number 840726',
-      'system',
-    );
+    out.tell(activeGame().version, 'system');
   }
 
   private tick(out: Out, cmd?: Partial<Command>): void {

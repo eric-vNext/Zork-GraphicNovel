@@ -74,3 +74,29 @@ export function installPresentation(def: PresentationDef): void {
   DEFAULT_REGION = def.defaultRegion;
   roomArt = def.roomArtFor;
 }
+
+/**
+ * A stand-in presentation for a game whose art has not been generated yet
+ * (phases 5 and 8 of docs/Prompt-Trilogy.md). Every room maps to one panel and
+ * one music bed, so the engine and its tests can run the game end to end while
+ * the asset work is still outstanding.
+ */
+export function placeholderPresentation(
+  rooms: Record<string, unknown>,
+  region: Region,
+  music: string,
+  art = 'passage',
+): PresentationDef {
+  const roomPres: Record<string, RoomPres> = {};
+  for (const id of Object.keys(rooms)) roomPres[id] = { art, region };
+  return {
+    regionMusic: { [region]: music },
+    roomPres,
+    roomArtFor: () => art,
+    eventPanels: new Set<string>(),
+    panelFallback: {},
+    itemArt: {},
+    defaultArt: art,
+    defaultRegion: region,
+  };
+}
