@@ -30,9 +30,14 @@ npm test         # engine tests incl. the full 350-point run
 npm run build    # static build in game/dist
 ```
 
-Docs: [research](docs/research-report.md) · [presentation concept](docs/presentation-concept.md) ·
+Docs — Zork I: [research](docs/research-report.md) · [presentation concept](docs/presentation-concept.md) ·
 [region design](docs/region-design.md) · [asset plan](docs/asset-plan.md) ·
 [asset review](docs/generated-asset-review.md) · [final build report](docs/final-build-report.md)
+
+Docs — trilogy expansion (in progress): [scoping brief](docs/trilogy-expansion-brief.md) ·
+[build prompt](docs/Prompt-Trilogy.md) · [research](docs/trilogy-research.md) ·
+[presentation delta](docs/trilogy-presentation-concept.md) ·
+[region design](docs/trilogy-region-design.md) · [asset plan](docs/trilogy-asset-plan.md)
 
 Art/audio masters are not committed (large); delivery copies live in `game/public/`.
 Masters are regenerable via `docs/asset-plan.md` prompts and `game/scripts/synth-audio.py`.
