@@ -387,10 +387,59 @@ export function dragonDaemon(ctx: Ctx): void {
   s.counters.dragonAnger = Math.max(0, (s.counters.dragonAnger ?? 0) - 2);
 }
 
+/**
+ * I-CURTAIN (2actions.zil:1427). Twelve turns after you step out of the
+ * curtain the way back closes — and if you spent them in the vault, the Bank
+ * of Zork's security arrangements introduce themselves.
+ */
+export function curtainDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  s.gvars['SCOL-ACTIVE'] = null;
+  if (s.here === 'VAULT') {
+    jigsUp(ctx, 'A metallic voice says "Hello, Intruder! Your unauthorized presence in the vault of the Bank of Zork has set off all sorts of nasty surprises, most of which are fatal. This message brought to you by the Frobozz Magic Vault Company."', {});
+    return;
+  }
+  if (s.here === 'VIEWING-EAST' || s.here === 'VIEWING-WEST' || s.here === 'SMALL-ROOM') {
+    out.tell('You hear a faint voice say "Curtain Door Closed."');
+    // Being shut in the small room is what summons the bank's last employee.
+    if (s.here === 'SMALL-ROOM' && !s.gflags['ZGNOME-FLAG']) {
+      ctx.queue('I-ZGNOME', 3);
+      s.gflags['ZGNOME-FLAG'] = true;
+    }
+  }
+}
+
+/** I-ZGNOME (2actions.zil:1445) — the Gnome of Zurich comes to collect. */
+export function zgnomeDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  if (s.here !== 'SMALL-ROOM') return;
+  ctx.queue('I-ZGNOME-OUT', 12);
+  out.emit({ type: 'sfx', name: 'z2-gnome-cough' });
+  const opening = 'An epicene gnome of Zurich wearing a three-piece suit and carrying a safety deposit box materializes in the room.';
+  if (inPlayer(s, 'WAND')) {
+    out.tell(`${opening} He notices the wand and dematerializes speedily.`);
+    return;
+  }
+  out.tell(`${opening} "You seem to have forgotten to deposit your valuables," he says, tapping the lid of the box impatiently. "We don't usually allow customers to use the boxes here, but we can make this ONE exception, I suppose..." He looks askance at you over his wire-rimmed bifocals.`);
+  moveObj(s, 'GNOME-OF-ZURICH', s.here);
+}
+
+/** I-ZGNOME-OUT (2actions.zil:1512) — he has other customers. */
+export function zgnomeOutDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  removeObj(s, 'GNOME-OF-ZURICH');
+  if (s.here === 'SMALL-ROOM') {
+    out.tell('The gnome looks impatient: "I may have another customer waiting; you\'ll just have to fend for yourself, I\'m afraid." He disappears, leaving you alone.');
+  }
+}
+
 export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   'I-WIZARD': wizardDaemon,
   'I-FUSE': fuseDaemon,
   'I-SAFE': safeDaemon,
   'I-LEDGE': ledgeDaemon,
   'I-DRAGON': dragonDaemon,
+  'I-CURTAIN': curtainDaemon,
+  'I-ZGNOME': zgnomeDaemon,
+  'I-ZGNOME-OUT': zgnomeOutDaemon,
 };

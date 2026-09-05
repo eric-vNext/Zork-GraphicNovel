@@ -217,6 +217,14 @@ export function resolveNoun(
     // prefer local objects over global scenery (GROUND, WALLS, ...)
     const local = ids.filter((id) => s.locs[id] !== 'GLOBAL-OBJECTS' && s.locs[id] !== 'LOCAL-GLOBALS');
     if (local.length === 1) return { id: local[0] };
+    if (!local.length) {
+      // A room's own local globals outrank the everywhere-globals. Zork II's
+      // bank rooms list four walls of their own, and there "the east wall"
+      // means the bank's wall, not the scenery wall every room has.
+      const roomGlobals = new Set(DATA.rooms[s.here]?.globals ?? []);
+      const scoped = ids.filter((id) => roomGlobals.has(id));
+      if (scoped.length === 1) return { id: scoped[0] };
+    }
     // then prefer reachable, non-scenery objects
     const pool = local.length ? local : ids;
     const good = pool.filter((id) => reachable(s, id) && !fset$(s, id, 'NDESCBIT'));
@@ -293,6 +301,13 @@ export function parse(s: WorldState, input: string): ParseResult {
     if (rest.length === 1 && DIR_WORDS[rest[0]]) return { cmd: { verb: 'walk', dir: DIR_WORDS[rest[0]], raw } };
     if (verb === 'walk' && !rest.length) return { error: 'Which way?' };
     if (verb === 'enter' && !rest.length) return { cmd: { verb: 'walk', dir: 'IN', raw } };
+  }
+  // WALK IN OBJECT / WALK THROUGH OBJECT = V-THROUGH (gsyntax.zil:545-547;
+  // THROUGH is a synonym of WITH). Zork II's bank is entirely built on it.
+  if ((verb === 'walk' || verb === 'enter')
+      && (rest[0] === 'through' || rest[0] === 'thru' || rest[0] === 'into')) {
+    verb = 'enter';
+    rest = rest.slice(1);
   }
   if (verb === 'exit' && !rest.length) return { cmd: { verb: 'walk', dir: 'OUT', raw } };
   // NB: verbWord (not verb) here — 'get' is already canonicalized to 'take'

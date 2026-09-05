@@ -21,7 +21,7 @@ import { spellUsed } from '../spells';
 import world from '../../data/zork2/world.gen.json';
 
 type Handler = (ctx: Ctx) => boolean;
-type RoomHandler = (ctx: Ctx, phase: 'enter' | 'end') => boolean;
+type RoomHandler = (ctx: Ctx, phase: 'enter' | 'end', dir?: string) => boolean;
 
 /** OPEN-CLOSE (2actions.zil:93). */
 function openClose(ctx: Ctx, obj: string, openMsg: string, closeMsg: string): boolean {
@@ -90,6 +90,85 @@ export function beforeWalk(ctx: Ctx, dir: string): string | null {
     return SCRAMBLE_DIRS[Math.floor(ctx.rng() * SCRAMBLE_DIRS.length)];
   }
   return intended;
+}
+
+// ============================== BANK OF ZORK =================================
+// The bank is one machine, not four routines: a curtain of light in the
+// depository, four identical viewing rooms, and one piece of state — which
+// room the curtain currently leads to.
+//
+// Walking in from a teller room sets that destination from the direction you
+// walked (SCOL-ROOMS). Walking through the curtain drops you there and leaves
+// that room's wall passable for twelve turns (SCOL-ACTIVE). Walking back
+// through the wall returns you to the depository and sets the destination to
+// whatever SCOL-WALLS says that wall leads to — and for the small room, that
+// is the vault. That one crossing is the whole puzzle.
+
+/** `,SCOL-ROOMS` — the direction you walked in, and where the curtain then goes. */
+const SCOL_ROOMS: Record<string, string> = {
+  EAST: 'VIEWING-EAST', WEST: 'VIEWING-WEST', NORTH: 'SMALL-ROOM', SOUTH: 'VAULT',
+};
+
+/** `,SCOL-WALLS` — room -> [the wall you can walk through, where it leads]. */
+const SCOL_WALLS: Record<string, [wall: string, leadsTo: string]> = {
+  'VIEWING-WEST': ['SEWL', 'VIEWING-WEST'],
+  'VIEWING-EAST': ['SWWL', 'VIEWING-EAST'],
+  'SMALL-ROOM': ['SSWL', 'VAULT'],
+  VAULT: ['SNWL', 'SMALL-ROOM'],
+};
+
+/** SCOL-OBJ (2actions.zil) — send one object through instead of yourself. */
+function scolObj(ctx: Ctx, obj: string, ticks: number, room: string): void {
+  const { s, out } = ctx;
+  ctx.queue('I-CURTAIN', ticks);
+  moveObj(s, obj, room);
+  if (room === 'DEPOSITORY') {
+    out.tell(`The ${objDef(obj).desc} passes through the wall and vanishes.`);
+  } else {
+    out.tell(`The curtain dims slightly as the ${objDef(obj).desc} passes through.`);
+    s.gvars['SCOL-ROOM'] = null;
+  }
+}
+
+/** SCOL-THROUGH (2actions.zil) — send yourself. */
+function scolThrough(ctx: Ctx, ticks: number, room: string): void {
+  ctx.queue('I-CURTAIN', ticks);
+  ctx.out.tell('You feel somewhat disoriented as you pass through...');
+  ctx.out.emit({ type: 'sfx', name: 'z2-curtain-pass' });
+  ctx.moveTo(room, true);
+}
+
+/** SCOL-GO (2actions.zil) — through the curtain, with or without an object. */
+function scolGo(ctx: Ctx, obj: string | null): void {
+  const { s } = ctx;
+  const dest = s.gvars['SCOL-ROOM'];
+  if (!dest) return;
+  s.gvars['SCOL-ACTIVE'] = dest;
+  if (obj) scolObj(ctx, obj, 0, dest);
+  else scolThrough(ctx, 12, dest);
+}
+
+/** SCOL-OBJECT (2actions.zil) — the curtain's own ACTION. */
+function curtainAction(ctx: Ctx, wall?: string): boolean {
+  const { s, out } = ctx;
+  switch (ctx.verb) {
+    case 'push': case 'move': case 'take': case 'touch':
+      out.tell('As you try, your hand seems to go through it.');
+      return true;
+    case 'attack':
+      if (!ctx.iobj) return false;
+      out.tell(`The ${objDef(ctx.iobj).desc} goes through it.`);
+      return true;
+    case 'throw': case 'put':
+      // Throwing something at the curtain sends it to wherever the curtain
+      // currently leads — the only way to move loot out of the vault.
+      if (ctx.iobj !== (wall ?? 'CURTAIN') || !ctx.dobj) return false;
+      if (!inPlayer(s, ctx.dobj)) { out.tell("You don't have that!"); return true; }
+      scolGo(ctx, ctx.dobj);
+      return true;
+    default:
+      return false;
+  }
 }
 
 // ============================ OBJECT ACTIONS =================================
@@ -219,6 +298,104 @@ const OBJ_ROUTINES: Record<string, Handler> = {
       default:
         return false;
     }
+  },
+
+  // --- the Bank of Zork -----------------------------------------------------
+  'SCOL-OBJECT': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'enter') {
+      // V-THROUGH's Zork II arm (gverbs.zil): the curtain only goes somewhere
+      // if it currently leads somewhere.
+      if (s.gvars['SCOL-ROOM']) { scolGo(ctx, null); return true; }
+      out.tell("You can't go more than part way through the curtain.");
+      return true;
+    }
+    return curtainAction(ctx);
+  },
+
+  'SCOLWALL': (ctx) => {
+    const { s, out } = ctx;
+    const wall = ctx.verb === 'enter' ? ctx.dobj : ctx.iobj;
+    if (!wall) return false;
+    const here = SCOL_WALLS[s.here];
+
+    if (ctx.verb === 'enter') {
+      // The depository's north wall is the curtain seen from the other side.
+      if (s.here === 'DEPOSITORY' && wall === 'SNWL' && s.gvars['SCOL-ROOM']) {
+        scolGo(ctx, null);
+        return true;
+      }
+      if (here && wall === here[0] && s.here === s.gvars['SCOL-ACTIVE']) {
+        s.gvars['SCOL-ROOM'] = here[1];
+        scolThrough(ctx, 0, 'DEPOSITORY');
+        return true;
+      }
+      out.tell(`You hit your head against the ${objDef(wall).desc} as you attempt this feat.`);
+      return true;
+    }
+    // SCOLWALL: throwing something at the live wall puts it in the depository.
+    if (here && wall === here[0] && s.here === s.gvars['SCOL-ACTIVE']) {
+      if (ctx.verb === 'throw' || ctx.verb === 'put') {
+        if (!ctx.dobj) return false;
+        if (!inPlayer(s, ctx.dobj)) { out.tell("You don't have that!"); return true; }
+        scolObj(ctx, ctx.dobj, 0, 'DEPOSITORY');
+        return true;
+      }
+      return curtainAction(ctx, wall);
+    }
+    return false;
+  },
+
+  'BILLS-OBJECT': (ctx) => {
+    ctx.s.gflags['BANK-SOLVE-FLAG'] = true;
+    if (ctx.verb === 'burn') {
+      ctx.out.tell('Nothing like having money to burn!');
+      return false; // and then they burn
+    }
+    if (ctx.verb === 'eat') {
+      ctx.out.tell('Talk about eating rich foods!');
+      return true;
+    }
+    return false;
+  },
+
+  'BOX-F': (ctx) => {
+    if (ctx.verb === 'take') { ctx.out.tell('The gnome clutches it possessively.'); return true; }
+    return false;
+  },
+
+  'ZGNOME-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const gift = ctx.dobj;
+    if ((ctx.verb === 'give' || ctx.verb === 'throw') && ctx.iobj === 'GNOME-OF-ZURICH' && gift) {
+      if (objDef(gift)?.value) {
+        out.tell(`The gnome carefully places the ${objDef(gift).desc} in the deposit box. "Let me show you the way out," he says, making it clear he will be pleased to see the last of you. Then, you are momentarily disoriented, and when you recover you are back at the Bank Entrance.`);
+        removeObj(s, 'GNOME-OF-ZURICH');
+        removeObj(s, gift);
+        ctx.disable('I-ZGNOME-OUT');
+        ctx.moveTo('BANK-ENTRANCE', true);
+        return true;
+      }
+      if (isBomb(ctx, gift)) {
+        removeObj(s, 'GNOME-OF-ZURICH');
+        moveObj(s, gift, s.here);
+        ctx.disable('I-ZGNOME');
+        ctx.disable('I-ZGNOME-OUT');
+        out.tell('"You are so very gracious. I really cannot accept." he says. He disappears, a wry smile on his lips.');
+        return true;
+      }
+      out.tell(`"I wouldn't put THAT in a safety deposit box," remarks the gnome with disdain, tossing it over his shoulder, where it disappears with an understated "pop".`);
+      removeObj(s, gift);
+      return true;
+    }
+    if (ctx.verb === 'attack') {
+      out.tell('The gnome says "Well, I never..." and disappears with a snap of his fingers, leaving you alone.');
+      removeObj(s, 'GNOME-OF-ZURICH');
+      ctx.disable('I-ZGNOME-OUT');
+      return true;
+    }
+    out.tell('The gnome appears increasingly impatient.');
+    return true;
   },
 
   // --- the dragon ----------------------------------------------------------
@@ -458,6 +635,13 @@ export function dimDoorAppears(ctx: Ctx): void {
 }
 
 const ROOM_ROUTINES: Record<string, RoomHandler> = {
+  // DEPOSITORY-FCN (2actions.zil:1359). Which way you walked in is which room
+  // the curtain will let you out into.
+  'DEPOSITORY-FCN': (ctx, phase, dir) => {
+    if (phase === 'enter' && dir && SCOL_ROOMS[dir]) ctx.s.gvars['SCOL-ROOM'] = SCOL_ROOMS[dir];
+    return false;
+  },
+
   // The M-LOOK arm lives in specialDescs.ts with the other room descriptions;
   // this is the M-END arm, which watches for the light going out.
   'CRYPT-ROOM-FCN': (ctx, phase) => {
@@ -502,20 +686,52 @@ export const OBJ_ACTIONS: Record<string, Handler> =
 export const ROOM_ACTIONS: Record<string, RoomHandler> =
   tableFor(world.rooms as Record<string, { action?: string }>, ROOM_ROUTINES);
 
+/**
+ * BKLEAVEE / BKLEAVEW (2actions.zil:1322). You may leave the depository by the
+ * ordinary doors, but not carrying the bank's money — that has to go through
+ * the curtain, which is the point of the curtain.
+ */
+function bankLeave(ctx: Ctx, room: string): string | null {
+  const { s, out } = ctx;
+  if (inPlayer(s, 'BILLS') || inPlayer(s, 'PORTRAIT')) {
+    out.tell('An alarm rings briefly, and an invisible force bars your way.');
+    out.emit({ type: 'sfx', name: 'z2-riddle-open' });
+    return null;
+  }
+  return room;
+}
+
 /** `(DIR PER ROUTINE)` exits. Zork II has 11. */
-export const SPECIAL_EXITS: Record<string, (ctx: Ctx) => string | null> = {};
+export const SPECIAL_EXITS: Record<string, (ctx: Ctx, dir?: string) => string | null> = {
+  BKLEAVEE: (ctx) => bankLeave(ctx, 'TELLER-EAST'),
+  BKLEAVEW: (ctx) => bankLeave(ctx, 'TELLER-WEST'),
+
+  // MAGNET-ROOM-EXIT (2actions.zil). Once the carousel is stopped the room
+  // still spins you: you cannot tell which way you left.
+  'MAGNET-ROOM-EXIT': (ctx, dir) => {
+    const { s, out } = ctx;
+    if (s.gflags['CAROUSEL-FLIP-FLAG']) {
+      out.tell('You cannot get your bearings...');
+      return prob(ctx, 50) ? 'MACHINE-ROOM' : 'TEA-ROOM';
+    }
+    if (dir === 'EAST') return 'MACHINE-ROOM';
+    if (dir === 'SE' || dir === 'OUT') return 'TEA-ROOM';
+    out.tell("You can't go that way.");
+    return null;
+  },
+};
 
 export function objAction(ctx: Ctx, obj?: string): boolean {
   if (!obj) return false;
   return OBJ_ACTIONS[obj]?.(ctx) ?? false;
 }
 
-export function roomAction(ctx: Ctx, room: string, phase: 'enter' | 'end'): boolean {
-  return ROOM_ACTIONS[room]?.(ctx, phase) ?? false;
+export function roomAction(ctx: Ctx, room: string, phase: 'enter' | 'end', dir?: string): boolean {
+  return ROOM_ACTIONS[room]?.(ctx, phase, dir) ?? false;
 }
 
-export function specialExit(ctx: Ctx, per: string): string | null {
-  return SPECIAL_EXITS[per]?.(ctx) ?? null;
+export function specialExit(ctx: Ctx, per: string, dir?: string): string | null {
+  return SPECIAL_EXITS[per]?.(ctx, dir) ?? null;
 }
 
 export const ZORK2_SPECIALS = { objAction, roomAction, specialExit, beforeWalk };

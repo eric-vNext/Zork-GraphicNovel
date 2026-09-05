@@ -504,3 +504,107 @@ describe('the dragon', () => {
     selectGame(1);
   });
 });
+
+describe('the Bank of Zork', () => {
+  // The whole bank is one state machine: which room the curtain leads to. It
+  // is set by the direction you walked in, and re-set by which wall you walk
+  // back through — and the small room's wall is the only one that leads
+  // somewhere else, which is how the vault is reached at all.
+  function inBank(): Game {
+    const g = new Game(2);
+    g.s.here = 'BANK-ENTRANCE';
+    g.s.touched['BANK-ENTRANCE'] = true;
+    g.s.locs['LAMP'] = 'ADVENTURER';
+    g.s.oflags['LAMP'] = { ...(g.s.oflags['LAMP'] ?? {}), ONBIT: true };
+    return g;
+  }
+
+  it('remembers which way you came in', () => {
+    const g = inBank();
+    txt(g, 'nw'); txt(g, 'west');
+    expect(g.s.here).toBe('DEPOSITORY');
+    expect(g.s.gvars['SCOL-ROOM']).toBe('VIEWING-WEST');
+    txt(g, 'walk through curtain');
+    expect(g.s.here).toBe('VIEWING-WEST');
+    expect(g.s.gvars['SCOL-ACTIVE']).toBe('VIEWING-WEST');
+    selectGame(1);
+  });
+
+  it('opens the vault by way of the small room, and gets the money out', () => {
+    const g = inBank();
+    txt(g, 'nw'); txt(g, 'west');                 // depository, from the west
+    txt(g, 'south');                              // the chairman's office
+    expect(g.s.here).toBe('OFFICE');
+    txt(g, 'north');                              // back in, walking north
+    expect(g.s.gvars['SCOL-ROOM']).toBe('SMALL-ROOM');
+    txt(g, 'walk through curtain');
+    expect(g.s.here).toBe('SMALL-ROOM');
+    txt(g, 'walk through south wall');            // the one wall that crosses over
+    expect(g.s.here).toBe('DEPOSITORY');
+    expect(g.s.gvars['SCOL-ROOM']).toBe('VAULT');
+    txt(g, 'walk through curtain');
+    expect(g.s.here).toBe('VAULT');
+    expect(txt(g, 'take bills')).toContain('Taken');
+
+    // You cannot simply carry the money out of the front door.
+    txt(g, 'walk through north wall');
+    expect(g.s.here).toBe('DEPOSITORY');
+    expect(txt(g, 'west')).toContain('An alarm rings briefly');
+    expect(g.s.here).toBe('DEPOSITORY');
+
+    // Leave it, walk back in from the teller's room to aim the curtain at a
+    // viewing room, and carry it out through the curtain instead.
+    txt(g, 'drop bills');
+    txt(g, 'west'); txt(g, 'west');
+    expect(g.s.gvars['SCOL-ROOM']).toBe('VIEWING-WEST');
+    txt(g, 'take bills');
+    txt(g, 'walk through curtain');
+    expect(g.s.here).toBe('VIEWING-WEST');
+    txt(g, 'south');
+    expect(g.s.here).toBe('BANK-ENTRANCE');
+    expect(g.s.locs['BILLS']).toBe('ADVENTURER');
+    selectGame(1);
+  });
+
+  it('throws things through the curtain instead of carrying them', () => {
+    const g = inBank();
+    txt(g, 'nw'); txt(g, 'west');
+    g.s.locs['SWORD'] = 'ADVENTURER';
+    const said = txt(g, 'throw sword at curtain');
+    expect(said).toContain('curtain dims slightly');
+    expect(g.s.locs['SWORD']).toBe('VIEWING-WEST');
+    selectGame(1);
+  });
+
+  // The vault is a trap: the curtain door closes after twelve turns and the
+  // Frobozz Magic Vault Company introduces itself.
+  it('kills you if the curtain closes while you are in the vault', () => {
+    const g = inBank();
+    g.s.here = 'VAULT';
+    g.s.daemons['I-CURTAIN'] = { tick: 1, enabled: true };
+    const said = txt(g, 'wait');
+    expect(said).toContain('Frobozz Magic Vault Company');
+    expect(g.s.here, 'and you wake up in the Room of Red Mist').toBe('DEAD-PALANTIR-1');
+    selectGame(1);
+  });
+
+  // Shut in the small room, the bank's last employee turns up to take a deposit.
+  it('summons the Gnome of Zurich to the small room', () => {
+    const g = inBank();
+    g.s.here = 'SMALL-ROOM';
+    g.s.daemons['I-CURTAIN'] = { tick: 1, enabled: true };
+    expect(txt(g, 'wait')).toContain('Curtain Door Closed');
+    let arrived = '';
+    for (let i = 0; i < 6 && !arrived; i++) {
+      const said = txt(g, 'wait');
+      if (said.includes('gnome of Zurich')) arrived = said;
+    }
+    expect(arrived).toContain('materializes in the room');
+    expect(g.s.locs['GNOME-OF-ZURICH']).toBe('SMALL-ROOM');
+    g.s.locs['BILLS'] = 'ADVENTURER';
+    const paid = txt(g, 'give bills to gnome');
+    expect(paid).toContain('places the stack of zorkmid bills in the deposit box');
+    expect(g.s.here).toBe('BANK-ENTRANCE');
+    selectGame(1);
+  });
+});

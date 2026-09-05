@@ -17,13 +17,13 @@ function objAction(ctx: Ctx, obj?: string): boolean {
   const sp = activeGame().specials;
   return sp ? sp.objAction(ctx, obj) : z1ObjAction(ctx, obj);
 }
-function roomAction(ctx: Ctx, room: string, phase: 'enter' | 'end'): boolean {
+function roomAction(ctx: Ctx, room: string, phase: 'enter' | 'end', dir?: string): boolean {
   const sp = activeGame().specials;
-  return sp ? sp.roomAction(ctx, room, phase) : z1RoomAction(ctx, room, phase);
+  return sp ? sp.roomAction(ctx, room, phase, dir) : z1RoomAction(ctx, room, phase);
 }
-function specialExit(ctx: Ctx, per: string): string | null {
+function specialExit(ctx: Ctx, per: string, dir?: string): string | null {
   const sp = activeGame().specials;
-  return sp ? sp.specialExit(ctx, per) : z1SpecialExit(ctx, per);
+  return sp ? sp.specialExit(ctx, per, dir) : z1SpecialExit(ctx, per);
 }
 import { describeRoom, listInventory, containerListing, cap } from './describe';
 import { dynamicRoomDesc } from './specialDescs';
@@ -71,7 +71,7 @@ export function goTo(ctx: Ctx, dir: string): void {
   }
   if (ex.msg && !ex.to && !ex.per) { out.tell(ex.msg.replace(/\n/g, ' ')); return; }
   if (ex.per) {
-    const dest = specialExit(ctx, ex.per);
+    const dest = specialExit(ctx, ex.per, dir);
     if (dest) enterRoom(ctx, dest);
     return;
   }
@@ -144,7 +144,7 @@ export function enterRoom(ctx: Ctx, room: string, dir?: string): void {
     out.tell('The magic boat comes to a rest on the shore.');
     ctx.disable('I-RIVER');
   }
-  if (roomAction(ctx, room, 'enter')) return;
+  if (roomAction(ctx, room, 'enter', dir)) return;
   if (s.dead) return;
   // scoring for room entry
   const rd = roomDef(room);

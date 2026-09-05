@@ -81,8 +81,13 @@ export interface GameDef {
    */
   specials?: {
     objAction: (ctx: any, obj?: string) => boolean;
-    roomAction: (ctx: any, room: string, phase: 'enter' | 'end') => boolean;
-    specialExit: (ctx: any, per: string) => string | null;
+    /**
+     * `dir` is the direction walked, which ZIL reads out of PRSO during a
+     * room's M-ENTER — the Bank of Zork's depository uses it to remember which
+     * way you came in.
+     */
+    roomAction: (ctx: any, room: string, phase: 'enter' | 'end', dir?: string) => boolean;
+    specialExit: (ctx: any, per: string, dir?: string) => string | null;
     /** M-BEG on WALK: redirect a move before the exit is resolved. */
     beforeWalk?: (ctx: any, dir: string) => string | null;
   };
