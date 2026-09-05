@@ -24,6 +24,7 @@ reached the same conclusion and trimmed programmatically; this is that fix.
 Exit status is 1 if any panel has an edge-band or dark-bar defect.
 """
 import sys
+import numpy as np
 from PIL import Image, ImageStat
 
 # Thresholds, widened after the Zork II anchor pass. The first version looked
@@ -34,31 +35,58 @@ from PIL import Image, ImageStat
 # generous and the stddev test does the work.
 BAND_MAX = 0.28       # inspect up to 28% of the dimension inwards
 PALE, DARK = 225, 52  # luminance thresholds
-FLAT = 6.0            # stddev below this counts as "flat"
+FLAT = 4.0            # per-line stddev below this counts as "flat"
+STEP = 14.0           # brightness step at the boundary that marks a real bar
 
 
 def band_defect(im):
-    """Return (edge, kind, thickness_px) for the worst edge band, or None."""
-    w, h = im.size
+    """Return (edge, kind, thickness_px) for the worst edge band, or None.
+
+    A bar is identified by *structure*, not by tone: within the band, every line
+    running parallel to the edge is uniform along its length. Testing the strip
+    as a whole was wrong three separate times — it missed bars wider than the
+    search window, bars whose luminance sat outside a narrow dark/pale window,
+    and bars built from two stacked tones, where the whole-strip stddev is high
+    even though every individual row is flat.
+    """
+    a = np.asarray(im, dtype=np.float32)
+    h, w = a.shape
     worst = None
+
     for edge in ("top", "bottom", "left", "right"):
-        span = h if edge in ("top", "bottom") else w
-        limit = max(2, int(span * BAND_MAX))
+        # Orient so the band is on the left and its lines are rows.
+        m = {"left": a, "right": a[:, ::-1],
+             "top": a.T, "bottom": a.T[:, ::-1]}[edge]
+        span = m.shape[1]
+        limit = max(4, int(span * BAND_MAX))
+
         thickness = 0
-        kind = None
-        for t in range(1, limit + 1):
-            box = {"top": (0, 0, w, t), "bottom": (0, h - t, w, h),
-                   "left": (0, 0, t, h), "right": (w - t, 0, w, h)}[edge]
-            strip = im.crop(box)
-            st = ImageStat.Stat(strip)
-            mean, sd = st.mean[0], st.stddev[0]
-            if sd < FLAT and mean > PALE:
-                thickness, kind = t, "edge-band"
-            elif sd < FLAT and mean < DARK:
-                thickness, kind = t, "dark-bar"
+        for t in range(2, limit + 1):
+            strip = m[:, :t]
+            # Median over lines, so a few textured rows do not veto a real bar.
+            if float(np.median(strip.std(axis=1))) < FLAT:
+                thickness = t
             else:
                 break
-        if thickness >= 3 and (worst is None or thickness > worst[2]):
+
+        if thickness < 8 or thickness >= span - 4:
+            continue
+
+        # A bar ends abruptly; painted shadow or a soft sky blends into what is
+        # beside it. Require a hard step in brightness at the boundary, or the
+        # detector condemns every dark ceiling and gradient it meets.
+        # Sample the outside beyond a gap: the thickness estimate is good to
+        # about ten pixels, and a window starting right at the boundary
+        # straddles it and dilutes the step to nothing.
+        gap = 12
+        inner = float(m[:, max(0, thickness - 6):thickness].mean())
+        outer = float(m[:, thickness + gap:thickness + gap + 24].mean())
+        if abs(inner - outer) < STEP:
+            continue
+
+        if worst is None or thickness > worst[2]:
+            mean = float(m[:, :thickness].mean())
+            kind = "edge-band" if mean > PALE else "dark-bar" if mean < DARK else "flat-bar"
             worst = (edge, kind, thickness)
     return worst
 
