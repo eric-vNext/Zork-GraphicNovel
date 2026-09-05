@@ -16,13 +16,13 @@ failure impossible to repeat.
 
 | | Zork II | Zork III | Total |
 |---|---|---|---|
-| Base room panels | 52 | 44 | 96 |
+| Base room panels | 66 | 44 | 110 |
 | Room state variants (§3) | 34 | 30 | 64 |
 | Event panels | 50 | 40 | 90 |
 | Item panels | 30 | 20 | 50 |
 | Character panels | 14 | 9 | 23 |
 | UI / frontispiece | 4 | 4 | 8 |
-| **Images** | **184** | **147** | **331** |
+| **Images** | **198** | **147** | **345** |
 | Music beds | 8 | 7 | 15 |
 | SFX | 35 | 30 | 65 |
 
@@ -113,6 +113,12 @@ prefix, and convert to delivery WebP with the existing
   reflection.
 - **No figures in room panels**, stated in the prompt rather than left implied.
   A rule that lives only in a document is a rule the model never sees.
+  **Depicted art is not a figure.** Owner ruling, 2026-09-04, on the Bank of
+  Zork: the fresco of robed figures carrying a chest and the chairman's framed
+  portrait both stay. The rule protects player-as-camera — no *inhabitants* in
+  frame — and a mural or a portrait is scenery, not a person present. Creatures
+  the source puts in a room (the dragon in its lair, Cerberus) are also not
+  covered by it; they need the clause relaxed in their own prompt.
 - **No text, lettering or speech bubbles.** Anything the model paints that looks
   like writing is stylised gibberish and must never carry information.
 - **Quiet negative space** along one edge for captions.
