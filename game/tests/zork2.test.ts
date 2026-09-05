@@ -701,3 +701,80 @@ describe('the balloon', () => {
     selectGame(1);
   });
 });
+
+describe("the Wizard's wand", () => {
+  // Point it at something, then say a word. The wand takes a while to
+  // recharge, and the spell undoes itself ten to twenty turns later — which
+  // is the whole of the menhir puzzle, since the passage it opens closes again.
+  function withWand(room: string): Game {
+    const g = at(room);
+    g.s.locs['WAND'] = 'ADVENTURER';
+    return g;
+  }
+
+  it('needs a target before a word', () => {
+    const g = withWand('MENHIR-ROOM');
+    expect(txt(g, 'incant float')).toContain('echoes back faintly');
+    expect(txt(g, 'wave wand')).toContain('At what?');
+    selectGame(1);
+  });
+
+  it('refuses to be pointed at you', () => {
+    const g = withWand('MENHIR-ROOM');
+    expect(txt(g, 'wave wand at me')).toContain('safety interlock');
+    selectGame(1);
+  });
+
+  it('floats the menhir, and the passage closes when the spell lapses', () => {
+    const g = withWand('MENHIR-ROOM');
+    expect(txt(g, 'wave wand at menhir')).toContain('suffused with power');
+    const cast = txt(g, 'incant float');
+    expect(cast).toContain('wand glows very brightly');
+    expect(cast).toContain('floats majestically into the air');
+    expect(g.s.gflags['MENHIR-POSITION']).toBe(true);
+
+    txt(g, 'sw');
+    expect(g.s.here, 'the passage beneath it is open').toBe('KENNEL');
+
+    let sank = '';
+    for (let i = 0; i < 30 && !sank; i++) {
+      const said = txt(g, 'wait');
+      if (said.includes('sinks to the ground')) sank = said;
+    }
+    expect(sank, 'the spell should wear off').toContain('The menhir sinks to the ground');
+    expect(g.s.gflags['MENHIR-POSITION']).toBe(false);
+    expect(txt(g, 'ne')).toContain('trying to walk through an enormous rock');
+    selectGame(1);
+  });
+
+  it('will not be waved twice without recharging', () => {
+    const g = withWand('MENHIR-ROOM');
+    txt(g, 'wave wand at menhir');
+    txt(g, 'incant float');
+    expect(txt(g, 'wave wand at menhir')).toMatch(/recharge|discharges magic/);
+    selectGame(1);
+  });
+
+  it('filches and fries what it can lift', () => {
+    const g = withWand('KENNEL');
+    txt(g, 'wave wand at collar');
+    expect(txt(g, 'incant filch')).toContain('Filched!');
+    expect(g.s.locs['COLLAR']).toBe('ADVENTURER');
+
+    txt(g, 'drop collar');
+    // I-SPELL has to clear the last cast before the wand will aim again.
+    g.s.daemons['I-SPELL'] = { tick: 1, enabled: true };
+    txt(g, 'wait');
+    txt(g, 'wave wand at collar');
+    expect(txt(g, 'incant fry')).toContain('goes up in a puff of smoke');
+    expect(g.s.locs['COLLAR']).toBe(null);
+    selectGame(1);
+  });
+
+  // gverbs.zil branches both verbs on ,ZORK-NUMBER; only Zork II has a wand.
+  it('means nothing in the other two games', () => {
+    expect(txt(new Game(1), 'incant float')).toContain('echoes back faintly');
+    expect(txt(new Game(3), 'incant float')).toContain('echoes back faintly');
+    selectGame(1);
+  });
+});

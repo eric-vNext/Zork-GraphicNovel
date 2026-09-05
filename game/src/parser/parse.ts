@@ -15,6 +15,7 @@ export interface Command {
   raw: string;
   allBut?: boolean;             // dobjs came from ALL
   num?: number;                 // for 'wait N'
+  word?: string;                // for 'incant <spell>' — V-INCANT reads it raw
 }
 
 export interface ParseResult {
@@ -128,7 +129,9 @@ v('odysseus', 'ulysses');
 v('treasure');
 v('temple');
 v('wish');
-v('incant');
+v('incant', 'chant');
+v('enchant');
+v('disenchant');
 v('swing');
 v('sleep');
 v('curse', 'damn', 'shit', 'fuck');
@@ -321,6 +324,10 @@ export function parse(s: WorldState, input: string): ParseResult {
   // DIG IN OBJECT: ZIL's syntax table has IN as fixed filler before the
   // object, not a genuine dobj/iobj-splitting preposition (gsyntax.zil:165-167).
   if (verb === 'dig' && (rest[0] === 'in' || rest[0] === 'into')) rest = rest.slice(1);
+
+  // V-INCANT takes no object: it reads the next word out of the input buffer
+  // raw (<GET ,P-LEXV ,P-CONT>), spell or not.
+  if (verb === 'incant') return { cmd: { verb, raw, word: rest[0] } };
 
   // WAIT <n>: ports V-WAIT's OPTIONAL NUM argument (default 3 turns for bare WAIT)
   if (verb === 'wait' && rest.length === 1 && /^\d+$/.test(rest[0])) {

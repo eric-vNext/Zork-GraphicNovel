@@ -17,6 +17,7 @@ import {
   fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, playerVehicle,
   roomDef, roomLit, objDef, theName,
 } from '../world';
+import * as spells from '../spells';
 import { spellUsed } from '../spells';
 import world from '../../data/zork2/world.gen.json';
 
@@ -357,6 +358,60 @@ const OBJ_ROUTINES: Record<string, Handler> = {
       default:
         return false;
     }
+  },
+
+  // --- the Wizard's wand ----------------------------------------------------
+  // WAND-FCN (2actions.zil). Waving the wand at something aims it; the word
+  // comes afterwards. It will not aim twice without recharging, and trying
+  // has a small chance of ending the game very strangely indeed.
+  'WAND-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if ((ctx.verb === 'take' || ctx.verb === 'put' || ctx.verb === 'give') && s.locs['WAND'] === 'WIZARD') {
+      out.tell('The Wizard snatches it away.');
+      return true;
+    }
+    if (ctx.verb === 'wave' && ctx.iobj === 'GRUE') {
+      out.tell('There is no grue in sight, but a hissing sound issues forth from the darkness.');
+      return true;
+    }
+    if (ctx.verb !== 'wave' && ctx.verb !== 'touch' && ctx.verb !== 'raise') return false;
+
+    if (ctx.dobj === 'WAND' && !inPlayer(s, 'WAND')) {
+      out.tell("You don't have the wand!");
+      return true;
+    }
+    if (spells.wandOn(s) || spells.spellUsedWord(s) || spells.spellVictim(s)) {
+      if (prob(ctx, 5)) {
+        jigsUp(ctx, 'The wand was still recharging from its last use. It discharges magic all over everything. You turn into a toad, the room fills with a fetid smell, and all sorts of other grubby things happen. Then the wand explodes!', {});
+      } else {
+        out.tell('A lot you know about magic! A magic wand takes a while to recharge after use! You might cause it to short-circuit!');
+      }
+      return true;
+    }
+    if (ctx.verb === 'raise') {
+      out.tell('The wand grows warm and seems to vibrate.');
+      return true;
+    }
+    let target: string | null = null;
+    if (ctx.verb === 'wave') {
+      if (ctx.dobj === 'WAND' && ctx.iobj) target = ctx.iobj;
+      else { out.tell('At what?'); return true; }
+    } else {
+      // "rub the X with the wand" aims it just as well.
+      if (ctx.iobj === 'WAND' && ctx.dobj) target = ctx.dobj;
+      else { out.tell('Touch what?'); return true; }
+    }
+    spells.setSpellState(s, { wandOn: target, used: null, victim: null });
+    if (target === 'ME' || target === 'ADVENTURER' || target === 'WAND') {
+      spells.setSpellState(s, { wandOn: null });
+      out.tell('Fortunately a safety interlock prevents the fatal feedback loop that this would cause.');
+      return true;
+    }
+    s.gvars['WAND-ON-LOC'] = s.here;
+    out.tell(`The wand grows warm, the ${objDef(target).desc} seems to glow dimly with magical essences, and you feel suffused with power.`);
+    out.emit({ type: 'sfx', name: 'z2-spell-onset' });
+    ctx.queue('I-WAND', 2);
+    return true;
   },
 
   // --- the balloon ----------------------------------------------------------

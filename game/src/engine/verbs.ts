@@ -307,15 +307,20 @@ export function perform(ctx: Ctx): void {
       out.tell('With luck, your wish will come true.');
       return;
     // gverbs.zil:737 — INCANT is the Zork II wand's firing mechanism.
-    case 'incant': {
+    case 'incant':
       if (z !== 2) { out.tell('The incantation echoes back faintly, but nothing else happens.'); return; }
-      if (spells.spellUsed(s)) { out.tell('Nothing happens.'); return; }
-      const target = spells.wandOn(s);
-      if (!target) { out.tell('The incantation echoes back faintly, but nothing else happens.'); return; }
-      spells.setSpellState(s, { victim: target, wandOn: null });
-      out.tell('The wand glows very brightly for a moment.');
+      spells.vIncant(ctx);
       return;
-    }
+    // V-ENCHANT / V-DISENCHANT (gverbs.zil). Only Zork II has a wand; the other
+    // two games answer both with the same shrug.
+    case 'enchant':
+      if (z !== 2) { out.tell('Nothing happens.'); return; }
+      spells.vEnchant(ctx);
+      return;
+    case 'disenchant':
+      if (z !== 2) { out.tell('Nothing happens.'); return; }
+      spells.vDisenchant(ctx);
+      return;
     // gverbs.zil:1475 — TREASURE/TEMPLE teleport between the temple and the
     // thief's lair, in Zork I only.
     case 'treasure':

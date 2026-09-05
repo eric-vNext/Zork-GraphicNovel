@@ -53,6 +53,7 @@ export class Game {
     const ctx: Ctx = {
       s: this.s, out,
       verb: cmd?.verb ?? '',
+      word: cmd?.word,
       dobj: cmd?.dobjs?.[0],
       iobj: cmd?.iobj,
       prep: cmd?.prep,

@@ -581,6 +581,9 @@ export function burnupDaemon(ctx: Ctx): void {
 }
 
 export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
+  // The player's own spell, and the wand's charge, both time out.
+  'I-SPELL': spells.spellTimeout,
+  'I-WAND': spells.wandTimeout,
   'I-WIZARD': wizardDaemon,
   'I-FUSE': fuseDaemon,
   'I-SAFE': safeDaemon,

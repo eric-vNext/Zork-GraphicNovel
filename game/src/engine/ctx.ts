@@ -9,6 +9,8 @@ export interface Ctx {
   dobj?: string;
   iobj?: string;
   prep?: string;
+  /** The raw word after INCANT, which is not an object (gverbs.zil V-INCANT). */
+  word?: string;
   rng: () => number;                       // 0..1
   queue: (name: string, ticks: number) => void; // -1 = every turn
   /**

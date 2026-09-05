@@ -13,6 +13,8 @@
 // V-INCANT and the SPELLS / SPELL-NAMES / SPELL-HINTS / SPELL-STOPS tables.
 
 import type { WorldState } from './types';
+import type { Ctx } from './ctx';
+import { fset, fset$, moveObj, removeObj, objDef, roomOf, PLAYER } from './world';
 
 /** `<CONSTANT S-FEEBLE 1>` ... `<CONSTANT S-FANTASIZE 12>`. */
 export const SPELLS = [
@@ -126,3 +128,145 @@ export function movementBlocked(s: WorldState): string | null {
     ? "Your limbs are frozen; you can't move a muscle."
     : null;
 }
+
+// ---------------------------------------------------------------------------
+// The casting layer: what the player can do once they have the Wizard's wand.
+//
+// Point the wand at something ("wave wand at menhir"), then say a word
+// ("incant float"). V-INCANT stores the word, names the wand's target as the
+// victim, and re-performs the command as ENCHANT so the victim's own ACTION
+// sees it first — which is where the interesting cases live. I-SPELL undoes it
+// ten to twenty turns later unless the object handled the spell itself.
+// ---------------------------------------------------------------------------
+
+/** Words the wand answers to. Three of them are not the Wizard's twelve. */
+const EXTRA_WORDS = ['FUDGE', 'FLUORESCE', 'FRY'] as const;
+export const INCANTATIONS: readonly string[] = [...SPELLS, ...EXTRA_WORDS];
+
+/** `,SPELL-USED` as the raw word, which need not be one of the twelve. */
+export function spellUsedWord(s: WorldState): string | null {
+  return s.spell?.used ?? null;
+}
+
+/** `,SPELL-HANDLED?` — set by a spell that has already had its full effect. */
+function setHandled(s: WorldState, v: boolean): void {
+  s.gflags['SPELL-HANDLED'] = v;
+}
+
+export function spellHandled(s: WorldState): boolean {
+  return !!s.gflags['SPELL-HANDLED'];
+}
+
+/** V-INCANT (gverbs.zil). The word is read raw; nothing checks it is a spell. */
+export function vIncant(ctx: Ctx): void {
+  const { s, out } = ctx;
+  if (spellUsedWord(s)) { out.tell('Nothing happens.'); return; }
+  const target = wandOn(s);
+  if (!target) {
+    out.tell('The incantation echoes back faintly, but nothing else happens.');
+    return;
+  }
+  setSpellState(s, { victim: target, used: (ctx.word ?? '').toUpperCase() || null, wandOn: null });
+  out.tell('The wand glows very brightly for a moment.');
+  ctx.out.emit({ type: 'sfx', name: 'z2-spell-cast' });
+  ctx.queue('I-SPELL', 10 + Math.floor(ctx.rng() * 10));
+  ctx.perform('enchant', target);
+}
+
+/** V-ENCHANT's Zork II arm (gverbs.zil). */
+export function vEnchant(ctx: Ctx): void {
+  const { s, out } = ctx;
+  const on = wandOn(s);
+  if (on) setSpellState(s, { victim: on });
+  const victim = spellVictim(s);
+  if (!victim) { out.tell('Nothing happens.'); return; }
+  const used = spellUsedWord(s);
+  if (!used) { out.tell('You must be more specific.'); return; }
+
+  const obj = ctx.dobj ?? victim;
+  const name = objDef(obj)?.desc ?? 'thing';
+
+  if (isConditionSpell(used as Spell)) {
+    out.tell(fset$(s, obj, 'ACTORBIT')
+      ? 'The wand stops glowing, but there is no other obvious effect.'
+      : `That might have done something, but it's hard to tell with a ${name}.`);
+    return;
+  }
+  switch (used) {
+    case 'FUDGE':
+      out.tell('A strong odor of chocolate permeates the room.');
+      return;
+    case 'FLUORESCE':
+      fset(s, obj, 'LIGHTBIT');
+      fset(s, obj, 'ONBIT');
+      out.tell(`The ${name} begins to glow.`);
+      return;
+    case 'FILCH':
+      setHandled(s, true);
+      if (fset$(s, obj, 'TAKEBIT')) {
+        moveObj(s, obj, PLAYER);
+        out.tell('Filched!');
+      } else {
+        out.tell(`You can't filch the ${name}!`);
+      }
+      return;
+    case 'FLOAT':
+      if (fset$(s, obj, 'TAKEBIT')) { out.tell(`The ${name} floats serenely in midair.`); return; }
+      break;
+    case 'FRY':
+      if (fset$(s, obj, 'TAKEBIT')) {
+        setHandled(s, true);
+        removeObj(s, obj);
+        out.tell(`The ${name} goes up in a puff of smoke.`);
+        return;
+      }
+      break;
+    default:
+      break;
+  }
+  setSpellState(s, { victim: null });
+  out.tell('The wand stops glowing, but there is no other apparent effect.');
+}
+
+/** The line each condition spell prints as it lets an actor go. */
+const RELEASE: Record<string, string> = {
+  FEEBLE: 'seems stronger now.', FUMBLE: 'no longer appears clumsy.',
+  FEAR: 'no longer appears afraid.', FREEZE: 'moves again.',
+  FERMENT: 'stops swaying.', FIERCE: 'appears more peaceful.',
+};
+
+/** V-DISENCHANT's Zork II arm (gverbs.zil). */
+export function vDisenchant(ctx: Ctx): void {
+  const { s, out } = ctx;
+  const obj = ctx.dobj ?? spellVictim(s);
+  if (!obj || roomOf(s, obj) !== s.here) return;
+  const used = spellUsedWord(s);
+  const name = objDef(obj)?.desc ?? 'thing';
+
+  if (isConditionSpell(used as Spell)) {
+    if (fset$(s, obj, 'ACTORBIT') && used && RELEASE[used]) out.tell(`The ${name} ${RELEASE[used]}`);
+    return;
+  }
+  if (used === 'FLOAT') { out.tell(`The ${name} sinks to the ground.`); return; }
+  if (used === 'FUDGE') out.tell('The sweet smell has dispersed.');
+}
+
+/** I-SPELL (2actions.zil) — the spell wears off, and the wand is free again. */
+export function spellTimeout(ctx: Ctx): void {
+  const { s } = ctx;
+  const victim = spellVictim(s);
+  if (!spellHandled(s) && victim) ctx.perform('disenchant', victim);
+  setHandled(s, false);
+  setSpellState(s, { wandOn: null, used: null, victim: null });
+}
+
+/** I-WAND (2actions.zil:3808) — the wand's charge fades if you dawdle. */
+export function wandTimeout(ctx: Ctx): void {
+  const { s, out } = ctx;
+  const on = wandOn(s);
+  if (on && (s.gvars['WAND-ON-LOC'] === s.here || s.locs[on] === PLAYER)) {
+    out.tell(`The ${objDef(on)?.desc ?? 'thing'} stops glowing and the power within you weakens.`);
+  }
+  setSpellState(s, { wandOn: null });
+}
+
