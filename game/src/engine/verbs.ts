@@ -33,17 +33,24 @@ import * as spells from './spells';
 import {
   DATA, roomDef, objDef, fset, fclear, fset$, moveObj, removeObj, contents, locOf,
   inPlayer, roomOf, roomLit, reachable, loadWeight, objWeight, theName, aName,
-  PLAYER, inventory, roomMunged,
+  PLAYER, inventory, roomMunged, playerVehicle, vehicleType, roomFlag,
 } from './world';
 
 const TREASURE_ROOM_SAFE = 'TREASURE-ROOM';
 
 export function goTo(ctx: Ctx, dir: string): void {
   const { s, out } = ctx;
+  // "out" / "get out" while riding is V-DISEMBARK, not a compass move: the
+  // parser folds both spellings into a walk (gsyntax.zil:481).
+  if (dir === 'OUT' && playerVehicle(s) && !roomDef(s.here).exits['OUT']) {
+    perform({ ...ctx, verb: 'exit', dobj: undefined });
+    return;
+  }
   // A room's M-BEG arm may redirect the move before the exit is resolved —
   // Zork II's carousel scrambles compass directions while it turns.
-  const redirect = activeGame().specials?.beforeWalk?.(ctx, dir);
-  if (redirect && redirect !== dir) { goTo(ctx, redirect); return; }
+  const intercept = activeGame().specials?.beforeWalk?.(ctx, dir);
+  if (intercept?.stop) return;
+  if (intercept?.dir && intercept.dir !== dir) { goTo(ctx, intercept.dir); return; }
   // the final threshold: west/in from the barrow forecourt ends the game
   if (s.here === 'STONE-BARROW' && (dir === 'WEST' || dir === 'IN')) {
     ctx.winGame();
@@ -122,6 +129,24 @@ export function enterRoom(ctx: Ctx, room: string, dir?: string): void {
   // (gverbs.zil GOTO, RMUNGBIT arm).
   const rubble = roomMunged(s, room);
   if (rubble) { out.tell(rubble); return; }
+
+  // GOTO's land/vehicle gate. You cannot walk into thin air, and a vehicle can
+  // only go where its VTYPE says — which is what keeps the balloon in the
+  // volcano's shaft and you out of it.
+  const vehicle = playerVehicle(s);
+  const av = vehicle ? vehicleType(vehicle) : null;
+  const noGo = (): void => {
+    out.tell(av ? `You can't go there in a ${objDef(vehicle!).desc}.` : "You can't go there without a vehicle.");
+  };
+  const landing = roomFlag(s, room, 'RLANDBIT');
+  if (!landing && (!av || !roomFlag(s, room, av))) { noGo(); return; }
+  // ...and a vehicle cannot be driven off its own element onto dry land: the
+  // balloon may sit on a volcano ledge, but not go down a corridor.
+  if (landing && av && av !== 'RLANDBIT'
+      && roomFlag(s, s.here, 'RLANDBIT') && !roomFlag(s, room, av)) {
+    noGo();
+    return;
+  }
   const wasLit = roomLit(s);
   const fromRoom = s.here;
   s.here = room;
@@ -144,6 +169,8 @@ export function enterRoom(ctx: Ctx, room: string, dir?: string): void {
     out.tell('The magic boat comes to a rest on the shore.');
     ctx.disable('I-RIVER');
   }
+  // GOTO moves the vehicle rather than the player when there is one.
+  if (vehicle && vehicle !== 'INFLATED-BOAT') moveObj(s, vehicle, room);
   if (roomAction(ctx, room, 'enter', dir)) return;
   if (s.dead) return;
   // scoring for room entry
@@ -181,6 +208,11 @@ export function perform(ctx: Ctx): void {
     out.tell('It\'s too dark to see!');
     return;
   }
+
+  // The M-BEG arm of whatever the player is standing in — the room, or the
+  // vehicle when riding one (gmain.zil:212). WALK's is handled in goTo, which
+  // runs earlier and can redirect the move.
+  if (activeGame().specials?.beforeAction?.(ctx)) return;
 
   // PRE-BURN (gverbs.zil:243) is a verb preaction, and preactions run before
   // the object's own ACTION — so burning something with nothing to light it
@@ -375,6 +407,13 @@ export function perform(ctx: Ctx): void {
       return;
     }
     case 'enter': {
+      // V-BOARD (gverbs.zil): anything ridable is boarded rather than walked into.
+      if (d && fset$(s, d, 'VEHBIT')) {
+        if (playerVehicle(s) === d) { out.tell("You're already in that!"); return; }
+        out.tell(`You are now in the ${objDef(d).desc}.`);
+        moveObj(s, PLAYER, d);
+        return;
+      }
       if (d === 'WHITE-HOUSE') {
         if (['WEST-OF-HOUSE', 'NORTH-OF-HOUSE', 'SOUTH-OF-HOUSE'].includes(s.here)) { out.tell('The door is boarded and you can\'t remove the boards.'); return; }
         if (s.here === 'EAST-OF-HOUSE') { ctx.perform('enter', 'KITCHEN-WINDOW'); return; }
@@ -382,7 +421,21 @@ export function perform(ctx: Ctx): void {
       goTo(ctx, 'IN');
       return;
     }
-    case 'exit': goTo(ctx, 'OUT'); return;
+    // V-DISEMBARK (gverbs.zil): getting out is only possible on solid ground.
+    case 'exit': {
+      const riding = playerVehicle(s);
+      if (riding && riding !== 'INFLATED-BOAT' && (!d || d === riding)) {
+        if (!roomFlag(s, s.here, 'RLANDBIT')) {
+          out.tell('You realize that getting out here would be fatal.');
+          return;
+        }
+        out.tell('You are on your own feet again.');
+        moveObj(s, PLAYER, null);
+        return;
+      }
+      goTo(ctx, 'OUT');
+      return;
+    }
     case 'cross': {
       if (s.here === 'ARAGAIN-FALLS' || s.here === 'END-OF-RAINBOW') {
         if (!s.gflags['RAINBOW-FLAG']) { out.tell('You can walk on water vapor, can you?'); return; }

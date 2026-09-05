@@ -18,7 +18,7 @@ import zork3World from './zork3/world.gen.json';
 import { ZORK1_PRESENTATION } from './zork1/presentation';
 import { ZORK2_PRESENTATION } from './zork2/presentation';
 import { ZORK2_DAEMONS } from '../engine/zork2/daemons';
-import { ZORK2_SPECIALS } from '../engine/zork2/specials';
+import { ZORK2_SPECIALS, balloonBurn } from '../engine/zork2/specials';
 
 export interface ScoringDef {
   /** `SCORE-MAX` from the source. */
@@ -88,8 +88,15 @@ export interface GameDef {
      */
     roomAction: (ctx: any, room: string, phase: 'enter' | 'end', dir?: string) => boolean;
     specialExit: (ctx: any, per: string, dir?: string) => string | null;
-    /** M-BEG on WALK: redirect a move before the exit is resolved. */
-    beforeWalk?: (ctx: any, dir: string) => string | null;
+    /**
+     * M-BEG on WALK, which in ZIL belongs to the room — or, when the player is
+     * riding something, to the vehicle. It may redirect the move (the carousel
+     * scrambles compass directions) or stop it outright (the balloon, tied to
+     * its hook, goes nowhere).
+     */
+    beforeWalk?: (ctx: any, dir: string) => { dir?: string; stop?: boolean } | null;
+    /** M-BEG for every other verb; true means the turn is already handled. */
+    beforeAction?: (ctx: any) => boolean;
   };
   /** False until the game's content is ported; the UI refuses to start it. */
   playable: boolean;
@@ -163,6 +170,8 @@ export const ZORK2: GameDef = {
   presentation: ZORK2_PRESENTATION,
   daemons: ZORK2_DAEMONS,
   specials: ZORK2_SPECIALS,
+  // gverbs.zil:252 — V-BURN diverts to the burner for anything in the receptacle.
+  hooks: { 'balloon-burn': balloonBurn },
   playable: false,
 };
 

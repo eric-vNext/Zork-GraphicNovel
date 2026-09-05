@@ -174,6 +174,40 @@ export function roomLit(s: WorldState, room?: string): boolean {
   return check(room ?? s.here) || check(PLAYER);
 }
 
+/**
+ * A room's flag, source or runtime. Rooms gain and lose flags in play — the
+ * reservoir becomes walkable when the dam drains it — and the static table
+ * only knows how they started.
+ */
+export function roomFlag(s: WorldState, room: string, flag: string): boolean {
+  return roomDef(room).flags.includes(flag) || fset$(s, room, flag);
+}
+
+// ---- vehicles ---------------------------------------------------------------
+/**
+ * Zork II sets the balloon's and the bucket's VTYPE at run time
+ * (2dungeon.zil:13), so the extracted property is 0 and the real value has to
+ * be filled in here. Zork I's boat declares NONLANDBIT in the source.
+ */
+const RUNTIME_VTYPE: Record<string, string> = { BALLOON: 'NONLANDBIT', BUCKET: 'NONLANDBIT' };
+
+/** `<GETP vehicle ,P?VTYPE>` — the flag a room must have to be entered in it. */
+export function vehicleType(obj: string): string | null {
+  const v = objDef(obj)?.vtype?.[0];
+  if (v && v !== '0') return v;
+  return RUNTIME_VTYPE[obj] ?? null;
+}
+
+/**
+ * The vehicle the player is riding, or null. ZIL simply moves the WINNER into
+ * the vehicle; Zork I's boat predates that here and still uses its own flag.
+ */
+export function playerVehicle(s: WorldState): string | null {
+  if (s.gflags['IN-BOAT']) return 'INFLATED-BOAT';
+  const loc = s.locs[PLAYER];
+  return loc && fset$(s, loc, 'VEHBIT') ? loc : null;
+}
+
 // ---- room munging ----------------------------------------------------------
 /**
  * MUNG-ROOM (gverbs.zil:2237). The room is gone: GOTO stops printing its name

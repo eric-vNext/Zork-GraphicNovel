@@ -17,8 +17,8 @@
 // from a table that is itself never mentioned, and it is why the shipped
 // single-pass version dropped both objects entirely.
 import type { WorldState } from './types';
-import { Out, DATA, roomDef, objDef, contents, fset$, roomLit, seeInside, theName, aName, PLAYER } from './world';
-import { dynamicRoomDesc, dynamicObjDesc } from './specialDescs';
+import { Out, DATA, roomDef, objDef, contents, fset$, roomLit, seeInside, theName, aName, PLAYER, playerVehicle } from './world';
+import { dynamicRoomDesc, dynamicObjDesc, dynamicVehicleDesc } from './specialDescs';
 import { gameNumber } from '../data/games';
 import * as spells from './spells';
 
@@ -31,12 +31,17 @@ export function describeRoom(s: WorldState, out: Out, force = false): void {
     out.tell('It is pitch black. You are likely to be eaten by a grue.');
     return;
   }
-  out.tell(r.desc, 'room-name');
+  // DESCRIBE-ROOM names the vehicle you are riding on the room line, and
+  // describes it after the room itself (gverbs.zil:1625).
+  const riding = playerVehicle(s);
+  out.tell(r.desc + (riding && riding !== s.here ? `, in the ${objDef(riding).desc}` : ''), 'room-name');
   const first = !s.touched[s.here];
   if (force || first || s.verbosity === 'verbose') {
     const dyn = dynamicRoomDesc(s, s.here);
     if (dyn) out.tell(dyn);
     else if (r.ldesc) out.tell(r.ldesc.replace(/\n/g, ' '));
+    const vd = riding && riding !== s.here ? dynamicVehicleDesc(s, riding) : null;
+    if (vd) out.tell(vd);
   }
   // gverbs.zil:1653 — Zork I clears TOUCHBIT on maze rooms so they describe
   // themselves in full on every visit; that disorientation is the puzzle.
@@ -106,13 +111,16 @@ export function printCont(s: WorldState, out: Out, obj: string, level = 0): bool
   if (!kids.length) return true;
 
   const inventoryListing = obj === PLAYER;
+  // PRINT-CONT never describes the vehicle you are standing in — you are
+  // looking out of it — but it does list what else is in there with you.
+  const riding = playerVehicle(s);
   let firstItem = true;
   let printedNothing = true;
 
   // Pass 1: first-descriptions of objects the player has not disturbed.
   if (!inventoryListing) {
     for (const y of kids) {
-      if (y === PLAYER || fset$(s, y, 'INVISIBLE') || touched(s, y)) continue;
+      if (y === PLAYER || y === riding || fset$(s, y, 'INVISIBLE') || touched(s, y)) continue;
       const dyn = dynamicObjDesc(s, y);
       const fd = dyn ?? objDef(y).fdesc;
       if (!fd) continue;
@@ -130,6 +138,10 @@ export function printCont(s: WorldState, out: Out, obj: string, level = 0): bool
   let lvl = level;
   for (const y of kids) {
     if (y === PLAYER || fset$(s, y, 'INVISIBLE')) continue;
+    if (y === riding) {
+      if (contents(s, y).length) printCont(s, out, y, lvl + 1);
+      continue;
+    }
     const hasFdesc = !!(dynamicObjDesc(s, y) ?? objDef(y).fdesc);
     if (!(inventoryListing || touched(s, y) || !hasFdesc)) continue;
 

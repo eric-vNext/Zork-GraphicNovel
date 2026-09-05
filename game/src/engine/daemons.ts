@@ -128,6 +128,7 @@ export const DAEMONS: Record<string, Daemon> = {
   'I-RFILL': (ctx) => {
     const { s, out } = ctx;
     s.gflags['LOW-TIDE'] = false;
+    fclear(s, 'RESERVOIR', 'RLANDBIT');   // 1actions.zil:1228 — it is water again
     if (s.here === 'RESERVOIR') {
       jigsUp(ctx, 'You are lifted up by the rising river! You try to swim, but the currents are too strong. You come closer, closer to the awesome structure of Flood Control Dam #3. The dam beckons to you. The roar of the water nearly deafens you, but you remain conscious as you tumble over the dam toward your certain doom among the rocks at its base.', { panel: 'events/falls-death' });
       return;
@@ -138,6 +139,7 @@ export const DAEMONS: Record<string, Daemon> = {
   'I-REMPTY': (ctx) => {
     const { s, out } = ctx;
     s.gflags['LOW-TIDE'] = true;
+    fset(s, 'RESERVOIR', 'RLANDBIT');     // 1actions.zil:1264 — you can walk it now
     fclear(s, 'TRUNK', 'INVISIBLE');
     if (['RESERVOIR-SOUTH', 'RESERVOIR-NORTH'].includes(s.here))
       out.tell('The water level is now quite low here and you could easily cross over to the other side.');

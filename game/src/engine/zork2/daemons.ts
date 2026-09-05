@@ -8,8 +8,8 @@ import type { Ctx } from '../ctx';
 import { prob } from '../ctx';
 import { jigsUp } from '../death';
 import {
-  fset, fset$, moveObj, removeObj, contents, inPlayer, isRoom, mungRoom, roomDef, roomLit,
-  theName, PLAYER,
+  fset, fset$, moveObj, removeObj, contents, inPlayer, isRoom, mungRoom, objDef, roomDef,
+  roomLit, theName, PLAYER,
 } from '../world';
 import * as spells from '../spells';
 import { SPELLS, SPELL_HINTS, SPELL_NAMES, SPELL_STOPS, type Spell } from '../spells';
@@ -433,6 +433,153 @@ export function zgnomeOutDaemon(ctx: Ctx): void {
   }
 }
 
+// --------------------------------- the balloon -------------------------------
+// The balloon is not steered. Every three turns it rises if the burner is lit
+// and falls if it is not, and the volcano is a four-storey shaft: VAIR-1 at
+// the bottom, VAIR-4 at the rim. Two of those levels have a ledge you can
+// drift onto. Rise past the top and you leave the volcano for good, which is
+// fatal if you are aboard.
+
+/** `,BALLOON-UPS` — the level above each level. */
+const BALLOON_UPS: Record<string, string> = {
+  'VAIR-1': 'VAIR-2', 'VAIR-2': 'VAIR-3', 'VAIR-3': 'VAIR-4',
+};
+/** `,BALLOON-FLOATS` — the ledge each level drifts onto, and back. */
+const BALLOON_FLOATS: Record<string, string> = {
+  'LEDGE-1': 'VAIR-2', 'LEDGE-2': 'VAIR-4',
+};
+/** `,BALLOON-DOWNS` — the level below each level. */
+const BALLOON_DOWNS: Record<string, string> = {
+  'VAIR-4': 'VAIR-3', 'VAIR-3': 'VAIR-2', 'VAIR-2': 'VAIR-1',
+};
+
+/** Where the player can watch the balloon move without being in it. */
+const VOLCANO_FLOOR = ['LEDGE-1', 'LEDGE-2', 'VOLCANO-BOTTOM'];
+
+/** PUT-BALLOON (2actions.zil:246) — move the empty balloon, in view or not. */
+function putBalloon(ctx: Ctx, there: string, verb: string): void {
+  const { s, out } = ctx;
+  if (VOLCANO_FLOOR.includes(s.here)) out.tell(`You watch as the balloon slowly ${verb}`);
+  moveObj(s, 'BALLOON', there);
+  s.gvars['BLOC'] = there;
+}
+
+/** RISE-AND-SHINE (2actions.zil:262) — the burner is lit, so up it goes. */
+function riseAndShine(ctx: Ctx): void {
+  const { s, out } = ctx;
+  const aboard = s.locs[PLAYER] === 'BALLOON';
+  const bloc = s.gvars['BLOC'] ?? 'VOLCANO-BOTTOM';
+  ctx.queue('I-BALLOON', 3);
+
+  if (bloc === 'VAIR-4') {
+    // Over the rim: the view is magnificent and the landing is not.
+    ctx.disable('I-BURNUP');
+    ctx.disable('I-BALLOON');
+    removeObj(s, 'BALLOON');
+    if (aboard) {
+      out.emit({ type: 'sfx', name: 'z2-balloon-rise' });
+      jigsUp(ctx, 'The balloon floats majestically out of the volcano, revealing a breathtaking view of a wooded river valley surrounded by impassable mountains. In a clearing stands a white house. You drift into high winds, which carry you towards the snow-capped peaks. Oh, no! You crash into the jagged cliffs of the Flathead Mountains!', {});
+    } else if (VOLCANO_FLOOR.includes(s.here)) {
+      out.tell('You watch the balloon drift out over the rim and away on the wind.');
+    }
+    s.gvars['BLOC'] = 'VOLCANO-BOTTOM';
+    return;
+  }
+
+  const up = BALLOON_UPS[bloc];
+  if (up) {
+    if (aboard) {
+      out.tell('The balloon ascends.');
+      out.emit({ type: 'sfx', name: 'z2-balloon-rise' });
+      s.gvars['BLOC'] = up;
+      ctx.moveTo(up, true);
+    } else putBalloon(ctx, up, 'ascends.');
+    return;
+  }
+
+  const off = BALLOON_FLOATS[bloc];
+  if (off) {
+    // Sitting on a ledge, it drifts back off it.
+    if (aboard) {
+      out.tell('The balloon leaves the ledge.');
+      s.gvars['BLOC'] = off;
+      ctx.moveTo(off, true);
+    } else {
+      ctx.queue('I-GNOME', 10);
+      putBalloon(ctx, off, 'floats away. It seems to be ascending, due to its light load.');
+      fset(s, 'RECEPTACLE', 'OPENBIT');
+    }
+    return;
+  }
+
+  if (aboard) {
+    s.gvars['BLOC'] = 'VAIR-1';
+    out.tell('The balloon rises slowly from the ground.');
+    out.emit({ type: 'sfx', name: 'z2-balloon-rise' });
+    ctx.moveTo('VAIR-1', true);
+  } else {
+    putBalloon(ctx, 'VAIR-1', 'lifts off.');
+  }
+}
+
+/** DECLINE-AND-FALL (2actions.zil:304) — no fire, so down it comes. */
+function declineAndFall(ctx: Ctx): void {
+  const { s, out } = ctx;
+  const aboard = s.locs[PLAYER] === 'BALLOON';
+  const bloc = s.gvars['BLOC'] ?? 'VOLCANO-BOTTOM';
+  ctx.queue('I-BALLOON', 3);
+
+  if (bloc === 'VAIR-1') {
+    if (!aboard) { putBalloon(ctx, 'VOLCANO-BOTTOM', 'lands.'); return; }
+    s.gvars['BLOC'] = 'VOLCANO-BOTTOM';
+    if (s.gvars['BINF-FLAG']) {
+      out.tell('The balloon has landed.');
+      ctx.moveTo('VOLCANO-BOTTOM', true);
+      return;
+    }
+    // Falling with a cold bag is survivable; the balloon does not survive it.
+    removeObj(s, 'BALLOON');
+    moveObj(s, 'DEAD-BALLOON', 'VOLCANO-BOTTOM');
+    moveObj(s, PLAYER, null);
+    ctx.disable('I-BALLOON');
+    out.tell('You have landed, but the balloon did not survive.');
+    ctx.moveTo('VOLCANO-BOTTOM', true);
+    return;
+  }
+
+  const down = BALLOON_DOWNS[bloc];
+  if (!down) return;
+  if (aboard) {
+    out.tell('The balloon descends.');
+    s.gvars['BLOC'] = down;
+    ctx.moveTo(down, true);
+  } else {
+    putBalloon(ctx, down, 'descends.');
+  }
+}
+
+/** I-BALLOON (2actions.zil:219). */
+export function balloonDaemon(ctx: Ctx): void {
+  const { s } = ctx;
+  if ((fset$(s, 'RECEPTACLE', 'OPENBIT') && s.gvars['BINF-FLAG'])
+      || s.here === 'LEDGE-1' || s.here === 'LEDGE-2') {
+    riseAndShine(ctx);
+  } else {
+    declineAndFall(ctx);
+  }
+}
+
+/** I-BURNUP (2actions.zil:365) — the fuel runs out and the bag goes cold. */
+export function burnupDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  const fuel = contents(s, 'RECEPTACLE')[0];
+  if (fuel && s.here === s.gvars['BLOC']) {
+    out.tell(`The ${objDef(fuel).desc} has now burned out, and the cloth bag starts to deflate.`);
+  }
+  if (fuel) removeObj(s, fuel);
+  s.gvars['BINF-FLAG'] = null;
+}
+
 export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   'I-WIZARD': wizardDaemon,
   'I-FUSE': fuseDaemon,
@@ -442,4 +589,6 @@ export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   'I-CURTAIN': curtainDaemon,
   'I-ZGNOME': zgnomeDaemon,
   'I-ZGNOME-OUT': zgnomeOutDaemon,
+  'I-BALLOON': balloonDaemon,
+  'I-BURNUP': burnupDaemon,
 };

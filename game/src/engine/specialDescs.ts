@@ -2,9 +2,18 @@
 // Text is verbatim from the source, assembled per world state.
 import type { WorldState } from './types';
 import { fset$ } from './world';
+import { gameNumber } from '../data/games';
+import { zork2ObjDesc, zork2VehicleDesc } from './zork2/specialDescs';
 
 // Objects whose LDESC the original rewrites at runtime (TROLL-FCN / ROBBER-FUNCTION).
+/** The vehicle you are riding, described from inside it (its M-LOOK arm). */
+export function dynamicVehicleDesc(s: WorldState, obj: string): string | null {
+  return gameNumber() === 2 ? zork2VehicleDesc(s, obj) : null;
+}
+
 export function dynamicObjDesc(s: WorldState, obj: string): string | null {
+  // Each game owns its routine-generated object descriptions (M-OBJDESC).
+  if (gameNumber() === 2) return zork2ObjDesc(s, obj);
   switch (obj) {
     case 'TROLL':
       if (s.gflags['TROLL-UNCONSCIOUS'])
@@ -20,7 +29,6 @@ export function dynamicObjDesc(s: WorldState, obj: string): string | null {
   }
 }
 
-import { gameNumber } from '../data/games';
 import { zork2RoomDesc } from './zork2/specialDescs';
 
 export function dynamicRoomDesc(s: WorldState, room: string): string | null {

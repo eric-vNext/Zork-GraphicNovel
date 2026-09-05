@@ -8,7 +8,9 @@
 // panel (see data/zork2/presentation.ts roomArtFor), so prose and art can never
 // disagree about what state the room is in.
 import type { WorldState } from '../types';
-import { fclear, fset$ } from '../world';
+import { fclear, fset$, contents as contents$, objDef } from '../world';
+
+const objName = (id: string): string => objDef(id)?.desc ?? 'thing';
 import { litIgnoringRoomBit } from './specials';
 
 /** DIM-DOOR-APPEARS's text (2actions.zil); the flag clearing lives in specials. */
@@ -118,6 +120,64 @@ export const ZORK2_ROOM_DESCS: Record<string, Desc> = {
   'DREARY-ROOM': (s) =>
     `This is a small and rather dreary room, eerily illuminated by a red glow emanating from a crack in one wall. The light falls upon a dusty wooden table in the center of the room. ${palantirDoor(s, 'south', 'LID-2')}`,
 };
+
+/**
+ * BALLOON-FCN's M-LOOK arm: what you see standing in the basket. The bag, the
+ * receptacle and the wire each have two states, and the balloon is the only
+ * object in the trilogy that describes itself differently from inside.
+ */
+function balloonInside(s: WorldState): string {
+  let t: string;
+  const fuel = s.gvars['BINF-FLAG'];
+  const open = fset$(s, 'RECEPTACLE', 'OPENBIT');
+  if (fuel) {
+    t = 'The cloth bag is inflated and ';
+    t += open
+      ? `there is a ${objName(fuel)} burning in the receptacle.`
+      : 'some smoke is leaking out of the closed receptacle.';
+  } else {
+    t = 'The cloth bag is draped over the side of the basket. Directly in the middle of the basket is a metal receptacle which is ';
+    if (open) {
+      t += 'open';
+      const inside = contents$(s, 'RECEPTACLE')[0];
+      if (inside) t += `. A ${objName(inside)} is ${inside === fuel ? 'burning' : 'nestled'} inside`;
+    } else {
+      t += 'closed';
+    }
+    t += '.';
+  }
+  return t + (s.gvars['BTIE-FLAG']
+    ? ' The balloon is tied to a hook by the braided wire.'
+    : ' A braided wire is dangling over the side of the basket.');
+}
+
+/** BALLOON-FCN's M-OBJDESC arm: what you see standing next to it. */
+function balloonOutside(s: WorldState): string {
+  let t = 'There is a large and extremely heavy wicker basket here. An enormous cloth bag ';
+  const fuel = s.gvars['BINF-FLAG'];
+  if (fuel) {
+    t += 'attached to the basket is inflated. A metal receptacle is fastened to the center of the basket. ';
+    t += fset$(s, 'RECEPTACLE', 'OPENBIT')
+      ? `In it is a burning ${objName(fuel)}`
+      : 'Some smoke leaks out around its closed lid';
+  } else {
+    t += 'is draped over the side and is firmly attached to the basket. A metal receptacle is fastened to the center of the basket';
+  }
+  return t + (s.gvars['BTIE-FLAG']
+    ? '. A piece of wire tied to a hook holds the balloon in place.'
+    : '. Dangling from the basket is a piece of braided wire.');
+}
+
+/** The balloon's M-LOOK arm, printed after the room you are drifting through. */
+export function zork2VehicleDesc(s: WorldState, obj: string): string | null {
+  return obj === 'BALLOON' ? balloonInside(s) : null;
+}
+
+/** Zork II's M-OBJDESC arms, for objects that describe themselves by state. */
+export function zork2ObjDesc(s: WorldState, obj: string): string | null {
+  if (obj === 'BALLOON') return balloonOutside(s);
+  return null;
+}
 
 /** The description for `room`, or null to fall back to its extracted LDESC. */
 export function zork2RoomDesc(s: WorldState, room: string): string | null {

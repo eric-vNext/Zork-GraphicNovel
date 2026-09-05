@@ -32,6 +32,8 @@ export interface ObjDef {
   action?: string;
   capacity?: number;
   size?: number;
+  /** `P?VTYPE` — the room flag a vehicle needs to enter a room. */
+  vtype?: string[];
   value?: number;   // score on first take
   tvalue?: number;  // score on trophy-case deposit
   strength?: number;

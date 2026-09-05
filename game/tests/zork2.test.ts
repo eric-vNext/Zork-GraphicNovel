@@ -608,3 +608,96 @@ describe('the Bank of Zork', () => {
     selectGame(1);
   });
 });
+
+describe('the balloon', () => {
+  // The balloon is not steered: it rises while the burner is lit, falls when
+  // it goes out, and a compass move only says which way you would like to
+  // drift. The volcano is a four-storey shaft with two landable ledges.
+  function inBasket(): Game {
+    const g = at('VOLCANO-BOTTOM');
+    txt(g, 'enter basket');
+    return g;
+  }
+
+  function lightTheBurner(g: Game): void {
+    g.s.locs['NEWSPAPER'] = 'ADVENTURER';
+    g.s.locs['MATCH'] = 'ADVENTURER';
+    g.s.oflags['MATCH'] = { ...(g.s.oflags['MATCH'] ?? {}), FLAMEBIT: true, ONBIT: true };
+    txt(g, 'open receptacle');
+    txt(g, 'put newspaper in receptacle');
+    txt(g, 'burn newspaper');
+  }
+
+  // GOTO's land gate, both ways round: you cannot walk into thin air, and you
+  // cannot drive a balloon down a corridor.
+  it('will not be walked out of the volcano', () => {
+    const g = inBasket();
+    expect(txt(g, 'north')).toContain("You can't go there in a basket");
+    expect(g.s.here).toBe('VOLCANO-BOTTOM');
+    selectGame(1);
+  });
+
+  it('describes itself one way from inside and another from outside', () => {
+    const g = at('VOLCANO-BOTTOM');
+    expect(txt(g, 'look')).toContain('large and extremely heavy wicker basket');
+    txt(g, 'enter basket');
+    const inside = txt(g, 'look');
+    expect(inside).toContain('Volcano Bottom, in the basket');
+    expect(inside).toContain('cloth bag is draped over the side of the basket');
+    expect(inside, 'you do not see the basket you are standing in')
+      .not.toContain('large and extremely heavy wicker basket');
+    selectGame(1);
+  });
+
+  it('rises on a lit burner and lands on the wide ledge', () => {
+    const g = inBasket();
+    lightTheBurner(g);
+    expect(g.s.gvars['BINF-FLAG']).toBe('NEWSPAPER');
+    for (const room of ['VAIR-1', 'VAIR-2', 'VAIR-3', 'VAIR-4']) {
+      txt(g, 'wait');
+      expect(g.s.here).toBe(room);
+    }
+    txt(g, 'west');
+    expect(g.s.here).toBe('LEDGE-2');
+    expect(txt(g, 'tie wire to hook')).toContain('fastened to the hook');
+    expect(txt(g, 'out')).toContain('on your own feet again');
+    expect(g.s.locs['ADVENTURER']).toBe(null);
+    selectGame(1);
+  });
+
+  it('goes nowhere while it is tied up', () => {
+    const g = inBasket();
+    g.s.here = 'LEDGE-2';
+    g.s.gvars['BTIE-FLAG'] = 'HOOK-2';
+    expect(txt(g, 'west')).toContain('You are tied to the ledge');
+    expect(g.s.here).toBe('LEDGE-2');
+    selectGame(1);
+  });
+
+  it('carries you out of the volcano, which is fatal', () => {
+    const g = inBasket();
+    lightTheBurner(g);
+    g.s.gvars['BLOC'] = 'VAIR-4';
+    g.s.here = 'VAIR-4';
+    const said = txt(g, 'wait');
+    expect(said).toContain('crash into the jagged cliffs');
+    expect(g.s.locs['BALLOON']).toBe(null);
+    selectGame(1);
+  });
+
+  it('does not survive the landing once the fire is out', () => {
+    const g = inBasket();
+    lightTheBurner(g);
+    txt(g, 'wait');
+    expect(g.s.here).toBe('VAIR-1');
+    // The fuel burns out; nothing holds the bag up any more.
+    g.s.daemons['I-BURNUP'] = { tick: 1, enabled: true };
+    expect(txt(g, 'wait')).toContain('starts to deflate');
+    expect(g.s.gvars['BINF-FLAG']).toBe(null);
+    const crash = txt(g, 'wait');
+    expect(crash).toContain('the balloon did not survive');
+    expect(g.s.here).toBe('VOLCANO-BOTTOM');
+    expect(g.s.locs['DEAD-BALLOON']).toBe('VOLCANO-BOTTOM');
+    selectGame(1);
+  });
+});

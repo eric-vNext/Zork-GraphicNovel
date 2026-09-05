@@ -14,8 +14,8 @@ import type { WorldState } from '../types';
 import { prob, pickOne, DUMMY } from '../ctx';
 import { jigsUp } from '../death';
 import {
-  fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, roomLit,
-  objDef, theName,
+  fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, playerVehicle,
+  roomDef, roomLit, objDef, theName,
 } from '../world';
 import { spellUsed } from '../spells';
 import world from '../../data/zork2/world.gen.json';
@@ -74,8 +74,15 @@ const SCRAMBLE_DIRS = ['NORTH', 'EAST', 'SOUTH', 'NE', 'SE', 'SW', 'NW'];
  *
  * Returns the direction actually taken, or null to let the move stand.
  */
-export function beforeWalk(ctx: Ctx, dir: string): string | null {
+export type WalkIntercept = { dir?: string; stop?: boolean } | null;
+
+export function beforeWalk(ctx: Ctx, dir: string): WalkIntercept {
   const { s, out } = ctx;
+
+  // In a vehicle it is the vehicle's M-BEG that runs, not the room's
+  // (gmain.zil:212).
+  if (playerVehicle(s) === 'BALLOON') return balloonWalk(ctx, dir);
+
   if (s.here !== 'CAROUSEL-ROOM' || s.gflags['CAROUSEL-FLIP-FLAG']) return null;
   if (dir === 'UP' || dir === 'DOWN') return null;
 
@@ -87,9 +94,61 @@ export function beforeWalk(ctx: Ctx, dir: string): string | null {
     out.tell("You're not sure which direction is which. This room is very disorienting.");
   }
   if (intended === 'WEST' || prob(ctx, 80)) {
-    return SCRAMBLE_DIRS[Math.floor(ctx.rng() * SCRAMBLE_DIRS.length)];
+    return { dir: SCRAMBLE_DIRS[Math.floor(ctx.rng() * SCRAMBLE_DIRS.length)] };
   }
-  return intended;
+  return { dir: intended };
+}
+
+/**
+ * BALLOON-FCN's M-BEG arm for WALK. You do not steer a balloon: a compass move
+ * only tells it which way you would like to drift, and the drifting itself is
+ * I-BALLOON's business three turns later.
+ */
+function balloonWalk(ctx: Ctx, dir: string): WalkIntercept {
+  const { s, out } = ctx;
+  const ex = roomDef(s.here).exits[dir];
+  if (!ex) {
+    out.tell("You can't control the balloon this way.");
+    return { stop: true };
+  }
+  if (s.gvars['BTIE-FLAG']) {
+    out.tell('You are tied to the ledge.');
+    return { stop: true };
+  }
+  if (ex.to && !ex.per && !ex.ifFlag && !ex.ifDoor && !fset$(s, ex.to, 'RMUNGBIT')) {
+    s.gvars['BLOC'] = ex.to;
+  }
+  ctx.queue('I-BALLOON', 3);
+  return null;
+}
+
+/**
+ * BALLOON-BURN (2actions.zil:227). Burning something in the receptacle fires
+ * the burner instead of destroying it: verbs.ts routes V-BURN here when the
+ * object is in the receptacle, exactly as gverbs.zil:252 does.
+ */
+export function balloonBurn(ctx: Ctx): boolean {
+  const { s, out } = ctx;
+  const fuel = ctx.dobj;
+  if (!fuel) return false;
+  out.tell(`The ${objDef(fuel).desc} burns inside the receptacle.`);
+  out.emit({ type: 'sfx', name: 'z2-balloon-burner' });
+  ctx.queue('I-BURNUP', (objDef(fuel).size ?? 5) * 20);
+  fset(s, fuel, 'FLAMEBIT');
+  fset(s, fuel, 'ONBIT');
+  fclear(s, fuel, 'TAKEBIT');
+  fclear(s, fuel, 'READBIT');
+  if (s.gvars['BINF-FLAG']) return true;
+
+  out.tell('The cloth bag inflates as it fills with hot air.');
+  if (!s.gflags['BLAB-FLAG']) {
+    out.tell('A small label drops from the bag into the basket.');
+    moveObj(s, 'BALLOON-LABEL', 'BALLOON');
+  }
+  s.gflags['BLAB-FLAG'] = true;
+  s.gvars['BINF-FLAG'] = fuel;
+  ctx.queue('I-BALLOON', 3);
+  return true;
 }
 
 // ============================== BANK OF ZORK =================================
@@ -298,6 +357,62 @@ const OBJ_ROUTINES: Record<string, Handler> = {
       default:
         return false;
     }
+  },
+
+  // --- the balloon ----------------------------------------------------------
+  // BALLOON-FCN's M-LOOK and M-OBJDESC arms live in specialDescs and its M-BEG
+  // arm in beforeAction below; nothing is left for the object table.
+
+  // BCONTENTS (2actions.zil:334) — the bag, the receptacle and the wire are
+  // parts of the basket, not objects you can pocket.
+  'BCONTENTS': (ctx) => {
+    const { s, out } = ctx;
+    const d = ctx.dobj;
+    if (!d) return false;
+    if (ctx.verb === 'take') {
+      out.tell(`The ${objDef(d).desc} is an integral part of the basket and cannot be removed.`
+        + (d === 'BRAIDED-WIRE' ? ' The wire might possibly be tied, though.' : ''));
+      return true;
+    }
+    if (d === 'CLOTH-BAG' && (ctx.verb === 'look-in' || ctx.verb === 'open')) {
+      out.tell(ctx.verb === 'open'
+        ? 'The bag is enormous. The concept of opening it here is ludicrous.'
+        : "It doesn't appear that there's anything inside.");
+      return true;
+    }
+    if (ctx.verb === 'examine' && d === 'RECEPTACLE') {
+      out.tell(`The receptacle is ${fset$(s, 'RECEPTACLE', 'OPENBIT') ? 'open.' : 'closed.'}`);
+      return true;
+    }
+    if (ctx.verb === 'examine') {
+      out.tell(`The ${objDef(d).desc} is part of the basket. It may be manipulated within the basket but cannot be removed.`);
+      return true;
+    }
+    return false;
+  },
+
+  // WIRE-FCN (2actions.zil:353) — tying up is what stops the balloon drifting.
+  'WIRE-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'take' || ctx.verb === 'examine') return OBJ_ROUTINES['BCONTENTS'](ctx);
+    if (ctx.verb === 'tie') {
+      if (ctx.dobj !== 'BRAIDED-WIRE' || (ctx.iobj !== 'HOOK-1' && ctx.iobj !== 'HOOK-2')) return false;
+      s.gvars['BTIE-FLAG'] = ctx.iobj;
+      fset(s, ctx.iobj, 'NDESCBIT');
+      ctx.disable('I-BALLOON');
+      out.tell('The balloon is fastened to the hook.');
+      return true;
+    }
+    if (ctx.verb === 'untie' && ctx.dobj === 'BRAIDED-WIRE') {
+      const hook = s.gvars['BTIE-FLAG'];
+      if (!hook) { out.tell('The wire is not tied to anything.'); return true; }
+      ctx.queue('I-BALLOON', 3);
+      fclear(s, hook, 'NDESCBIT');
+      s.gvars['BTIE-FLAG'] = null;
+      out.tell('The wire falls off of the hook.');
+      return true;
+    }
+    return false;
   },
 
   // --- the Bank of Zork -----------------------------------------------------
@@ -612,6 +727,38 @@ const OBJ_ROUTINES: Record<string, Handler> = {
   },
 };
 
+/**
+ * BALLOON-FCN's M-BEG arm (2actions.zil:177). While you are in the basket the
+ * vehicle sees every command first, which is how the burning fuel stops being
+ * an ordinary object you can pick up or list.
+ */
+export function beforeAction(ctx: Ctx): boolean {
+  const { s, out } = ctx;
+  if (playerVehicle(s) !== 'BALLOON') return false;
+
+  if (ctx.verb === 'open' && s.gvars['BINF-FLAG'] && ctx.dobj === 'RECEPTACLE'
+      && contents(s, 'RECEPTACLE').length) {
+    out.tell(`Opening it reveals a burning ${objDef(s.gvars['BINF-FLAG']!).desc}.`);
+    fset(s, 'RECEPTACLE', 'OPENBIT');
+    return true;
+  }
+  if (ctx.verb === 'take' && ctx.dobj && ctx.dobj === s.gvars['BINF-FLAG']) {
+    out.tell(`You don't really want to hold a burning ${objDef(ctx.dobj).desc}.`);
+    return true;
+  }
+  if (ctx.verb === 'put' && ctx.iobj === 'RECEPTACLE') {
+    if (contents(s, 'RECEPTACLE').length) { out.tell('The receptacle is already occupied.'); return true; }
+    // Whatever goes in stops being listed separately; the basket describes it.
+    if (ctx.dobj) fset(s, ctx.dobj, 'NDESCBIT');
+    return false;
+  }
+  if (ctx.verb === 'inflate') {
+    out.tell('It takes more than words to inflate a balloon.');
+    return true;
+  }
+  return false;
+}
+
 // ============================= ROOM ACTIONS ==================================
 
 /**
@@ -734,4 +881,4 @@ export function specialExit(ctx: Ctx, per: string, dir?: string): string | null 
   return SPECIAL_EXITS[per]?.(ctx, dir) ?? null;
 }
 
-export const ZORK2_SPECIALS = { objAction, roomAction, specialExit, beforeWalk };
+export const ZORK2_SPECIALS = { objAction, roomAction, specialExit, beforeWalk, beforeAction };
