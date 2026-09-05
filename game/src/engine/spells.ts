@@ -153,6 +153,11 @@ function setHandled(s: WorldState, v: boolean): void {
   s.gflags['SPELL-HANDLED'] = v;
 }
 
+/** Let an object's own ACTION say it has already dealt with the spell. */
+export function setSpellHandled(s: WorldState, v: boolean): void {
+  setHandled(s, v);
+}
+
 export function spellHandled(s: WorldState): boolean {
   return !!s.gflags['SPELL-HANDLED'];
 }

@@ -8,12 +8,12 @@ import type { Ctx } from '../ctx';
 import { prob } from '../ctx';
 import { jigsUp } from '../death';
 import {
-  fset, fset$, moveObj, removeObj, contents, inPlayer, isRoom, mungRoom, objDef, roomDef,
-  roomLit, theName, PLAYER,
+  fclear, fset, fset$, moveObj, removeObj, contents, inPlayer, isRoom, mungRoom, objDef,
+  roomDef, roomLit, theName, PLAYER,
 } from '../world';
 import * as spells from '../spells';
 import { SPELLS, SPELL_HINTS, SPELL_NAMES, SPELL_STOPS, type Spell } from '../spells';
-import { OTHER_PROPERTIES } from './specials';
+import { OTHER_PROPERTIES, PRINCESS_ROUTE } from './specials';
 
 /** `<CONSTANT LOAD-MAX>` — what Feeble takes away and expiry restores. */
 const LOAD_MAX = 100;
@@ -580,6 +580,131 @@ export function burnupDaemon(ctx: Ctx): void {
   s.gvars['BINF-FLAG'] = null;
 }
 
+// ------------------------------ the garden -----------------------------------
+
+/**
+ * I-PRINCESS (2actions.zil:2770). She walks her nine steps whether or not you
+ * keep up. Two of them are worth being present for: the secret door she opens
+ * out of the Marble Hall, and the gazebo, where the unicorn comes to her.
+ */
+export function princessDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  const step = PRINCESS_ROUTE[s.counters.prCount ?? 0];
+  if (!step) return;
+  const from = s.locs['PRINCESS'];
+  moveObj(s, 'PRINCESS', step.to);
+  s.gvars['PRFOLLOW'] = null;
+
+  if (step.to === 'STREAM-PATH' && s.here === 'MARBLE-HALL') {
+    out.tell('The princess presses a loose piece of marble in the wall and a large section of the wall slides away, revealing a passage to the east. She enters it.');
+    if (s.here === from) s.gvars['PRFOLLOW'] = step.follow;
+    s.gflags['SECRET-DOOR'] = true;
+  } else if (step.to === 'STREAM-PATH' && s.here === 'STREAM-PATH') {
+    s.gflags['SECRET-DOOR'] = true;
+    out.tell('The princess appears from behind some rocks, as though she had walked through a wall.');
+  } else if (s.here === from) {
+    s.gvars['PRFOLLOW'] = step.follow;
+    if (from === 'GARDEN-NORTH') {
+      out.tell('The princess enters the gazebo'
+        + (fset$(s, 'GAZEBO-ROOM', 'RMUNGBIT')
+          ? ', although you would never get past the debris. She must be magically protected.'
+          : '') + '.');
+    } else if (from === 'RAVINE-LEDGE') {
+      out.tell('The princess climbs daintily down the rock face.');
+    } else {
+      out.tell(`The princess walks ${step.walks}. She glances back at you as she goes.`);
+    }
+  } else if (s.locs['PRINCESS'] === s.here) {
+    if (s.here === 'GAZEBO-ROOM') out.tell('The princess joins you in the gazebo.');
+    else if (s.here === 'DEEP-FORD') out.tell('The princess climbs down the rock wall onto the beach.');
+    else out.tell(`The princess enters from the ${step.from}. She seems surprised to see you.`);
+  }
+
+  if (s.locs['PRINCESS'] === 'GAZEBO-ROOM') {
+    ctx.disable('I-PRINCESS');
+    ctx.queue('I-UNICORN', 6);
+  } else {
+    s.counters.prCount = (s.counters.prCount ?? 0) + 1;
+    ctx.queue('I-PRINCESS', prob(ctx, 75) ? 1 : 2);
+  }
+}
+
+/**
+ * I-UNICORN (2actions.zil:2823). The reward for having followed her: the gold
+ * key that opens the Wizard's door. Miss it and she simply leaves.
+ */
+export function unicornDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  if (s.here === 'GAZEBO-ROOM' || s.here === 'GARDEN-NORTH') {
+    moveObj(s, 'ROSE', PLAYER);
+    fclear(s, 'GOLD-KEY', 'NDESCBIT');
+    moveObj(s, 'GOLD-KEY', PLAYER);
+    if (!s.scoredTakes['GOLD-KEY']) {
+      s.scoredTakes['GOLD-KEY'] = true;
+      s.counters.score += objDef('GOLD-KEY').value ?? 0;
+      out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
+    }
+    out.tell('Shyly, a unicorn peeks out of the hedges. It notices the princess and seems captivated. It approaches her and bows its head as though curtseying to her. Around its neck is a red satin ribbon on which is strung a delicate gold key. The princess takes the ribbon and uses it to tie up her hair. She looks at you and then, smiling, hands you the key and a fresh rose which she plucks from the arbor. "You may have use of such a thing," she says. "It is the least I can do for one who rescued me from a fate I dare not contemplate." With that, she mounts the unicorn (side-saddle, of course) and rides off into the gloom.');
+    out.emit({ type: 'panel', key: 'events/z2-ev-unicorn-collared' });
+    out.emit({ type: 'sfx', name: 'z2-unicorn-whinny' });
+    removeObj(s, 'PRINCESS');
+    return;
+  }
+  removeObj(s, 'PRINCESS');
+  moveObj(s, 'ROSE', 'GAZEBO-ROOM');
+}
+
+/** `,UNICORN-MSGS` — glimpses of it, in rising order of how close it has come. */
+const UNICORN_MSGS = [
+  'There is a large, white animal partly hidden behind some trees.',
+  'You catch a glimpse of something white between two hedges.',
+  'A unicorn is cropping grass on the other side of the room. A gold key hangs from a ribbon around its neck.',
+  'There is a beautiful unicorn eating roses here. Around his neck is a red satin ribbon on which is strung a tiny key.',
+];
+
+const GARDEN_ROOMS = ['GARDEN-NORTH', 'GAZEBO-ROOM', 'TOPIARY-ROOM', 'FORMAL-GARDEN'];
+
+/**
+ * I-GARDEN (2actions.zil:2565). The unicorn drifts in and out of the garden
+ * while the princess is still asleep — it is the other way to the gold key —
+ * and the topiary animals close in on anyone who lingers among them.
+ */
+export function gardenDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  if (!GARDEN_ROOMS.includes(s.here)) {
+    removeObj(s, 'UNICORN');
+    ctx.disable('I-GARDEN');
+    return;
+  }
+  if (s.locs['UNICORN'] === 'GARDEN-NORTH' && prob(ctx, 33)) {
+    removeObj(s, 'UNICORN');
+    if (s.here !== 'TOPIARY-ROOM') out.tell('The unicorn bounds lightly away.');
+    return;
+  }
+  if (s.locs['PRINCESS'] === 'DRAGON-LAIR' && s.locs['UNICORN'] !== 'GARDEN-NORTH'
+      && prob(ctx, 25) && s.here !== 'TOPIARY-ROOM') {
+    // Frightening it off buys it one turn's grace before it dares come back.
+    if (s.gflags['UNICORN-FRIGHTENED']) { s.gflags['UNICORN-FRIGHTENED'] = false; return; }
+    moveObj(s, 'UNICORN', 'GARDEN-NORTH');
+    out.tell(s.here === 'GARDEN-NORTH'
+      ? UNICORN_MSGS[Math.floor(ctx.rng() * UNICORN_MSGS.length)]
+      : 'A unicorn is peacefully cropping grass at the north end of the garden. There is something hanging around its neck.');
+    return;
+  }
+  if (s.here !== 'TOPIARY-ROOM') return;
+  if (!s.gflags['TOPIARY-MOVED'] && prob(ctx, 12)) {
+    s.gflags['TOPIARY-MOVED'] = true;
+    out.tell('You look around, and strangely, the topiary animals seem to have changed position slightly.');
+  } else if (s.gflags['TOPIARY-MOVED'] && !s.gflags['TOPIARY-NEAR'] && prob(ctx, 8)) {
+    s.gflags['TOPIARY-NEAR'] = true;
+    out.tell('The topiary animals seem to close in on you. You turn and they are very close. They seem to be leering at you.');
+  } else if (s.gflags['TOPIARY-NEAR'] && prob(ctx, 4)) {
+    s.gflags['TOPIARY-MOVED'] = false;
+    s.gflags['TOPIARY-NEAR'] = false;
+    jigsUp(ctx, 'The topiary animals attack! You are crushed by their branches and clawed by their thorns.', {});
+  }
+}
+
 export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   // The player's own spell, and the wand's charge, both time out.
   'I-SPELL': spells.spellTimeout,
@@ -594,4 +719,7 @@ export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   'I-ZGNOME-OUT': zgnomeOutDaemon,
   'I-BALLOON': balloonDaemon,
   'I-BURNUP': burnupDaemon,
+  'I-PRINCESS': princessDaemon,
+  'I-UNICORN': unicornDaemon,
+  'I-GARDEN': gardenDaemon,
 };

@@ -176,6 +176,14 @@ export function zork2VehicleDesc(s: WorldState, obj: string): string | null {
 /** Zork II's M-OBJDESC arms, for objects that describe themselves by state. */
 export function zork2ObjDesc(s: WorldState, obj: string): string | null {
   if (obj === 'BALLOON') return balloonOutside(s);
+  // Two objects have their LDESC rewritten by the routine that changes them
+  // (<PUTP ... P?LDESC ...>), which is the same thing said a different way.
+  if (obj === 'PRINCESS' && s.gflags['PRINCESS-AWAKE']) {
+    return 'There is a dishevelled and slightly unkempt princess here.';
+  }
+  if (obj === 'CERBERUS' && s.gflags['CERBERUS-LEASHED']) {
+    return 'An insipidly grinning three-headed dog is wagging its tail here. It is wearing a huge dog collar.';
+  }
   return null;
 }
 

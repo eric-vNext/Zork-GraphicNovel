@@ -277,6 +277,8 @@ describe('the Carousel Room', () => {
 // Action routines (2actions.zil). Each of these is a puzzle whose flag also
 // gates a room description and a panel, so a break here shows up three ways.
 
+const inPlayerHands = (g: Game, obj: string): boolean => g.s.locs[obj] === 'ADVENTURER';
+
 /** A game standing in `room` with a lit lamp in hand. */
 function at(room: string): Game {
   const g = new Game(2);
@@ -775,6 +777,78 @@ describe("the Wizard's wand", () => {
   it('means nothing in the other two games', () => {
     expect(txt(new Game(1), 'incant float')).toContain('echoes back faintly');
     expect(txt(new Game(3), 'incant float')).toContain('echoes back faintly');
+    selectGame(1);
+  });
+});
+
+describe('Cerberus and the garden', () => {
+  it('will not be fought, but will be collared', () => {
+    const g = at('CERBERUS-ROOM');
+    expect(txt(g, 'east')).toContain('The huge dog snaps nastily at you');
+    expect(txt(g, 'hello dog')).toContain('"Grrrr!"');
+    g.s.locs['COLLAR'] = 'ADVENTURER';
+    const tamed = txt(g, 'put collar on dog');
+    expect(tamed).toContain('whines happily');
+    expect(g.s.gflags['CERBERUS-LEASHED']).toBe(true);
+    expect(txt(g, 'hello dog')).toContain('"Arf! Arf! Arf!"');
+    txt(g, 'east');
+    expect(g.s.here).toBe('CRYPT-ANTEROOM');
+    selectGame(1);
+  });
+
+  it('kills you for taking the collar back', () => {
+    const g = at('CERBERUS-ROOM');
+    g.s.gflags['CERBERUS-LEASHED'] = true;
+    g.s.locs['COLLAR'] = 'CERBERUS';
+    expect(txt(g, 'take collar')).toContain('little doggy biscuits');
+    selectGame(1);
+  });
+
+  // Wake her, then keep up: she walks nine fixed steps to the gazebo, opening
+  // the secret door out of the Marble Hall on the way, and the unicorn only
+  // comes to her at the far end.
+  it('follows the princess to the gazebo for the gold key', () => {
+    const g = at('DRAGON-LAIR');
+    expect(txt(g, 'wake princess')).toContain('shakes herself awake');
+    expect(g.s.gflags['PRINCESS-AWAKE']).toBe(true);
+
+    for (let i = 0; i < 40 && !inPlayerHands(g, 'GOLD-KEY'); i++) txt(g, 'follow princess');
+
+    expect(g.s.here).toBe('GAZEBO-ROOM');
+    expect(g.s.gflags['SECRET-DOOR'], 'she opens it on the way past').toBe(true);
+    expect(inPlayerHands(g, 'GOLD-KEY')).toBe(true);
+    expect(inPlayerHands(g, 'ROSE')).toBe(true);
+    expect(g.s.counters.score).toBe(15);
+    expect(g.s.locs['PRINCESS']).toBe(null);
+    selectGame(1);
+  });
+
+  it('leaves without you if you do not keep up', () => {
+    const g = at('DRAGON-LAIR');
+    txt(g, 'wake princess');
+    for (let i = 0; i < 40 && g.s.locs['PRINCESS']; i++) txt(g, 'wait');
+    expect(g.s.locs['PRINCESS']).toBe(null);
+    expect(g.s.locs['GOLD-KEY'], 'the key goes with her').not.toBe('ADVENTURER');
+    expect(g.s.locs['ROSE']).toBe('GAZEBO-ROOM');
+    selectGame(1);
+  });
+
+  it('describes her differently once she is awake', () => {
+    const g = at('DRAGON-LAIR');
+    expect(txt(g, 'look')).toContain('almost in a trance');
+    g.s.gflags['PRINCESS-AWAKE'] = true;
+    delete g.s.touched['DRAGON-LAIR'];
+    expect(txt(g, 'look')).toContain('dishevelled and slightly unkempt princess');
+    selectGame(1);
+  });
+
+  it('frightens the unicorn off if you grab at it', () => {
+    const g = at('GARDEN-NORTH');
+    g.s.locs['UNICORN'] = 'GARDEN-NORTH';
+    expect(txt(g, 'examine unicorn')).toContain('tiny gold key hanging from a red satin ribbon');
+    expect(txt(g, 'take unicorn')).toContain('melts into the hedges');
+    expect(g.s.locs['UNICORN']).toBe(null);
+    expect(g.s.gflags['UNICORN-FRIGHTENED']).toBe(true);
     selectGame(1);
   });
 });

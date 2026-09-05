@@ -24,6 +24,8 @@ export interface Ctx {
   die: (text: string, opts?: { panel?: string }) => void;
   winGame: () => void;
   moveTo: (room: string, describe?: boolean) => void; // teleport + describe
+  /** DO-WALK: take an exit as though the player had typed the direction. */
+  walk: (dir: string) => void;
   perform: (verb: string, dobj?: string, iobj?: string) => void; // re-dispatch
 }
 

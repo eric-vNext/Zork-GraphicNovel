@@ -152,6 +152,36 @@ export function balloonBurn(ctx: Ctx): boolean {
   return true;
 }
 
+// ------------------------------- the princess --------------------------------
+/**
+ * `,PRDIRS` (2actions.zil:2760). Once woken, the princess walks a fixed nine
+ * step route from the dragon's lair to the gazebo, and the whole puzzle is
+ * keeping up with her: she opens the secret door on the way, and the unicorn
+ * only comes to her at the far end.
+ */
+export interface PrincessStep {
+  /** The direction word she is seen to walk. */
+  walks: string;
+  /** Where she goes. */
+  to: string;
+  /** The direction word she is seen to arrive from. */
+  from: string;
+  /** The direction you must walk to keep up. */
+  follow: string;
+}
+
+export const PRINCESS_ROUTE: PrincessStep[] = [
+  { walks: 'south', to: 'DRAGON-ROOM', from: 'north', follow: 'SOUTH' },
+  { walks: 'east', to: 'LEDGE-TUNNEL', from: 'west', follow: 'EAST' },
+  { walks: 'east', to: 'RAVINE-LEDGE', from: 'west', follow: 'EAST' },
+  { walks: 'down', to: 'DEEP-FORD', from: 'up', follow: 'DOWN' },
+  { walks: 'south', to: 'MARBLE-HALL', from: 'north', follow: 'SOUTH' },
+  { walks: 'east', to: 'STREAM-PATH', from: 'west', follow: 'EAST' },
+  { walks: 'east', to: 'FORMAL-GARDEN', from: 'west', follow: 'EAST' },
+  { walks: 'north', to: 'GARDEN-NORTH', from: 'south', follow: 'NORTH' },
+  { walks: 'in', to: 'GAZEBO-ROOM', from: 'out', follow: 'IN' },
+];
+
 // ============================== BANK OF ZORK =================================
 // The bank is one machine, not four routines: a curtain of light in the
 // depository, four identical viewing rooms, and one piece of state — which
@@ -358,6 +388,195 @@ const OBJ_ROUTINES: Record<string, Handler> = {
       default:
         return false;
     }
+  },
+
+  // --- Cerberus -------------------------------------------------------------
+  // CERBERUS-FCN (2actions.zil:2298). The dog guarding the tomb is not a fight
+  // you can win; it is a dog, and it wants a collar.
+  'CERBERUS-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const leashed = !!s.gflags['CERBERUS-LEASHED'];
+
+    // The wand is aimed at him by the arm below; this only comments on it.
+    if ((ctx.verb === 'wave' || ctx.verb === 'touch' || ctx.verb === 'raise') && ctx.dobj === 'WAND') {
+      out.tell('The dog looks puzzled.');
+      return false;
+    }
+    if (spells.wandOn(s) && (ctx.verb === 'say' || ctx.verb === 'incant')) return false;
+
+    if (ctx.verb === 'hello') {
+      out.tell(leashed ? '"Arf! Arf! Arf!"' : '"Grrrr!"');
+      return true;
+    }
+    if (ctx.verb === 'attack' || ctx.verb === 'break') {
+      if (leashed) {
+        removeObj(s, 'CERBERUS');
+        out.tell('With a quiet bark of disappointment, the creature expires. Its six eyes look at you reproachfully. As it dies, it collapses into a small pile of dust which blows away into nothing.');
+      } else if (prob(ctx, 50)) {
+        out.emit({ type: 'sfx', name: 'z2-cerberus-growl' });
+        jigsUp(ctx, 'The dog-thing snaps at you viciously, and succeeds. Your head, it seems, is only a small mouthful for the poor animal, who is just as hungry afterward.', {});
+      } else {
+        out.tell('The maddened dog-thing snaps viciously at you.');
+      }
+      return true;
+    }
+    if (ctx.verb === 'put' && ctx.dobj === 'COLLAR') {
+      moveObj(s, 'COLLAR', 'CERBERUS');
+      fset(s, 'COLLAR', 'NDESCBIT');
+      fset(s, 'COLLAR', 'TRYTAKEBIT');
+      s.gflags['CERBERUS-LEASHED'] = true;
+      out.tell('The creature whines happily, then the center head licks your face (which is roughly like experiencing a sandpaper washcloth). The other two heads look about, as though the monster felt a sudden need to find a pair of slippers somewhere. Its huge tail wags enthusiastically, knocking small rocks around and almost blowing you over from the breeze it creates.');
+      out.emit({ type: 'panel', key: 'events/z2-ev-guardians-pass' });
+      return true;
+    }
+    if (ctx.verb === 'enchant') {
+      const used = spells.spellUsedWord(s);
+      if (used === 'FLOAT') {
+        spells.setSpellHandled(s, true);
+        out.tell('The huge dog rises about an inch off the ground, for a moment.');
+        return true;
+      }
+      if (used === 'FIERCE') {
+        spells.setSpellHandled(s, true);
+        jigsUp(ctx, 'Cerberus tears you limb from limb! What ferocity!', {});
+        return true;
+      }
+      if (used === 'FEEBLE') {
+        out.tell('What an effect! He now has the strength of just one elephant, rather than ten!');
+        return true;
+      }
+      return false;
+    }
+    if (!leashed) {
+      out.tell('The three-headed dog snaps at you viciously!');
+      return true;
+    }
+    if (ctx.verb === 'touch') {
+      out.tell('The dog is now insanely happy, slobbering all over the place and whining with uncontained doggish joy.');
+      return true;
+    }
+    return false;
+  },
+
+  'COLLAR-FCN': (ctx) => {
+    const { s } = ctx;
+    if (ctx.verb === 'take' && s.gflags['CERBERUS-LEASHED']) {
+      jigsUp(ctx, "That wasn't such a good idea. The creature was enjoying being your pet. As you unfasten the collar, the disappointed monster hound begins to growl, and then its three fang-crammed mouths rend you into little doggy biscuits.", {});
+      return true;
+    }
+    if (ctx.verb === 'enchant' && spells.spellUsedWord(s) === 'FLOAT') {
+      ctx.perform('enchant', 'CERBERUS');
+      return true;
+    }
+    return false;
+  },
+
+  // --- the princess ---------------------------------------------------------
+  // CHEST-FCN (2actions.zil:2671). Rummaging in the dragon's chest is the other
+  // way to wake her, and the rusty hinges only give one time in four.
+  'CHEST-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb !== 'open' || s.gflags['CHEST-TRIED']) return false;
+    const asleep = s.locs['PRINCESS'] === s.here && !s.gflags['PRINCESS-AWAKE'];
+    if (prob(ctx, 25)) {
+      fset(s, 'CHEST', 'OPENBIT');
+      out.tell('Opened.');
+      if (asleep) out.tell('The opening of the squeaky lid startles the young woman.');
+    } else {
+      out.tell('The hinges are very rusty, but they seem to be starting to give. You can probably open it if you try again. There is something bumping around inside.'
+        + (asleep ? ' All this rummaging around has startled the young woman.' : ''));
+    }
+    s.gflags['CHEST-TRIED'] = true;
+    if (asleep) ctx.perform('alarm', 'PRINCESS');
+    return true;
+  },
+
+  'PRINCESS-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'follow') {
+      if (s.locs['PRINCESS'] === s.here) out.tell("You can't follow her until she leaves...");
+      else if (s.gvars['PRFOLLOW']) ctx.walk(s.gvars['PRFOLLOW']!);
+      else out.tell('I seem to have lost track of her.');
+      return true;
+    }
+    if (s.locs['PRINCESS'] !== s.here) { out.tell('There is no princess here.'); return true; }
+
+    if (ctx.verb === 'attack' || ctx.verb === 'break') {
+      removeObj(s, 'PRINCESS');
+      out.tell('The princess screams as you approach. "Won\'t someone deliver me from this awful fate?" she cries. '
+        + (s.locs['WIZARD'] === s.here
+          ? 'Shocked, the Wizard of Frobozz turns toward you.'
+          : 'Just in time, the Wizard of Frobozz appears, seeming to unroll himself out of nothing like a window shade.')
+        + ' "Fry!" he intones, and a massive bolt of lightning reduces you to a pile of smoking ashes. (Serves you right, too, if you ask me.)');
+      jigsUp(ctx, '', {});
+      return true;
+    }
+    const spokenTo = ctx.verb === 'hello' || ctx.verb === 'say' || ctx.verb === 'alarm'
+      || ctx.verb === 'kiss' || ctx.verb === 'examine' || ctx.verb === 'touch';
+    if (spokenTo) {
+      if (s.locs['PRINCESS'] === 'DRAGON-LAIR' && !ctx.enabled('I-PRINCESS')) {
+        ctx.queue('I-PRINCESS', 2);
+        s.gflags['PRINCESS-AWAKE'] = true;
+        out.tell('The princess (for she is obviously one) shakes herself awake, then notices you for the first time. She smiles. "Thank you for rescuing me from that horrid worm," she says. "I must depart. My parents will be worried about me." With that, she arises, looking purposefully out of the lair.');
+        out.emit({ type: 'panel', key: 'events/z2-ev-princess-wakes' });
+        return true;
+      }
+      out.tell('The princess ignores you. She looks about the room, but her eyes fix on the '
+        + (s.here === 'GAZEBO-ROOM' ? 'garden outside'
+          : s.here === 'GARDEN-NORTH' ? 'gazebo'
+          : s.here === 'RAVINE-LEDGE' ? 'ledge'
+          : PRINCESS_ROUTE[Math.min(s.counters.prCount ?? 0, PRINCESS_ROUTE.length - 1)].walks) + '.');
+      return true;
+    }
+    if (!s.gflags['PRINCESS-AWAKE']) { out.tell("She's in a trance!"); return true; }
+    return false;
+  },
+
+  // --- the unicorn ----------------------------------------------------------
+  'UNICORN-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'hello') {
+      out.tell('The unicorn listens distractedly, then goes back to cropping grass.');
+      return true;
+    }
+    if (ctx.verb === 'follow') { out.tell('The unicorn shies away as you approach.'); return true; }
+    if (ctx.verb === 'examine') {
+      out.tell(ctx.dobj === 'UNICORN'
+        ? "The unicorn shies away as you approach for a closer look, but you do notice a tiny gold key hanging from a red satin ribbon looped around the animal's neck."
+        : 'The unicorn shies away as you approach.');
+      return true;
+    }
+    if (['take', 'put', 'touch', 'break', 'attack'].includes(ctx.verb)) {
+      removeObj(s, 'UNICORN');
+      s.gflags['UNICORN-FRIGHTENED'] = true;
+      out.tell('The unicorn, unsurprised by this evidence that you are indeed the uncouth sort of vagabond it suspected you were, melts into the hedges and is gone.');
+      return true;
+    }
+    return false;
+  },
+
+  'GLOBAL-UNICORN-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (s.locs['UNICORN'] === 'GARDEN-NORTH') {
+      out.tell('The unicorn is way up at the north end of the garden.');
+    } else if (ctx.verb === 'follow') {
+      out.tell(fset$(s, 'UNICORN', 'TOUCHBIT')
+        ? "I don't know where it is now."
+        : 'The unicorn is a mythical beast.');
+    } else {
+      out.tell('Unicorn? What unicorn?');
+    }
+    return true;
+  },
+
+  'GAZEBO-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'enter') {
+      if (s.here === 'GARDEN-NORTH') { ctx.walk('IN'); return true; }
+      if (s.here === 'GAZEBO-ROOM') { out.tell("You're already in it."); return true; }
+    }
+    if (ctx.verb === 'exit' && s.here === 'GAZEBO-ROOM') { ctx.walk('OUT'); return true; }
+    return false;
   },
 
   // --- the Wizard's wand ----------------------------------------------------
@@ -837,6 +1056,12 @@ export function dimDoorAppears(ctx: Ctx): void {
 }
 
 const ROOM_ROUTINES: Record<string, RoomHandler> = {
+  // GARDEN-ROOM-FCN (2actions.zil:2624) — the garden's own wandering daemon.
+  'GARDEN-ROOM-FCN': (ctx, phase) => {
+    if (phase === 'enter') ctx.queue('I-GARDEN', -1);
+    return false;
+  },
+
   // DEPOSITORY-FCN (2actions.zil:1359). Which way you walked in is which room
   // the curtain will let you out into.
   'DEPOSITORY-FCN': (ctx, phase, dir) => {

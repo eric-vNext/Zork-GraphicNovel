@@ -72,6 +72,7 @@ export class Game {
         if (describe) enterRoom(ctx, room);
         else { self.s.here = room; out.emit({ type: 'room', room }); }
       },
+      walk: (dir) => { goTo(self.makeCtx(out, { verb: 'walk', dir }), dir); },
       perform: (verb, dobj, iobj) => {
         const sub = this.makeCtx(out, { verb, dobjs: dobj ? [dobj] : undefined, iobj });
         if (verb === 'look') describeRoom(this.s, out, true);
