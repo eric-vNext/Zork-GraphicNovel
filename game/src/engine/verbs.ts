@@ -3,7 +3,28 @@
 import type { Ctx } from './ctx';
 import { pickOne, YUKS, HO_HUM } from './ctx';
 import { jigsUp } from './death';
-import { objAction, roomAction, specialExit } from './specials';
+import {
+  objAction as z1ObjAction,
+  roomAction as z1RoomAction,
+  specialExit as z1SpecialExit,
+} from './specials';
+
+// ACTION routines are per game. 26 objects share a name between Zork I and
+// Zork II — five of them with Zork I handlers — so one global table would fire
+// Zork I's dam leak on Zork II's leak. The Zork I tables are the default only
+// because Zork I is game 1; a game that ships its own overrides them wholesale.
+function objAction(ctx: Ctx, obj?: string): boolean {
+  const sp = activeGame().specials;
+  return sp ? sp.objAction(ctx, obj) : z1ObjAction(ctx, obj);
+}
+function roomAction(ctx: Ctx, room: string, phase: 'enter' | 'end'): boolean {
+  const sp = activeGame().specials;
+  return sp ? sp.roomAction(ctx, room, phase) : z1RoomAction(ctx, room, phase);
+}
+function specialExit(ctx: Ctx, per: string): string | null {
+  const sp = activeGame().specials;
+  return sp ? sp.specialExit(ctx, per) : z1SpecialExit(ctx, per);
+}
 import { describeRoom, listInventory, containerListing, cap } from './describe';
 import { dynamicRoomDesc } from './specialDescs';
 import { ITEM_ART } from '../data/presentation';

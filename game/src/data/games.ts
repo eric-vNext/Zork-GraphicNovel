@@ -18,6 +18,7 @@ import zork3World from './zork3/world.gen.json';
 import { ZORK1_PRESENTATION } from './zork1/presentation';
 import { ZORK2_PRESENTATION } from './zork2/presentation';
 import { ZORK2_DAEMONS } from '../engine/zork2/daemons';
+import { ZORK2_SPECIALS } from '../engine/zork2/specials';
 
 export interface ScoringDef {
   /** `SCORE-MAX` from the source. */
@@ -73,6 +74,16 @@ export interface GameDef {
   hooks?: Record<string, (ctx: any) => boolean>;
   /** Daemons specific to this game, merged over the shared table. */
   daemons?: Record<string, (ctx: any) => void>;
+  /**
+   * This game's ACTION routines. Dispatch has to be per game: 26 objects share
+   * a name between Zork I and Zork II, five of which have Zork I handlers, so a
+   * single global table would fire Zork I's dam leak on Zork II's leak.
+   */
+  specials?: {
+    objAction: (ctx: any, obj?: string) => boolean;
+    roomAction: (ctx: any, room: string, phase: 'enter' | 'end') => boolean;
+    specialExit: (ctx: any, per: string) => string | null;
+  };
   /** False until the game's content is ported; the UI refuses to start it. */
   playable: boolean;
 }
@@ -144,6 +155,7 @@ export const ZORK2: GameDef = {
     + 'ZORK is a registered trademark of Infocom, Inc.\nRelease 48 / Serial number 840904',
   presentation: ZORK2_PRESENTATION,
   daemons: ZORK2_DAEMONS,
+  specials: ZORK2_SPECIALS,
   playable: false,
 };
 
