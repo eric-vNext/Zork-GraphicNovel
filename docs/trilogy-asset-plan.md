@@ -61,7 +61,13 @@ lighting and biology clauses change:
 |---|---|---|
 | `CAVE` (default) | 82 rooms | "deep underground with rock overhead: no sky, no daylight, no weather, no vegetation except moss and fungus" + single-source chiaroscuro |
 | `GARDEN` | Formal Garden, Garden North, Topiary, Gazebo | Warm even light from every direction, no source, nothing casts a shadow; walled garden with hedges and gravel; rock far overhead where a sky should be. **The chiaroscuro clause is removed** — asking for a single source reinstates the lamp the region must not have |
+| `WONDER` | Tea Room, Tiny Room, Dreary Room, Posts Room, Pool Room, Top of Well, Low Room, Machine Room, Cage | Flat overbright stage lighting, too even and a little too bright for underground, perspective subtly and deliberately wrong. **The chiaroscuro clause is removed** — but for a different reason than the Garden and the Bank: a dramatic source makes a room *ominous*, and these need to be *uncanny*, which is a different feeling |
 | `BANK` | the nine ordinary Bank of Zork rooms | Flat, even, institutional light with no dramatic source and only soft shadows; "orderly and municipal, unnervingly tidy for somewhere this deep". **The chiaroscuro clause is removed** for the same reason — a hard directional source turns a bank into a dungeon, and the region is unsettling because it is bland. The Depository is *not* in this set: its curtain of light is a variant axis (§4.11) chained off the anchor, not a base panel |
+
+Four of Zork II's ten regions want something other than the shared block's
+chiaroscuro clause, so treat that clause as the default rather than a constant.
+Expect the same in Zork III, which is flat sourceless grey everywhere except
+the beam and the cliff's sun shaft.
 
 The underground clause was itself added mid-run after Deep Ford rendered as a
 winter riverbank. Expect one override per region whose physics are unusual, and
