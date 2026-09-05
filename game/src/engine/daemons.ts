@@ -2,6 +2,7 @@
 // including combat (I-FIGHT), the thief (I-THIEF), lamp/candle fuel, and the river.
 import type { Ctx } from './ctx';
 import { prob } from './ctx';
+import { activeGame } from '../data/games';
 import { jigsUp } from './death';
 import { fightDaemon } from './melee';
 import { thiefDaemon } from './thief';
@@ -234,13 +235,17 @@ export function checkNowDark(ctx: Ctx): void {
 export function clocker(ctx: Ctx): void {
   const { s } = ctx;
   s.counters.moves += 1;
+  // The shared clock runs whichever game's daemon table is active. Each game
+  // has its own — Zork I's thief and flood, Zork II's wizard — and a name can
+  // legitimately mean different things in different games.
+  const table = { ...DAEMONS, ...(activeGame().daemons ?? {}) };
   for (const [name, d] of Object.entries(s.daemons)) {
     if (!d.enabled) continue;
     if (d.tick > 0) {
       d.tick -= 1;
-      if (d.tick === 0) DAEMONS[name]?.(ctx);
+      if (d.tick === 0) table[name]?.(ctx);
     } else if (d.tick === -1) {
-      DAEMONS[name]?.(ctx);
+      table[name]?.(ctx);
     }
   }
 }

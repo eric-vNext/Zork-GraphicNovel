@@ -17,6 +17,7 @@ import zork2World from './zork2/world.gen.json';
 import zork3World from './zork3/world.gen.json';
 import { ZORK1_PRESENTATION } from './zork1/presentation';
 import { ZORK2_PRESENTATION } from './zork2/presentation';
+import { ZORK2_DAEMONS } from '../engine/zork2/daemons';
 
 export interface ScoringDef {
   /** `SCORE-MAX` from the source. */
@@ -51,6 +52,14 @@ export interface GameDef {
   startingMoves?: Array<[object: string, destination: string]>;
   /** Text GO prints before the version banner (Zork III's dream sequence). */
   prologue?: string;
+  /** JIGS-UP's per-game rules: where you wake up, and how many deaths you get. */
+  death: {
+    resurrectRoom: string;
+    lampHome: string;
+    /** Deaths allowed before the game ends permanently; Infinity for none. */
+    maxDeaths: number;
+    panel?: string;
+  };
   scoring: ScoringDef;
   /** V-VERSION's banner (gverbs.zil:99) and the release/serial line. */
   version: string;
@@ -62,6 +71,8 @@ export interface GameDef {
    * and those branches fall through to the generic behaviour.
    */
   hooks?: Record<string, (ctx: any) => boolean>;
+  /** Daemons specific to this game, merged over the shared table. */
+  daemons?: Record<string, (ctx: any) => void>;
   /** False until the game's content is ported; the UI refuses to start it. */
   playable: boolean;
 }
@@ -78,6 +89,8 @@ export const ZORK1: GameDef = {
   initialDaemons: ['I-THIEF', 'I-FIGHT', 'I-SWORD', 'I-CYCLOPS', 'I-FOREST-ROOM'],
   // THIEF's initial `(IN ROUND-ROOM)` in 1dungeon.zil.
   actorRooms: { THIEF: 'ROUND-ROOM' },
+  death: { resurrectRoom: 'FOREST-1', lampHome: 'LIVING-ROOM', maxDeaths: 2,
+           panel: 'events/resurrection' },
   scoring: {
     max: 350,
     ranks: [
@@ -112,6 +125,10 @@ export const ZORK2: GameDef = {
   startRoom: 'INSIDE-BARROW', // 2dungeon.zil GO
   initialDaemons: ['I-WIZARD'],
   actorRooms: {},
+  // Zork II's afterlife is the Room of Red Mist, and it never stops giving you
+  // another chance: JIGS-UP has no death limit.
+  death: { resurrectRoom: 'DEAD-PALANTIR-1', lampHome: 'INSIDE-BARROW',
+           maxDeaths: Infinity },
   scoring: {
     max: 400,
     ranks: [
@@ -126,6 +143,7 @@ export const ZORK2: GameDef = {
     + 'Copyright (c) 1981, 1982, 1983, 1986 Infocom, Inc. All rights reserved.\n'
     + 'ZORK is a registered trademark of Infocom, Inc.\nRelease 48 / Serial number 840904',
   presentation: ZORK2_PRESENTATION,
+  daemons: ZORK2_DAEMONS,
   playable: false,
 };
 
@@ -152,6 +170,7 @@ export const ZORK3: GameDef = {
     + 'my friend! You are proved clever and powerful, but this is not yet\n'
     + 'enough! Seek me when you feel yourself worthy!" The dream dissolves\n'
     + 'around you as his last words echo through the void....',
+  death: { resurrectRoom: 'ZORK2-STAIR', lampHome: 'ZORK2-STAIR', maxDeaths: Infinity },
   scoring: {
     max: 7,
     ranks: [],

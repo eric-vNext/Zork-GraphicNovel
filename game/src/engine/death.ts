@@ -1,6 +1,13 @@
-// JIGS-UP: death, item scattering, resurrection (ports 1actions.zil JIGS-UP).
+// JIGS-UP: death, item scattering, resurrection.
+//
+// Each game has its own. Zork I drops you in the forest, sends the lamp to the
+// Living Room, and kills you permanently on the third death. Zork II drops you
+// in the Room of Red Mist — its afterlife is the palantir rooms — sends the
+// lamp back to the barrow, and has no death limit at all
+// (2actions.zil:3959 JIGS-UP + RANDOMIZE-OBJECTS).
 import type { Ctx } from './ctx';
-import { contents, moveObj, fset$, fclear, PLAYER } from './world';
+import { contents, moveObj, fset$, fclear, roomDef, PLAYER } from './world';
+import { activeGame } from '../data/games';
 
 export function jigsUp(ctx: Ctx, text: string, opts?: { panel?: string }): void {
   const { s, out } = ctx;
@@ -11,7 +18,8 @@ export function jigsUp(ctx: Ctx, text: string, opts?: { panel?: string }): void 
   s.counters.deaths += 1;
   out.tell('    ****  You have died  ****', 'death');
 
-  if (s.counters.deaths > 2) {
+  const rules = activeGame().death;
+  if (s.counters.deaths > rules.maxDeaths) {
     out.tell(
       "You clearly are a suicidal maniac. We don't allow psychotics in the cave, since they may harm other adventurers. Your remains will be installed in the Land of the Living Dead, where your fellow adventurers may gloat over them.",
       'death'
@@ -26,20 +34,26 @@ export function jigsUp(ctx: Ctx, text: string, opts?: { panel?: string }): void 
     'death'
   );
 
-  // scatter: lamp to living room, other carried items dropped where you died
+  // Scatter what you were carrying: the lamp goes home, everything else is
+  // left where you died.
   for (const o of contents(s, PLAYER)) {
-    if (o === 'LAMP') { moveObj(s, o, 'LIVING-ROOM'); fclear(s, o, 'ONBIT'); }
+    if (o === 'LAMP') { moveObj(s, o, rules.lampHome); fclear(s, o, 'ONBIT'); }
     else moveObj(s, o, s.here);
   }
   s.gflags['IN-BOAT'] = false;
   s.counters.wounds = 0;
   s.counters.loadAllowed = 100;
   s.grueTurns = 0;
-  s.here = 'FOREST-1';
-  s.touched['FOREST-1'] = true;
+  // A spell does not survive its victim (2actions.zil sets SPELL? to false).
+  s.gflags['SPELL-ACTIVE'] = false;
+  if (s.spell) s.spell.active = null;
+
+  s.here = rules.resurrectRoom;
+  s.touched[s.here] = true;
   out.emit({ type: 'death', permanent: false });
-  out.emit({ type: 'panel', key: 'events/resurrection' });
-  out.emit({ type: 'room', room: 'FOREST-1' });
-  out.tell('Forest', 'room-name');
-  out.tell('This is a forest, with trees in all directions. To the east, there appears to be sunlight.');
+  if (rules.panel) out.emit({ type: 'panel', key: rules.panel });
+  out.emit({ type: 'room', room: s.here });
+  const r = roomDef(s.here);
+  out.tell(r.desc, 'room-name');
+  if (r.ldesc) out.tell(r.ldesc.replace(/\n/g, ' '));
 }

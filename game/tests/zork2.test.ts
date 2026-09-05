@@ -4,6 +4,10 @@ import { Game } from '../src/engine/engine';
 import { selectGame, activeGame } from '../src/data/games';
 import { ROOM_PRES, roomArtFor } from '../src/data/zork2/presentation';
 import { txt } from './testUtils';
+import { Out } from '../src/engine/world';
+import { SPELLS } from '../src/engine/spells';
+import * as spellsMod from '../src/engine/spells';
+import { jigsUp } from '../src/engine/death';
 
 describe('Zork II world', () => {
   it('starts inside the barrow with the sword and lamp', () => {
@@ -67,5 +71,86 @@ describe('Zork II presentation', () => {
     );
     const missing = Object.values(ROOM_PRES).map((p) => p.art).filter((a) => !have.has(a));
     expect([...new Set(missing)]).toEqual([]);
+  });
+});
+
+describe('the Wizard of Frobozz', () => {
+  // WAIT always prints "Time passes..." first, so look for the wizard's own
+  // words inside the turn's text rather than treating any output as a signal.
+  const WIZARD_SPEAKS = /Wizard|strange little man|outrush of air|muttering/;
+
+  function untilWizardActs(g: Game, maxTurns = 400): string {
+    for (let i = 0; i < maxTurns; i++) {
+      const out = txt(g, 'wait');
+      if (WIZARD_SPEAKS.test(out)) return out;
+    }
+    return '';
+  }
+
+  it('is queued from turn one and eventually appears', () => {
+    const g = new Game(2);
+    expect(g.s.daemons['I-WIZARD']?.enabled).toBe(true);
+    const said = untilWizardActs(g);
+    expect(said).toMatch(WIZARD_SPEAKS);
+    selectGame(1);
+  });
+
+  it('a cast spell becomes active and later expires', () => {
+    const g = new Game(2);
+    let cast = false;
+    for (let i = 0; i < 800 && !cast; i++) {
+      txt(g, 'wait');
+      if (g.s.gflags['SPELL-ACTIVE']) cast = true;
+    }
+    expect(cast, 'the wizard should cast within 800 turns').toBe(true);
+    const spell = g.s.spell?.active;
+    expect(SPELLS).toContain(spell as any);
+
+    for (let i = 0; i < 200 && g.s.gflags['SPELL-ACTIVE']; i++) txt(g, 'wait');
+    expect(g.s.gflags['SPELL-ACTIVE'], 'the spell should expire').toBeFalsy();
+    selectGame(1);
+  });
+
+  it('Feeble halves carry capacity and hands it back on expiry', () => {
+    const g = new Game(2);
+    const ctx: any = { s: g.s, out: new Out(), rng: () => 0.5 };
+    g.s.counters.loadAllowed = 100;
+    // Land the spell directly rather than waiting for a 1-in-many roll.
+    g.s.spell = { active: 'FEEBLE' };
+    g.s.gflags['SPELL-ACTIVE'] = true;
+    g.s.counters.loadAllowed = 50;
+    expect(spellsMod.loadAllowed(g.s, 100)).toBe(50);
+    // Expiry runs through the daemon.
+    g.s.daemons['I-WIZARD'] = { tick: 1, enabled: true };
+    txt(g, 'wait');
+    expect(g.s.gflags['SPELL-ACTIVE']).toBeFalsy();
+    expect(g.s.counters.loadAllowed).toBe(100);
+    selectGame(1);
+  });
+
+  it('Float over a void kills you when it wears off', () => {
+    const g = new Game(2);
+    g.s.here = 'VAIR-1';                     // NONLANDBIT, not a safe landing
+    g.s.spell = { active: 'FLOAT' };
+    g.s.gflags['SPELL-ACTIVE'] = true;
+    g.s.daemons['I-WIZARD'] = { tick: 1, enabled: true };
+    txt(g, 'wait');
+    // Zork II's JIGS-UP has no death limit, so this kills and resurrects
+    // rather than ending the game.
+    expect(g.s.counters.deaths).toBe(1);
+    expect(g.s.here).toBe('DEAD-PALANTIR-1');
+    expect(g.s.dead).toBe(false);
+    selectGame(1);
+  });
+
+  it('resurrects into the Room of Red Mist, not Zork I\'s forest', () => {
+    const g = new Game(2);
+    g.s.locs['LAMP'] = 'ADVENTURER';
+    g.s.here = 'GREAT-CAVERN';
+    const ctx: any = { s: g.s, out: new Out(), rng: () => 0.5 };
+    jigsUp(ctx, 'Testing.', {});
+    expect(g.s.here).toBe('DEAD-PALANTIR-1');
+    expect(g.s.locs['LAMP']).toBe('INSIDE-BARROW');
+    selectGame(1);
   });
 });

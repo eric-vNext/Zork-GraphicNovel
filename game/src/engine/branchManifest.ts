@@ -48,7 +48,7 @@ export const BRANCH_SITES: BranchSite[] = [
   { routine: 'V-DIG', line: 408, arms: [1], status: 'done',
     note: "verbs.ts case 'dig'" },
   { routine: 'V-DISENCHANT', line: 435, arms: [2], status: 'deferred',
-    note: 'spells.ts holds the layer; the wand and its messages land with Zork II content' },
+    note: 'spells.ts holds the layer and I-WIZARD casts; the wand the player wields is phase 6' },
   { routine: 'V-ECHO', line: 528, arms: [1], status: 'done',
     note: "verbs.ts case 'echo' — the Loud Room gag is Zork I's" },
   { routine: 'V-ENCHANT', line: 551, arms: [2], status: 'deferred',
