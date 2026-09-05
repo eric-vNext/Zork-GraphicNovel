@@ -6,7 +6,7 @@ import { activeGame, selectGame, rankFor } from '../data/games';
 import { newState, Out, fset, fclear, fset$, moveObj, roomLit, DATA, roomDef, PLAYER, inventory, objDef } from './world';
 import type { Ctx } from './ctx';
 import { parse, completePending, type PendingParse, type Command } from '../parser/parse';
-import { perform, goTo, enterRoom } from './verbs';
+import { perform, goTo, enterRoom, roomEndAction } from './verbs';
 import { clocker, DAEMONS, candleTicksRemaining } from './daemons';
 import { fightStrength } from './melee';
 import { jigsUp } from './death';
@@ -58,6 +58,11 @@ export class Game {
       prep: cmd?.prep,
       rng: this.rng,
       queue: (name, ticks) => { self.s.daemons[name] = { tick: ticks, enabled: true }; },
+      enable: (name, ticksIfNew) => {
+        const d = self.s.daemons[name];
+        if (d) d.enabled = true;
+        else self.s.daemons[name] = { tick: ticksIfNew, enabled: true };
+      },
       disable: (name) => { if (self.s.daemons[name]) self.s.daemons[name].enabled = false; },
       enabled: (name) => !!self.s.daemons[name]?.enabled,
       die: (text, opts) => jigsUp(ctx, text, opts),
@@ -304,6 +309,9 @@ export class Game {
       perform(ctx);
     }
 
+    // The room's M-END arm runs after the action and before the clock
+    // (gmain.zil:154). The Crypt uses it to notice that the light just went out.
+    if (!s.dead && !s.won) roomEndAction(this.makeCtx(out, cmd), s.here);
     if (!s.dead && !s.won) this.tick(out, cmd);
     out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
     return out.events;
@@ -382,6 +390,9 @@ export class Game {
       delete raw.thiefEngrossed;
       raw.saveVersion = SAVE_VERSION;
     }
+    // Fields added after v1; a save written before them simply has none.
+    raw.gvars ??= {};
+    raw.mungedRooms ??= {};
     return raw as WorldState;
   }
 

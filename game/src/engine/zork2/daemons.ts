@@ -7,9 +7,13 @@
 import type { Ctx } from '../ctx';
 import { prob } from '../ctx';
 import { jigsUp } from '../death';
-import { fset$, moveObj, removeObj, inPlayer, roomDef, roomLit, theName } from '../world';
+import {
+  fset, fset$, moveObj, removeObj, contents, inPlayer, isRoom, mungRoom, roomDef, roomLit,
+  theName, PLAYER,
+} from '../world';
 import * as spells from '../spells';
 import { SPELLS, SPELL_HINTS, SPELL_NAMES, SPELL_STOPS, type Spell } from '../spells';
+import { OTHER_PROPERTIES } from './specials';
 
 /** `<CONSTANT LOAD-MAX>` — what Feeble takes away and expiry restores. */
 const LOAD_MAX = 100;
@@ -173,6 +177,111 @@ export function wizardDaemon(ctx: Ctx): void {
   applySpell(ctx, spell);
 }
 
+/**
+ * I-FUSE (2actions.zil). Two turns after the string is lit, the brick goes off
+ * wherever it happens to be — in your hands, in the safe's slot, or in a room
+ * you have walked away from. The three cases are genuinely different, and only
+ * the middle one is the puzzle solution.
+ */
+export function fuseDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  if (s.locs['FUSE'] === 'BRICK') {
+    // Where is the brick, really? It may be in a sack, in your hands, in a room.
+    let room: string | null = s.locs['BRICK'];
+    while (room && !isRoom(room)) room = s.locs[room] ?? null;
+    if (!room) return; // nowhere at all: the fuse burns on
+
+    moveObj(s, 'EXPLOSION', room);
+    delete s.touched[room];
+    out.emit({ type: 'sfx', name: 'z2-safe-blast' });
+
+    if (room === s.here) {
+      out.emit({ type: 'shake' });
+      mungRoom(s, room, 'The way is blocked by debris from an explosion.');
+      jigsUp(ctx, OTHER_PROPERTIES, {});
+      return;
+    }
+
+    out.tell('There is an explosion nearby.');
+    ctx.queue('I-SAFE', 5);
+    s.gvars['MUNGED-ROOM'] = room;
+    if (room === 'SAFE-ROOM') {
+      // The one placement that pays: the brick was in the slot, so the blast
+      // takes the box's door off instead of the ceiling.
+      if (s.locs['BRICK'] === 'SLOT') {
+        fset(s, 'SLOT', 'INVISIBLE');
+        fset(s, 'SAFE', 'OPENBIT');
+        delete s.touched['SAFE-ROOM'];
+        s.gflags['SAFE-FLAG'] = true;
+        out.emit({ type: 'panel', key: 'events/z2-ev-safe-blown' });
+      }
+    } else {
+      // Anywhere else, the blast buries everything portable in the room.
+      for (const o of contents(s, room)) {
+        if (fset$(s, o, 'TAKEBIT')) fset(s, o, 'INVISIBLE');
+      }
+    }
+    removeObj(s, 'BRICK');
+  } else if (s.locs['FUSE'] === PLAYER || s.locs['FUSE'] === s.here) {
+    out.tell('The string rapidly burns into nothingness.');
+  }
+  removeObj(s, 'FUSE');
+}
+
+/**
+ * I-SAFE (2actions.zil). Five turns after the explosion the damaged room comes
+ * down. Being in it is fatal; hearing it from elsewhere is just a warning.
+ */
+export function safeDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  const munged = s.gvars['MUNGED-ROOM'];
+  if (!munged) return;
+  if (s.here === munged) {
+    out.emit({ type: 'shake' });
+    jigsUp(ctx, 'The room trembles and 5000 tons of rock fall on you, turning you into a pancake.', {});
+  } else if (!s.dead) {
+    out.tell('You may recall that recent explosion. Probably as a result of it, you hear an ominous rumbling, as if a nearby room had collapsed.');
+    // The dusty room is under the ledge, and the ledge goes next.
+    if (munged === 'SAFE-ROOM') ctx.queue('I-LEDGE', 8);
+  }
+  mungRoom(s, munged, 'The way is blocked by debris from an explosion.');
+}
+
+/**
+ * I-LEDGE (2actions.zil:476). Eight turns after the dusty room falls in, so
+ * does the ledge above it — with you on it, if you have lingered.
+ */
+export function ledgeDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  if (s.here === 'LEDGE-2') {
+    if (s.locs[PLAYER] === 'BALLOON') {
+      if (s.gflags['BTIE-FLAG']) {
+        // Tied to the ledge, the balloon goes down with it.
+        s.gvars['BLOC'] = 'VOLCANO-BOTTOM';
+        removeObj(s, 'BALLOON');
+        moveObj(s, 'DEAD-BALLOON', 'VOLCANO-BOTTOM');
+        s.gflags['BTIE-FLAG'] = false;
+        s.gflags['BINF-FLAG'] = false;
+        ctx.disable('I-BALLOON');
+        ctx.disable('I-BURNUP');
+        out.emit({ type: 'shake' });
+        jigsUp(ctx, 'The ledge collapses, probably as a result of the explosion, and plummets to the ground far below. Sadly, you were still attached to the ledge.', {});
+      } else {
+        out.tell('The ledge collapses, leaving you with no place to land.');
+      }
+    } else {
+      out.emit({ type: 'shake' });
+      jigsUp(ctx, 'The force of the recent explosion has caused the ledge to collapse.', {});
+    }
+  } else if (!s.dead) {
+    out.tell('The ledge collapses. (That was a narrow escape!)');
+  }
+  mungRoom(s, 'LEDGE-2', 'The ledge has collapsed and cannot be landed on.');
+}
+
 export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   'I-WIZARD': wizardDaemon,
+  'I-FUSE': fuseDaemon,
+  'I-SAFE': safeDaemon,
+  'I-LEDGE': ledgeDaemon,
 };

@@ -83,6 +83,8 @@ export interface GameDef {
     objAction: (ctx: any, obj?: string) => boolean;
     roomAction: (ctx: any, room: string, phase: 'enter' | 'end') => boolean;
     specialExit: (ctx: any, per: string) => string | null;
+    /** M-BEG on WALK: redirect a move before the exit is resolved. */
+    beforeWalk?: (ctx: any, dir: string) => string | null;
   };
   /** False until the game's content is ported; the UI refuses to start it. */
   playable: boolean;

@@ -76,6 +76,17 @@ export interface WorldState {
   actorRooms: Record<string, string>;
   /** Per-NPC boolean state (e.g. THIEF_ENGROSSED). Replaces `thiefEngrossed`. */
   actorFlags: Record<string, boolean>;
+  /**
+   * ZIL globals whose value is a room or object id rather than a flag —
+   * `,MUNGED-ROOM`, `,OLD-HERE` and their kin. `gflags` cannot hold these
+   * because they are not booleans.
+   */
+  gvars: Record<string, string | null>;
+  /**
+   * Rooms MUNG-ROOM has destroyed, each mapped to the description that
+   * replaced its LDESC. Entering one is refused; the text prints instead.
+   */
+  mungedRooms: Record<string, string>;
   /** Zork II only: the Wizard-of-Frobozz spell layer (see engine/spells.ts). */
   spell?: {
     /** `,SPELL?` — the spell currently afflicting the player. */

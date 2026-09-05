@@ -224,3 +224,230 @@ describe('Zork II dynamic room descriptions', () => {
     selectGame(1);
   });
 });
+
+describe('the Carousel Room', () => {
+  function inCarousel(): Game {
+    const g = new Game(2);
+    g.s.here = 'CAROUSEL-ROOM';
+    g.s.touched['CAROUSEL-ROOM'] = true;
+    g.s.locs['LAMP'] = 'ADVENTURER';
+    g.s.oflags['LAMP'] = { ...(g.s.oflags['LAMP'] ?? {}), ONBIT: true };
+    return g;
+  }
+
+  it('scrambles compass moves while it turns', () => {
+    const g = inCarousel();
+    const said = txt(g, 'n');
+    expect(said).toContain('not sure which direction is which');
+    selectGame(1);
+  });
+
+  // EIGHT-DIRECTIONS omits west, and a westward move is always scrambled, so
+  // the one exit that matters is unreachable until the carousel is stopped.
+  it('never lets you west while it turns', () => {
+    const g = inCarousel();
+    let reachedRoom8 = false;
+    for (let i = 0; i < 200; i++) {
+      g.s.here = 'CAROUSEL-ROOM';
+      g.execute('w');
+      if (g.s.here === 'ROOM-8') { reachedRoom8 = true; break; }
+    }
+    expect(reachedRoom8, 'west must be impossible while spinning').toBe(false);
+    selectGame(1);
+  });
+
+  it('lets you walk normally once it is stopped', () => {
+    const g = inCarousel();
+    g.s.gflags['CAROUSEL-FLIP-FLAG'] = true;
+    const said = txt(g, 'w');
+    expect(said).not.toContain('not sure which direction');
+    expect(g.s.here).toBe('ROOM-8');
+    selectGame(1);
+  });
+
+  it('leaves up and down alone even while turning', () => {
+    const g = inCarousel();
+    const said = txt(g, 'u');
+    expect(said).not.toContain('not sure which direction');
+    selectGame(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Action routines (2actions.zil). Each of these is a puzzle whose flag also
+// gates a room description and a panel, so a break here shows up three ways.
+
+/** A game standing in `room` with a lit lamp in hand. */
+function at(room: string): Game {
+  const g = new Game(2);
+  g.s.here = room;
+  g.s.touched[room] = true;
+  g.s.locs['LAMP'] = 'ADVENTURER';
+  g.s.oflags['LAMP'] = { ...(g.s.oflags['LAMP'] ?? {}), ONBIT: true };
+  return g;
+}
+
+describe('the volcano', () => {
+  it('refuses to melt the glacier by hand', () => {
+    const g = at('GLACIER-ROOM');
+    expect(txt(g, 'melt glacier')).toContain("you'll need a lot of heat");
+    selectGame(1);
+  });
+
+  it('describes the rusty box the way its flag says', () => {
+    const g = at('SAFE-ROOM');
+    expect(txt(g, 'take box')).toContain('imbedded in the wall');
+    expect(txt(g, 'open box')).toContain('rusted and will not open');
+    g.s.gflags['SAFE-FLAG'] = true;
+    expect(txt(g, 'open box')).toContain('has no door');
+    selectGame(1);
+  });
+
+  // The whole chain: light the fuse, walk out, and the blast takes the box's
+  // door off. Five turns later the room falls in; eight after that, the ledge.
+  it('blows the safe open, then brings the room and the ledge down', () => {
+    const g = at('SAFE-ROOM');
+    g.s.locs['BRICK'] = 'ADVENTURER';
+    g.s.locs['FUSE'] = 'ADVENTURER';
+    g.s.locs['MATCH'] = 'ADVENTURER';
+    g.s.oflags['MATCH'] = { ...(g.s.oflags['MATCH'] ?? {}), FLAMEBIT: true, ONBIT: true };
+
+    expect(txt(g, 'put brick in hole')).toContain('Done');
+    expect(txt(g, 'put string in brick')).toContain('Done');
+    expect(txt(g, 'burn string')).toContain('The string starts to burn');
+
+    // Two turns on the fuse, so the blast lands as you step onto the ledge.
+    const boom = txt(g, 'north') + txt(g, 'wait');
+    expect(g.s.here).toBe('LEDGE-2');
+    expect(boom).toContain('There is an explosion nearby');
+    expect(g.s.gflags['SAFE-FLAG']).toBe(true);
+    expect(g.s.oflags['SAFE']?.OPENBIT).toBe(true);
+    expect(g.s.locs['BRICK']).toBe(null);
+
+    // The dusty room collapses five turns after the blast.
+    let rumble = '';
+    for (let i = 0; i < 8 && !rumble; i++) {
+      const said = txt(g, 'wait');
+      if (said.includes('ominous rumbling')) rumble = said;
+    }
+    expect(rumble, 'the room should collapse').toContain('ominous rumbling');
+    expect(txt(g, 'south')).toContain('blocked by debris');
+    expect(g.s.here).toBe('LEDGE-2');
+
+    // And the ledge itself goes eight turns after that, taking you with it.
+    for (let i = 0; i < 20 && !g.s.dead; i++) txt(g, 'wait');
+    expect(g.s.dead || g.s.here !== 'LEDGE-2').toBe(true);
+    selectGame(1);
+  });
+
+  it('kills you if you light the brick in your hands', () => {
+    const g = at('SAFE-ROOM');
+    g.s.locs['BRICK'] = 'ADVENTURER';
+    g.s.locs['MATCH'] = 'ADVENTURER';
+    g.s.oflags['MATCH'] = { ...(g.s.oflags['MATCH'] ?? {}), FLAMEBIT: true, ONBIT: true };
+    expect(txt(g, 'burn brick')).toContain('blow you to smithereens');
+    selectGame(1);
+  });
+
+  // PRE-BURN is a preaction, so it fires before BRICK-FCN ever sees the verb.
+  it('will not light the brick with nothing to light it with', () => {
+    const g = at('SAFE-ROOM');
+    g.s.locs['BRICK'] = 'ADVENTURER';
+    const said = txt(g, 'burn brick');
+    expect(said).toContain('light a match first');
+    expect(said).not.toContain('smithereens');
+    selectGame(1);
+  });
+});
+
+describe("the Wizard's door", () => {
+  it('is guarded until the lizard is fed', () => {
+    const g = at('GUARDIAN-ROOM');
+    expect(txt(g, 'open door')).toContain('snaps at you');
+    g.s.locs['CANDY'] = 'ADVENTURER';
+    delete g.s.oflags['CANDY']?.INVISIBLE;
+    const fed = txt(g, 'give candy to lizard');
+    expect(fed).toContain('greedily wolfs down the candy');
+    expect(g.s.gflags['GUARDIAN-FED']).toBe(true);
+    expect(g.s.locs['CANDY']).toBe(null);
+    expect(txt(g, 'wake lizard')).toContain("can't wake it");
+    selectGame(1);
+  });
+
+  it('needs the gold key even once the guardian sleeps', () => {
+    const g = at('GUARDIAN-ROOM');
+    g.s.gflags['GUARDIAN-FED'] = true;
+    expect(txt(g, 'open door')).toContain('The door is locked!');
+    g.s.locs['GOLD-KEY'] = 'ADVENTURER';
+    expect(txt(g, 'unlock door with key')).toContain('the bolt clicks');
+    expect(txt(g, 'open door')).toContain('The door creaks open');
+    expect(g.s.oflags['WIZ-DOOR']?.OPENBIT).toBe(true);
+    delete g.s.touched['GUARDIAN-ROOM'];
+    expect(txt(g, 'look')).toContain('The door is open.');
+    selectGame(1);
+  });
+
+  it('spits a sphere back out rather than swallowing it', () => {
+    const g = at('GUARDIAN-ROOM');
+    g.s.locs['PALANTIR-1'] = 'ADVENTURER';
+    expect(txt(g, 'give sphere to lizard')).toContain('spits it on the ground');
+    expect(g.s.locs['PALANTIR-1']).toBe('GUARDIAN-ROOM');
+    selectGame(1);
+  });
+});
+
+describe('the crypt', () => {
+  // You have to put the light out to see the door marked "F" — and the room
+  // keeps its own ONBIT so the dark never eats you while you look.
+  it('shows the secret door only when the lamp goes out', () => {
+    const g = at('CRYPT-ROOM');
+    expect(txt(g, 'look')).toContain('earthly remains of the mighty Flatheads');
+    expect(g.s.oflags['DIM-DOOR']?.INVISIBLE).toBe(true);
+
+    const dark = txt(g, 'turn off lamp');
+    expect(dark).toContain('faintly glowing letter');
+    expect(g.s.oflags['DIM-DOOR']?.INVISIBLE).toBeUndefined();
+    expect(txt(g, 'look')).toContain('faint outline of a rectangle');
+
+    expect(txt(g, 'open secret door')).toContain('opens noiselessly');
+    expect(g.s.gflags['DIM-DOOR-FLAG']).toBe(true);
+    selectGame(1);
+  });
+
+  it('squeaks its own door open and closed', () => {
+    const g = at('CRYPT-ANTEROOM');
+    expect(txt(g, 'open crypt door')).toContain('squeaks open');
+    expect(txt(g, 'close crypt door')).toContain('squeaks closed');
+    selectGame(1);
+  });
+});
+
+describe('the quarry and the workshop', () => {
+  it('will not be shifted, and reads its one letter', () => {
+    const g = at('MENHIR-ROOM');
+    expect(txt(g, 'read menhir')).toContain('"F"');
+    expect(txt(g, 'take menhir')).toContain('weighs many tons');
+    expect(txt(g, 'look behind menhir')).toContain('sizeable room in there');
+    selectGame(1);
+  });
+
+  it('merges the three spheres into the black one', () => {
+    const g = at('WORKBENCH-ROOM');
+    g.s.locs['PALANTIR-1'] = 'ADVENTURER';
+    g.s.locs['PALANTIR-2'] = 'ADVENTURER';
+    g.s.locs['PALANTIR-3'] = 'ADVENTURER';
+    txt(g, 'put red sphere in ruby stand');
+    txt(g, 'put blue sphere in sapphire stand');
+    const merged = txt(g, 'put clear sphere in diamond stand');
+    expect(merged).toContain('strange black sphere');
+    expect(g.s.locs['PALANTIR-1']).toBe(null);
+    expect(g.s.locs['STAND-4']).toBe('WORKBENCH');
+    selectGame(1);
+  });
+
+  it('shocks you for touching the trophies', () => {
+    const g = at('TROPHY-ROOM');
+    expect(txt(g, 'take degree')).toContain('nasty shock');
+    selectGame(1);
+  });
+});

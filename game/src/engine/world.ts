@@ -1,5 +1,5 @@
 // World-state container and object-tree operations (ports gmain.zil helpers).
-import { activeGame } from '../data/games';
+import { activeGame, gameNumber } from '../data/games';
 import type { WorldData, WorldState, RoomDef, ObjDef, GameEvent } from './types';
 import { SAVE_VERSION } from './types';
 
@@ -44,6 +44,8 @@ export function newState(): WorldState {
     counters: { score: 0, moves: 0, deaths: 0, matches: 6, wounds: 0, lampIdx: 0, lampTick: 100, candleIdx: 0, candleTick: 20, loadAllowed: 100 },
     actorRooms: { ...def.actorRooms },
     actorFlags: {},
+    gvars: {},
+    mungedRooms: {},
     verbosity: 'brief',
     dead: false, won: false,
     grueTurns: 0,
@@ -159,12 +161,34 @@ export function objectProvidesLight(s: WorldState, o: string): boolean {
 }
 
 export function roomLit(s: WorldState, room?: string): boolean {
-  const r = roomDef(room ?? s.here);
-  if (r.flags.includes('ONBIT')) return true;
+  const here = room ?? s.here;
+  const r = roomDef(here);
+  // A room's ONBIT can be set at runtime as well as in the source: the Crypt
+  // takes its own bit off and puts it back around every look, which is how it
+  // can describe itself as dark while still letting you act (2actions.zil
+  // CRYPT-ROOM-FCN).
+  if (r.flags.includes('ONBIT') || fset$(s, here, 'ONBIT')) return true;
   // any lit light source in the room or carried
   const check = (holder: string): boolean =>
     contents(s, holder).some((o) => objectProvidesLight(s, o) || ((seeInside(s, o) || fset$(s, o, 'SURFACEBIT')) && check(o)));
   return check(room ?? s.here) || check(PLAYER);
+}
+
+// ---- room munging ----------------------------------------------------------
+/**
+ * MUNG-ROOM (gverbs.zil:2237). The room is gone: GOTO stops printing its name
+ * and prints `desc` instead of moving you there. Zork II refuses to mung Inside
+ * the Barrow, which would otherwise strand a player on their way back out.
+ */
+export function mungRoom(s: WorldState, room: string, desc: string): void {
+  if (gameNumber() === 2 && room === 'INSIDE-BARROW') return;
+  fset(s, room, 'RMUNGBIT');
+  s.mungedRooms[room] = desc;
+}
+
+/** The replacement description for a munged room, or null if it still stands. */
+export function roomMunged(s: WorldState, room: string): string | null {
+  return fset$(s, room, 'RMUNGBIT') ? (s.mungedRooms[room] ?? null) : null;
 }
 
 // ---- naming ----------------------------------------------------------------

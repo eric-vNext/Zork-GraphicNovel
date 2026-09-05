@@ -84,9 +84,14 @@ describe('the sweep for Zork I assumptions in shared code', () => {
     expect(collide.length, 'this is the hazard the per-game dispatch exists for').toBeGreaterThan(0);
 
     // Under Zork II none of those Zork I handlers is reachable: the active
-    // game's table is consulted instead, and it does not contain them.
+    // game's table is consulted instead. A shared name either has no Zork II
+    // handler at all, or has Zork II's own — never Zork I's. (The lamp is the
+    // live example: both games define one, and they are different routines.)
     selectGame(2);
-    for (const o of collide) expect(Z2[o]).toBeUndefined();
+    for (const o of collide) {
+      if (Z2[o]) expect(Z2[o]).not.toBe(OBJ_ACTIONS[o]);
+    }
+    expect(Z2['LAMP'], "Zork II's own LANTERN should be wired").toBeTypeOf('function');
     selectGame(1);
   });
 

@@ -8,7 +8,12 @@
 // panel (see data/zork2/presentation.ts roomArtFor), so prose and art can never
 // disagree about what state the room is in.
 import type { WorldState } from '../types';
-import { fset$ } from '../world';
+import { fclear, fset$ } from '../world';
+import { litIgnoringRoomBit } from './specials';
+
+/** DIM-DOOR-APPEARS's text (2actions.zil); the flag clearing lives in specials. */
+const DIM_DOOR_TEXT =
+  'It is dark, but on the south wall is a faint outline of a rectangle, as though light were shining around a doorway. You can also make out a faintly glowing letter in the center of this area. It might be an "F".';
 
 type Desc = (s: WorldState) => string | null;
 
@@ -47,7 +52,16 @@ export const ZORK2_ROOM_DESCS: Record<string, Desc> = {
   'MENHIR-ROOM': () =>
     'This is a large room which was evidently used once as a quarry. Many large limestone chunks lie helter-skelter around the room. Some are rough-hewn and unworked, others smooth and well-finished. One side of the room appears to have been used to quarry building blocks, the other to produce menhirs (standing stones). Obvious passages lead north and south.',
 
+  // CRYPT-ROOM-FCN's M-LOOK arm takes the room's own ONBIT off before asking
+  // whether it is lit, so what you see depends on your lamp, not on the bit the
+  // routine itself keeps setting.
   'CRYPT-ROOM': (s) => {
+    if (!litIgnoringRoomBit(s, 'CRYPT-ROOM')) {
+      // M-LOOK's dark branch calls DIM-DOOR-APPEARS, which reveals the door as
+      // well as describing it — looking in the dark is the whole puzzle.
+      fclear(s, 'DIM-DOOR', 'INVISIBLE');
+      return DIM_DOOR_TEXT;
+    }
     let t = 'The room contains the earthly remains of the mighty Flatheads, twelve somewhat flat heads mounted securely on poles. While the room might be expected to contain funerary urns or other evidence of the ritual practices of the ancient Zorkers, it is empty of all such objects. There is writing carved on the crypt. The only apparent exit is to the north through the door to the anteroom. The door is ';
     t += fset$(s, 'CRYPT-DOOR', 'OPENBIT') ? 'open.' : 'closed.';
     if (!fset$(s, 'DIM-DOOR', 'INVISIBLE')) {

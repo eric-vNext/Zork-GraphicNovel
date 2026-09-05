@@ -33,13 +33,17 @@ import * as spells from './spells';
 import {
   DATA, roomDef, objDef, fset, fclear, fset$, moveObj, removeObj, contents, locOf,
   inPlayer, roomOf, roomLit, reachable, loadWeight, objWeight, theName, aName,
-  PLAYER, inventory,
+  PLAYER, inventory, roomMunged,
 } from './world';
 
 const TREASURE_ROOM_SAFE = 'TREASURE-ROOM';
 
 export function goTo(ctx: Ctx, dir: string): void {
   const { s, out } = ctx;
+  // A room's M-BEG arm may redirect the move before the exit is resolved —
+  // Zork II's carousel scrambles compass directions while it turns.
+  const redirect = activeGame().specials?.beforeWalk?.(ctx, dir);
+  if (redirect && redirect !== dir) { goTo(ctx, redirect); return; }
   // the final threshold: west/in from the barrow forecourt ends the game
   if (s.here === 'STONE-BARROW' && (dir === 'WEST' || dir === 'IN')) {
     ctx.winGame();
@@ -107,8 +111,17 @@ function vehicleStopMessage(vehicle: string): string | null {
   }
 }
 
+/** The room's M-END phase, run once per turn after the command (gmain.zil:154). */
+export function roomEndAction(ctx: Ctx, room: string): void {
+  roomAction(ctx, room, 'end');
+}
+
 export function enterRoom(ctx: Ctx, room: string, dir?: string): void {
   const { s, out } = ctx;
+  // A munged room is gone: GOTO prints what replaced it rather than moving you
+  // (gverbs.zil GOTO, RMUNGBIT arm).
+  const rubble = roomMunged(s, room);
+  if (rubble) { out.tell(rubble); return; }
   const wasLit = roomLit(s);
   const fromRoom = s.here;
   s.here = room;
@@ -169,8 +182,13 @@ export function perform(ctx: Ctx): void {
     return;
   }
 
+  // PRE-BURN (gverbs.zil:243) is a verb preaction, and preactions run before
+  // the object's own ACTION — so burning something with nothing to light it
+  // with never reaches its handler. Zork II's brick depends on that.
+  if (verb === 'burn' && !hasFlameCarried(ctx)) { out.tell('You should light a match first.'); return; }
+
   // object-special dispatch (indirect first, then direct), like ZIL
-  if (ctx.iobj && objAction(ctx, ctx.iobj) === true && verb !== 'put') { /* handled */ return; }
+  if (ctx.iobj && objAction(ctx, ctx.iobj) === true && (verb !== 'put' || z !== 1)) { /* handled */ return; }
   if (d && objAction(ctx, d)) return;
 
   switch (verb) {
@@ -415,7 +433,6 @@ export function perform(ctx: Ctx): void {
       return;
     case 'burn': {
       if (!d) return;
-      if (!hasFlameCarried(ctx)) { out.tell('You should light a match first.'); return; }
       // gverbs.zil:252 — in Zork II, burning something in the balloon's
       // receptacle fires the burner instead of destroying the object.
       if (z === 2 && locOf(s, d) === 'RECEPTACLE' && runGameHook(ctx, 'balloon-burn')) return;
@@ -427,6 +444,10 @@ export function perform(ctx: Ctx): void {
       out.tell(`You can't burn ${theName(d)}.`);
       return;
     }
+    // V-MELT (gverbs.zil) — only Zork II's glacier has anything to say to it.
+    case 'melt':
+      out.tell(`It's not clear that a ${objDef(d ?? '')?.desc ?? 'thing'} can be melted.`);
+      return;
     case 'cut':
       out.tell(pickOne(ctx, YUKS));
       return;
@@ -489,10 +510,35 @@ export function perform(ctx: Ctx): void {
     case 'raise':
       out.tell(`Playing in this way with the ${objDef(d ?? '')?.desc ?? 'thing'} has no effect.`);
       return;
-    case 'lamp-on': out.tell(d ? `You can't turn that on.` : 'Turn on what?'); return;
-    case 'lamp-off': out.tell(d ? `You can't turn that off.` : 'Turn off what?'); return;
-    case 'light': out.tell(d ? `You can't turn that on.` : 'Turn on what?'); return;
-    case 'extinguish': out.tell(d ? `You can't turn that off.` : 'Turn off what?'); return;
+    // V-LAMP-ON / V-LAMP-OFF (gverbs.zil). Zork I's lamp does its own switching
+    // inside LANTERN-FCN; Zork II's LANTERN returns false and leaves it to these.
+    case 'lamp-on':
+    case 'light': {
+      if (!d) { out.tell('Turn on what?'); return; }
+      if (fset$(s, d, 'LIGHTBIT')) {
+        if (fset$(s, d, 'ONBIT')) { out.tell('It is already on.'); return; }
+        const wasDark = !roomLit(s);
+        fset(s, d, 'ONBIT');
+        out.tell(`The ${objDef(d).desc} is now on.`);
+        out.emit({ type: 'sfx', name: 'lamp-click' });
+        if (wasDark && roomLit(s)) describeRoom(s, out, true);
+        return;
+      }
+      if (fset$(s, d, 'BURNBIT')) { out.tell(`If you wish to burn the ${objDef(d).desc}, you should say so.`); return; }
+      out.tell("You can't turn that on.");
+      return;
+    }
+    case 'lamp-off':
+    case 'extinguish': {
+      if (!d) { out.tell('Turn off what?'); return; }
+      if (!fset$(s, d, 'LIGHTBIT')) { out.tell("You can't turn that off."); return; }
+      if (!fset$(s, d, 'ONBIT')) { out.tell('It is already off.'); return; }
+      fclear(s, d, 'ONBIT');
+      out.tell(`The ${objDef(d).desc} is now off.`);
+      out.emit({ type: 'sfx', name: 'lamp-click' });
+      if (!roomLit(s)) out.tell('It is now pitch black.');
+      return;
+    }
     // gverbs.zil:1489/1496 — Zork III wants "turn the dial TO something", and
     // Zork I exempts the black book from the bare-hands complaint.
     case 'turn':
@@ -607,9 +653,15 @@ function doPut(ctx: Ctx): void {
   const i = ctx.iobj;
   if (!i) { out.tell(`Where do you want to put ${theName(d)}?`); return; }
   if (!inPlayer(s, d)) { out.tell(`You don't have ${theName(d)}.`); return; }
-  if (!fset$(s, i, 'CONTBIT') && !fset$(s, i, 'SURFACEBIT')) { out.tell("You can't do that."); return; }
+  // V-PUT's own test (gverbs.zil): anything open, openable or ridable will do —
+  // Zork II's brick and the safe's chipped slot are open but not containers.
+  if (!fset$(s, i, 'CONTBIT') && !fset$(s, i, 'SURFACEBIT') && !fset$(s, i, 'OPENBIT') && !fset$(s, i, 'VEHBIT')) {
+    out.tell("You can't do that."); return;
+  }
   if (!fset$(s, i, 'OPENBIT') && !fset$(s, i, 'SURFACEBIT')) { out.tell(`The ${objDef(i).desc} isn't open.`); return; }
-  const cap = objDef(i).capacity ?? 100;
+  // ZIL's <GETP obj P?CAPACITY> is 0 for anything that never declared one, which
+  // is what stops you filling the barrow door with swords.
+  const cap = objDef(i).capacity ?? 0;
   const used = contents(s, i).reduce((sum, o) => sum + objWeight(s, o), 0);
   if (used + objWeight(s, d) > cap) { out.tell(`There's no room.`); return; }
   moveObj(s, d, i);

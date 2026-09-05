@@ -2,7 +2,7 @@
 // including combat (I-FIGHT), the thief (I-THIEF), lamp/candle fuel, and the river.
 import type { Ctx } from './ctx';
 import { prob } from './ctx';
-import { activeGame } from '../data/games';
+import { activeGame, gameNumber } from '../data/games';
 import { jigsUp } from './death';
 import { fightDaemon } from './melee';
 import { thiefDaemon } from './thief';
@@ -13,12 +13,31 @@ import {
 
 type Daemon = (ctx: Ctx) => void;
 
-const LAMP_TABLE: Array<[number, string | null]> = [
-  [100, 'The lamp appears a bit dimmer.'],
-  [70, 'The lamp is definitely dimmer now.'],
-  [15, 'The lamp is nearly out.'],
-  [0, null],
-];
+/**
+ * `,LAMP-TABLE` — how long the lamp lasts, and what it says on the way down.
+ * Zork I gives you 185 turns of light; the two sequels give you 450, which is
+ * the difference between a lamp you must ration and one you merely respect.
+ */
+const LAMP_TABLES: Record<number, Array<[number, string | null]>> = {
+  1: [
+    [100, 'The lamp appears a bit dimmer.'],
+    [70, 'The lamp is definitely dimmer now.'],
+    [15, 'The lamp is nearly out.'],
+    [0, null],
+  ],
+  2: [
+    [300, 'The lamp appears a bit dimmer.'],
+    [100, 'The lamp is definitely dimmer now.'],
+    [50, 'The lamp is nearly out.'],
+    [0, null],
+  ],
+};
+LAMP_TABLES[3] = LAMP_TABLES[2]; // 3actions.zil:80 declares the same table
+
+function lampTable(): Array<[number, string | null]> {
+  return LAMP_TABLES[gameNumber()] ?? LAMP_TABLES[1];
+}
+
 const CANDLE_TABLE: Array<[number, string | null]> = [
   [20, 'The candles grow shorter.'],
   [10, 'The candles are becoming quite short.'],
@@ -49,16 +68,14 @@ export function candleTicksRemaining(s: import('./types').WorldState): number | 
 export const DAEMONS: Record<string, Daemon> = {
   'I-LANTERN': (ctx) => {
     const { s, out } = ctx;
+    const table = lampTable();
     const idx = s.counters.lampIdx;
-    const [, msg] = LAMP_TABLE[idx];
-    if (idx >= LAMP_TABLE.length - 1 || LAMP_TABLE[idx + 1][0] === 0 && idx + 1 === LAMP_TABLE.length - 1) {
-      // fall through below
-    }
+    const [, msg] = table[idx];
     const next = idx + 1;
-    if (next < LAMP_TABLE.length && LAMP_TABLE[next][0] > 0) {
+    if (next < table.length && table[next][0] > 0) {
       if (msg && (inPlayer(s, 'LAMP') || roomOf(s, 'LAMP') === s.here)) out.tell(msg);
       s.counters.lampIdx = next;
-      ctx.queue('I-LANTERN', LAMP_TABLE[next][0]);
+      ctx.queue('I-LANTERN', table[next][0]);
     } else {
       if (inPlayer(s, 'LAMP') || roomOf(s, 'LAMP') === s.here)
         out.tell("You'd better have more light than from the lantern.");

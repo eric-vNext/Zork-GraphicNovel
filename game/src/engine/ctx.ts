@@ -11,6 +11,12 @@ export interface Ctx {
   prep?: string;
   rng: () => number;                       // 0..1
   queue: (name: string, ticks: number) => void; // -1 = every turn
+  /**
+   * `<ENABLE <INT name>>` — resume a daemon with whatever countdown it still
+   * has, queueing it with `ticksIfNew` if it has never run. This is how a lamp
+   * switched off and on again keeps burning down rather than starting over.
+   */
+  enable: (name: string, ticksIfNew: number) => void;
   disable: (name: string) => void;
   enabled: (name: string) => boolean;
   die: (text: string, opts?: { panel?: string }) => void;

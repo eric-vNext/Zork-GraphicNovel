@@ -92,6 +92,10 @@ v('count');
 v('search');
 v('kiss');
 v('burn', 'incinerate', 'ignite');
+// gsyntax.zil:328,538 — both are shared vocabulary, but MELT only matters to
+// Zork II's glacier and WAKE only to Zork I's sleeping thief.
+v('melt', 'liquify', 'liquefy');
+v('alarm', 'wake', 'awake', 'awaken', 'rouse', 'surprise', 'startle');
 v('cut', 'slice');
 v('break', 'smash', 'destroy', 'damage');
 v('shake');
@@ -142,23 +146,36 @@ const PREPS = new Set(['with', 'using', 'in', 'into', 'inside', 'on', 'onto', 't
 
 const NOISE = new Set(['the', 'a', 'an', 'some', 'this', 'that', 'my', 'of', 'please', 'then']);
 
-// noun/adjective tables built from world data
+// Noun/adjective tables built from world data. The vocabulary belongs to the
+// game that is loaded — "brick" is a Zork II word, "mailbox" a Zork I one — and
+// `DATA.objects` swaps under us when `selectGame()` runs. Rebuilding whenever
+// that object changes identity keeps the parser and the world in step without
+// the parser having to know the game registry exists.
 const NOUNS = new Map<string, string[]>();     // word -> object ids
 const ADJS = new Map<string, string[]>();
-for (const [id, o] of Object.entries(DATA.objects)) {
-  for (const syn of o.synonyms) {
-    const w = syn.toLowerCase();
-    if (!NOUNS.has(w)) NOUNS.set(w, []);
-    NOUNS.get(w)!.push(id);
-  }
-  for (const adj of o.adjectives) {
-    const w = adj.toLowerCase();
-    if (!ADJS.has(w)) ADJS.set(w, []);
-    ADJS.get(w)!.push(id);
+let vocabularyFor: unknown = null;
+
+function vocabulary(): void {
+  const objects = DATA.objects;
+  if (vocabularyFor === objects) return;
+  vocabularyFor = objects;
+  NOUNS.clear();
+  ADJS.clear();
+  for (const [id, o] of Object.entries(objects)) {
+    for (const syn of o.synonyms) {
+      const w = syn.toLowerCase();
+      if (!NOUNS.has(w)) NOUNS.set(w, []);
+      NOUNS.get(w)!.push(id);
+    }
+    for (const adj of o.adjectives) {
+      const w = adj.toLowerCase();
+      if (!ADJS.has(w)) ADJS.set(w, []);
+      ADJS.get(w)!.push(id);
+    }
   }
 }
 
-export function isNounWord(w: string): boolean { return NOUNS.has(w) || ADJS.has(w); }
+export function isNounWord(w: string): boolean { vocabulary(); return NOUNS.has(w) || ADJS.has(w); }
 
 // ---------------- resolution ----------------
 function matchScope(np: NounPhrase, scope: string[]): string[] {
@@ -175,6 +192,7 @@ function matchScope(np: NounPhrase, scope: string[]): string[] {
 export function resolveNoun(
   s: WorldState, np: NounPhrase, opts?: { forTake?: boolean }
 ): { id?: string; error?: string; candidates?: string[] } {
+  vocabulary();
   if (np.noun === 'it') {
     if (s.itRef) return { id: s.itRef };
     return { error: "I don't know what you're referring to." };
@@ -222,6 +240,7 @@ export function tokenize(input: string): string[] {
 
 /** Parse resolved against world state. Returns command, error, or a question. */
 export function parse(s: WorldState, input: string): ParseResult {
+  vocabulary();
   const raw = input.trim();
   let toks = tokenize(raw);
   if (!toks.length) return { error: 'I beg your pardon?' };
@@ -419,6 +438,7 @@ function resolveIobj(s: WorldState, iTokens: string[], raw: string):
 
 /** Complete a pending question with the player's answer. */
 export function completePending(s: WorldState, pending: PendingParse, answer: string): ParseResult {
+  vocabulary();
   const toks = tokenize(answer);
   if (!toks.length) return { error: 'I beg your pardon?' };
   if (pending.candidates?.length) {
