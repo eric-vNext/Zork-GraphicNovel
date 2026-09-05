@@ -146,7 +146,33 @@ prefix, and convert to delivery WebP with the existing
 - Raw and rejected generations stay in the media-gen output folders with their
   `prompt.md` provenance.
 
-### Sequencing (decided 2026-09-04)
+### Cost, measured (2026-09-05)
+
+**Image generation is $0.15 each, not the ~$0.05 the media-gen skill's notes
+state.** Verified against a real invoice: 180 generations cost $27. Every cost
+estimate in this plan before that date was 3x low. `models.json` carries no
+price for image models, so quote $0.15 and say it is an assumption until an
+invoice confirms otherwise.
+
+Actuals for Zork II's rooms, items and characters: **180 generations for 150
+delivered assets, a ratio of 1.20.** The largest category was variants (77),
+not base panels (50) — each chain step is a full generation, so a
+three-state family costs three.
+
+Remaining at that rate: ~$10 to finish Zork II's images, ~$26 for Zork III.
+
+### Sequencing (decided 2026-09-04, revised 2026-09-05)
+
+**Zork III's art is deferred indefinitely** (owner decision, 2026-09-05, on
+cost). Zork II is completed to shipping quality — images and audio — and the
+run stops there. This reinforces the original split: Zork III's plan gets
+revised by what the Zork II *build* teaches before any of its art is bought.
+
+**Event panels are cut from ~50 to ~20.** Zork I proved that one death
+treatment reused across most deaths reads fine, with bespoke art only for the
+memorable ones. The saving is real and the consistency is better.
+
+### Original sequencing rationale
 
 Generation is **split by game**: Zork II's assets are produced now, Zork II is
 built and shipped, and Zork III's plan is revisited with what that build taught
