@@ -182,6 +182,14 @@ Do not continue until I explicitly approve.
 PHASE 5 — GENERATE VISUAL ASSETS
 ==================================================
 
+**Decision, 2026-09-04: this phase is split.** Generate Zork II's assets only,
+build and ship Zork II (Phase 6), and revisit Zork III's asset plan with what
+that build taught us before generating its ~147 images. The variant enumeration
+is derived from reading the ZIL, not from playing the port, and Zork I's history
+says those are not the same thing — its trophy-case tiers and flooding states
+were found during the build, not during planning. Locking Zork III's art before
+its logic exists is the bet that produced the redos.
+
 Generation order:
 
 1. **Per-game anchors first.** Generate one establishing panel per region plus the game's title screen, using `nano-banana-pro` text-to-image. Stop and eyeball them against the Zork I set for style continuity and against the Phase 2 palette shift. Regenerate until locked. Do not proceed to volume until the anchors are approved.

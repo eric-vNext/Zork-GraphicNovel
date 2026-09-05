@@ -70,6 +70,15 @@ prefix, and convert to delivery WebP with the existing
 - Raw and rejected generations stay in the media-gen output folders with their
   `prompt.md` provenance.
 
+### Sequencing (decided 2026-09-04)
+
+Generation is **split by game**: Zork II's assets are produced now, Zork II is
+built and shipped, and Zork III's plan is revisited with what that build taught
+us before its ~147 images are generated. Zork I's variant states — the
+trophy-case tiers, the flooding maintenance room — were discovered during the
+build, not during planning; generating Zork III's art from a read-only
+enumeration would repeat the mistake this plan exists to prevent.
+
 ### Generation order
 
 1. **Per-game anchors** — the game's title screen plus one establishing panel
