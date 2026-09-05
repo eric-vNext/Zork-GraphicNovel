@@ -26,8 +26,14 @@ Exit status is 1 if any panel has an edge-band or dark-bar defect.
 import sys
 from PIL import Image, ImageStat
 
-BAND_MAX = 0.06      # inspect up to 6% of the dimension inwards
-PALE, DARK = 232, 18  # luminance thresholds
+# Thresholds, widened after the Zork II anchor pass. The first version looked
+# only 6% inwards and treated "dark" as luminance < 18; three anchors carried
+# flat bars 15-20% of the frame wide at luminance 19-39 and were reported clean.
+# Flatness (a near-zero stddev over a whole strip) is what actually identifies a
+# bar — illustrated content is never that uniform — so the luminance windows are
+# generous and the stddev test does the work.
+BAND_MAX = 0.28       # inspect up to 28% of the dimension inwards
+PALE, DARK = 225, 52  # luminance thresholds
 FLAT = 6.0            # stddev below this counts as "flat"
 
 
@@ -131,7 +137,14 @@ if __name__ == "__main__":
         for f in files:
             rgb = Image.open(f).convert("RGB")
             aspect = (16, 9) if abs(rgb.width / rgb.height - 16 / 9) < .05 else (3, 2)
-            fixed = trim(rgb, rgb.convert("L"), aspect)
+            # Trim until the scan is clean: one pass removes the outermost band,
+            # and a pale page border can hide a dark bar behind it. Re-cropping
+            # to the target aspect can also reintroduce an edge.
+            fixed = rgb
+            for _ in range(4):
+                if not band_defect(fixed.convert("L")):
+                    break
+                fixed = trim(fixed, fixed.convert("L"), aspect)
             name = f.rsplit("/", 2)[-2].replace("2026-09-04-", "") + ".png"
             dest = os.path.join(outdir, name)
             fixed.save(dest)
