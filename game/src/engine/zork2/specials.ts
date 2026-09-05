@@ -183,6 +183,28 @@ export const PRINCESS_ROUTE: PrincessStep[] = [
   { walks: 'in', to: 'GAZEBO-ROOM', from: 'out', follow: 'IN' },
 ];
 
+// -------------------------------- the demon ----------------------------------
+/** `,TREASURES-MAX` — every treasure but the four spheres, candy, collar, wand. */
+const TREASURES_MAX = 10;
+
+/** `,GENIE-THANKS` — what he says as the hoard grows, one line per treasure. */
+const GENIE_THANKS = [
+  "Most fine, master! But 'tis not enough. I will do a great service, and are not great services bought at great price?",
+  'Very nice, but not enough!',
+  'Ah, truly magnificent! Keep them coming.',
+  'Almost halfway there, oh worthy one!',
+  'Oh, such beauty! Your generosity almost overwhelms me!',
+  'Truly I shall do thee a wonderful service when thou hast finished!',
+  'Truly you are most generous! But still, this is yet not enough.',
+  'A fine gift, mighty one, you have almost reached my fee.',
+  'Wondrous fine, master! But one treasure is yet to be given!',
+];
+
+/** CASE-WORTH (2actions.zil) — treasures already banked count towards the fee. */
+function caseWorth(s: import('../types').WorldState): number {
+  return contents(s, 'WIZARD-CASE').filter((o) => objDef(o)?.value).length;
+}
+
 // ============================== BANK OF ZORK =================================
 // The bank is one machine, not four routines: a curtain of light in the
 // depository, four identical viewing rooms, and one piece of state — which
@@ -493,6 +515,219 @@ const OBJ_ROUTINES: Record<string, Handler> = {
       return true;
     }
     if (ctx.verb === 'look-in' || ctx.verb === 'examine') return OBJ_ROUTINES['PALANTIR'](ctx);
+    return false;
+  },
+
+  // --- the demon ------------------------------------------------------------
+  // PENTAGRAM-FCN (2actions.zil:3375). The black sphere on the pentagram is
+  // what lets the Wizard's own demon out, and he takes you for his new master.
+  'PENTAGRAM-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'enter') {
+      out.tell('You try to enter the pentagram, but are forced back by an invisible power.');
+      return true;
+    }
+    if (ctx.verb === 'put' && ctx.dobj === 'PALANTIR-4' && ctx.iobj === 'PENTAGRAM') {
+      removeObj(s, 'PALANTIR-4');
+      fclear(s, 'GENIE', 'INVISIBLE');
+      moveObj(s, 'GENIE', 'PENTAGRAM-ROOM');
+      out.tell('A cold wind blows outward from the sphere. The candles flicker, and a low moan, almost inaudible, is heard. It rises in volume and pitch until it becomes a high-pitched keening. A dim shape becomes visible in the air above the sphere. The shape resolves into a large and somewhat formidable looking demon. He looks around, tests the walls of the pentagram experimentally, then sees you! "Hmm, a new master..." he says under his breath. "Greetings, oh master! Wouldst desire a service, as our contract stateth? For some pittance of wealth, some trifle, I will gratify thy desires to the utmost limit of my powers, and they are not inconsiderable." He makes a pass with his massive arms and the walls begin to shake a little. Another pass and the shaking stops. "A nice effect... I find it makes for a better relationship to give such a demonstration early on." He grins vilely.');
+      out.emit({ type: 'panel', key: 'events/z2-ev-demon-summoned' });
+      out.emit({ type: 'sfx', name: 'z2-demon-speak' });
+      return true;
+    }
+    return false;
+  },
+
+  // GENIE-FCN (2actions.zil:3177). He will do exactly one thing, and only once
+  // his fee is paid: every treasure in the game bar the spheres, the candy,
+  // the collar and the wand itself.
+  'GENIE-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const leaves = (noisy = true): boolean => {
+      fset(s, 'GENIE', 'INVISIBLE');
+      removeObj(s, 'GENIE');
+      if (noisy) out.tell('The genie departs, his agreement fulfilled.');
+      return true;
+    };
+    if (ctx.verb === 'hello') { out.tell('The genie grins demonically, but says nothing.'); return true; }
+
+    if (ctx.winner === 'GENIE') {
+      if (!s.gflags['GENIE-READY']) {
+        out.tell('"My fee is not paid! I perform no tasks for free! We demons have a strong union these days."');
+        return true;
+      }
+      const d = ctx.dobj;
+      if (ctx.verb === 'move' && (d === 'GLOBAL-MENHIR' || d === 'MENHIR')) {
+        s.gflags['MENHIR-POSITION'] = true;
+        out.tell('The demon is gone for a moment. "A trifle... My little finger alone was enough."');
+        return leaves();
+      }
+      if (ctx.verb === 'take') {
+        if (d === 'GLOBAL-MENHIR' || d === 'MENHIR') {
+          removeObj(s, 'MENHIR');
+          s.gflags['MENHIR-POSITION'] = true;
+          out.tell('The demon flashes away for a second. "I have little use for such a thing, but perhaps as a doorstop..."');
+          return leaves();
+        }
+        if (d === 'WAND') {
+          out.tell('"This I do gladly, oh fool!" cackles the demon gleefully. He stretches out an enormous hand towards the wand and taking it like a toothpick (this is a large demon), points it at himself. "Free!" he commands, and the demon and his wand vanish forever.');
+          leaves(false);
+          removeObj(s, 'WAND');
+          return true;
+        }
+        if (d && fset$(s, d, 'TAKEBIT')) {
+          leaves(false);
+          removeObj(s, d);
+          out.tell(`The demon snaps his fingers, the ${objDef(d).desc} spins wildly in the air in front of him, then he and it depart.`);
+          return true;
+        }
+        out.tell('"I fear that I cannot take such a thing."');
+        return true;
+      }
+      if (ctx.verb === 'give' && ctx.iobj === 'ME') {
+        if (d === 'WAND') {
+          // The whole game turns on this line.
+          out.tell('"I hear and obey!" says the demon. He stretches out an enormous hand towards the wand. The Wizard is unsure what to do, pointing it threateningly at the demon, then at you. "Fudge!" he cries, but aside from a strong odor of chocolate in the air, there is no effect. The demon plucks the wand out of his hand (it\'s about toothpick-size to him) and gingerly lays it before you. He fades into the smoke, which disperses. The wizard runs from the room in terror.');
+          removeObj(s, 'WIZARD');
+          leaves(false);
+          fclear(s, 'WAND', 'NDESCBIT');
+          moveObj(s, 'WAND', s.here);
+          out.emit({ type: 'panel', key: 'events/z2-ev-wand-taken' });
+          return true;
+        }
+        if (d === 'GLOBAL-MENHIR' || d === 'MENHIR') {
+          moveObj(s, 'MENHIR', 'PENTAGRAM-ROOM');
+          fclear(s, 'MENHIR', 'NDESCBIT');
+          fclear(s, 'MENHIR', 'TAKEBIT');
+          s.gflags['MENHIR-POSITION'] = true;
+          out.tell('He waves his hands, and the menhir drops softly at your feet.');
+          return leaves();
+        }
+        if (d && fset$(s, d, 'TAKEBIT')) {
+          moveObj(s, d, 'PENTAGRAM-ROOM');
+          out.tell(`The ${objDef(d).desc} appears before you and settles to the ground.`);
+          return leaves();
+        }
+        out.tell('"Were it possible, this would be my fondest wish, but alas..."');
+        return true;
+      }
+      if (ctx.verb === 'attack') {
+        if (d === 'GLOBAL-CERBERUS' || d === 'CERBERUS') {
+          out.tell('"This may prove taxing, but we\'ll see. Perhaps I\'ll tame him for a pup instead." The demon disappears for an instant, then reappears. He looks rather gnawed and scratched. He winces. "Too much for me. Puppy dog, indeed. You\'re welcome to him. Never did like dogs anyway... Any other orders, oh beneficent one?"');
+          return true;
+        }
+        if (d === 'WIZARD') {
+          out.tell('The demon grins hideously. "This has been my desire e\'er since this charlatan bent me to his service. I perform this deed with pleasure!" The demon forms himself back into a cloud of greasy smoke. The cloud envelops the Wizard, who waves his wand fruitlessly, mumbling various phrases which begin with "F". A horrible scream is heard, and the smoke begins to clear. Nothing remains of the Wizard but his wand.');
+          removeObj(s, 'WIZARD');
+          fclear(s, 'WAND', 'NDESCBIT');
+          moveObj(s, 'WAND', s.here);
+          out.emit({ type: 'panel', key: 'events/z2-ev-wand-taken' });
+          return leaves();
+        }
+        if (d === 'ME' || d === 'ADVENTURER') {
+          leaves(false);
+          jigsUp(ctx, '"Foolish mortal, if you insist..." The demon crushes you with one blow of his enormous hand.', {});
+          return true;
+        }
+        out.tell(`"I know no way to kill a ${objDef(d ?? '')?.desc ?? 'thing'}."`);
+        return true;
+      }
+      if (ctx.verb === 'examine' || ctx.verb === 'find') {
+        out.tell(`"I am not permitted to ${ctx.verb === 'find' ? 'answer questions' : 'perform such menial tasks'}. The terms of my contract are explicit on this matter, learned one. Surely you would not wish to violate my contract?" He licks his lips with a forked tongue like a snake's. "The penalty clauses are ... hmm ... devilish."`);
+        return true;
+      }
+      out.tell('"Apologies, oh master, but even for such a one as I this is not possible." He seems somewhat chagrined to have to admit this.');
+      return true;
+    }
+
+    if (ctx.verb === 'attack' || ctx.verb === 'break') {
+      out.tell('The demon laughs uproariously.');
+      return true;
+    }
+    if (ctx.verb === 'give' && ctx.iobj === 'GENIE') {
+      let gift = ctx.dobj;
+      if (!gift) return false;
+      if (gift === 'IRON-BOX' && s.locs['VIOLIN'] === 'IRON-BOX') {
+        out.tell(`The genie frowns briefly, then ${fset$(s, gift, 'OPENBIT') ? 'looks inside' : 'opens'} the box. He smiles horribly.`);
+        removeObj(s, 'IRON-BOX');
+        gift = 'VIOLIN';
+      }
+      if (isBomb(ctx, gift)) {
+        out.tell('"I fear that this violates my contract, oh foolish one. Thus, I am free to depart."');
+        return leaves(false);
+      }
+      if (objDef(gift)?.value && gift !== 'SWORD') {
+        removeObj(s, gift);
+        s.counters.genieHoard = (s.counters.genieHoard ?? 0) + 1;
+        s.counters.score += 2;
+        out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
+        const hoard = s.counters.genieHoard + caseWorth(s);
+        if (hoard >= TREASURES_MAX) {
+          s.gflags['GENIE-READY'] = true;
+          out.tell('"This will do for my fee. \'Tis a paltry hoard, but as you have done me a small service by loosing me from this wizard, it will suffice."');
+        } else {
+          out.tell(`"${GENIE_THANKS[Math.min(hoard, GENIE_THANKS.length) - 1]}"`);
+          if (hoard === 8) out.tell('The Wizard looks at you as if you are a madman. He tears his beard and stares at you fearfully.');
+        }
+        return true;
+      }
+      removeObj(s, gift);
+      out.tell(`The demon gladly takes the ${objDef(gift).desc} and smiles balefully, revealing enormous fangs.`);
+      return true;
+    }
+    return false;
+  },
+
+  // WIZARD-FCN (2actions.zil:3399) — the Wizard as something you can address,
+  // rather than the daemon that torments you.
+  'WIZARD-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.winner === 'WIZARD') {
+      out.tell(ctx.verb === 'give'
+        ? 'The Wizard replies "Foolishment!"'
+        : 'The Wizard considers your statement carefully. His expression indicates he regards it as fanciful.');
+      return true;
+    }
+    if (ctx.verb === 'give' && ctx.iobj === 'WIZARD' && ctx.dobj) {
+      const gift = ctx.dobj;
+      const wasLit = roomLit(s);
+      if (isBomb(ctx, gift)) {
+        removeObj(s, gift);
+        if (s.locs['GENIE'] === 'PENTAGRAM-ROOM') {
+          moveObj(s, gift, s.here);
+          out.tell('The wizard accepts this final folly resignedly.');
+        } else {
+          removeObj(s, 'WIZARD');
+          out.tell('"Hmm..." The Wizard mutters something, then waves his wand over the bomb. It transforms into a bouquet of flowers. Both Wizard and flowers disappear.');
+        }
+        return true;
+      }
+      removeObj(s, gift);
+      out.tell(wasLit && !roomLit(s)
+        ? `"Thank you." As the Wizard places the ${objDef(gift).desc} under his robe, the room becomes dark.`
+        : '"Thank you."');
+      return true;
+    }
+    if (ctx.verb === 'hello') {
+      out.tell('The Wizard seems surprised, much as you might be if a dog talked.');
+      return true;
+    }
+    if (ctx.verb === 'attack' || ctx.verb === 'break') {
+      removeObj(s, 'WIZARD');
+      out.tell(s.locs['WAND'] === 'WIZARD'
+        ? 'The Wizard retreats, waving his wand and chanting. He says "Fear!"'
+        : 'The Wizard tries to cast the "Fear!" spell, but without his wand!');
+      if (!fset$(s, 'GENIE', 'INVISIBLE')) {
+        out.tell('Nothing happens! With a terrified glance at the demon, the wizard runs past you and out of the room.');
+        return true;
+      }
+      out.tell('You are suddenly terrified. The Wizard seems huge and terrible, looming over you. You flee, terrified. He chuckles, snaps his fingers, and disappears.');
+      spells.setSpellState(s, { active: 'FEAR' });
+      s.gflags['SPELL-ACTIVE'] = true;
+      ctx.queue('I-WIZARD', 10);
+      return true;
+    }
     return false;
   },
 

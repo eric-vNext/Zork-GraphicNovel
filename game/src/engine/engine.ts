@@ -42,7 +42,8 @@ export class Game {
     const def = activeGame();
     // Daemons that run from the start, per game (ZIL's initial QUEUE/ENABLE).
     for (const d of def.initialDaemons) {
-      this.s.daemons[d] = { tick: -1, enabled: true };
+      if (typeof d === 'string') this.s.daemons[d] = { tick: -1, enabled: true };
+      else this.s.daemons[d.name] = { tick: d.tick ?? -1, enabled: d.enabled ?? true };
     }
     // The object moves each game's GO routine makes before the first LOOK.
     for (const [obj, dest] of def.startingMoves ?? []) this.s.locs[obj] = dest;

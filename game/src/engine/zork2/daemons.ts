@@ -92,6 +92,20 @@ export function wizardDaemon(ctx: Ctx): void {
   const active = spells.activeSpell(s);
   if (active) { expireSpell(ctx, active); return; }
 
+  // Once his own demon is loose in the pentagram room, the Wizard stops
+  // wandering and turns up there to watch his authority end (2actions.zil:3483).
+  if (s.locs['GENIE'] === 'PENTAGRAM-ROOM') {
+    ctx.disable('I-WIZARD');
+    if (s.locs['WIZARD'] !== 'PENTAGRAM-ROOM') {
+      moveObj(s, 'WIZARD', 'PENTAGRAM-ROOM');
+      if (s.here === 'PENTAGRAM-ROOM') {
+        out.tell('Suddenly the Wizard materializes in the room. He is astonished by what he sees: his servant in deep conversation with a common adventurer! He draws forth his wand, waves it frantically, and incants "Frobizz! Frobozzle! Frobnoid!" The demon laughs heartily. "You no longer control the Black Crystal, hedge-wizard! Your wand is powerless! Your doom is sealed!" The demon turns to you, expectantly.');
+        out.emit({ type: 'sfx', name: 'z2-demon-speak' });
+      }
+    }
+    return;
+  }
+
   // Stranded in the dark with a broken lamp and a real score: the Wizard,
   // of all people, takes pity. This is the game's anti-softlock.
   if (!roomLit(s) && fset$(s, 'LAMP', 'RMUNGBIT') && s.counters.score > 200) {

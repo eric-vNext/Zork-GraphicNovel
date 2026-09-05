@@ -353,6 +353,16 @@ export function parse(s: WorldState, input: string): ParseResult {
   // TAKE/GET IN OBJECT (FIND VEHBIT) = V-BOARD (gsyntax.zil:470): "get in
   // the boat" boards it, it doesn't try to take a nonsense "in the boat" object.
   if (verb === 'take' && (rest[0] === 'in' || rest[0] === 'into')) { verb = 'enter'; rest = rest.slice(1); }
+  // GIVE ME <thing> is V-SGIVE: the object goes the other way round
+  // (gsyntax.zil). "demon, give me the wand" is the whole point of Zork II.
+  if ((verb === 'give' || verb === 'throw') && (rest[0] === 'me' || rest[0] === 'myself')) {
+    const what = splitNounPhrase(rest.slice(1));
+    if (what) {
+      const found = resolveNoun(s, what);
+      if (found.error) return { error: found.error };
+      if (found.id) return { cmd: { verb: 'give', dobjs: [found.id], iobj: 'ME', prep: 'to', raw } };
+    }
+  }
   if (verb === 'swing') verb = 'attack';
   if (verb === 'smash') verb = 'break';
   // DIG IN OBJECT: ZIL's syntax table has IN as fixed filler before the

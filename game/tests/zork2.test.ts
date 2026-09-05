@@ -1037,3 +1037,116 @@ describe('the crystal spheres and the end of the game', () => {
     selectGame(1);
   });
 });
+
+describe('the demon', () => {
+  const FEE = ['CROWN', 'PEARL', 'COIN', 'STAMP', 'RUBY', 'BILLS', 'PORTRAIT', 'STATUETTE', 'VIOLIN', 'GOLD-KEY'];
+
+  function summoned(): Game {
+    const g = at('PENTAGRAM-ROOM');
+    g.s.locs['PALANTIR-4'] = 'ADVENTURER';
+    txt(g, 'put black sphere on pentagram');
+    g.s.locs['WIZARD'] = 'PENTAGRAM-ROOM';
+    g.s.locs['WAND'] = 'WIZARD';
+    return g;
+  }
+
+  function payTheFee(g: Game): string {
+    let last = '';
+    for (const t of FEE) {
+      g.s.locs[t] = 'ADVENTURER';
+      last = txt(g, `give ${t === 'GOLD-KEY' ? 'key' : t.toLowerCase()} to demon`);
+    }
+    return last;
+  }
+
+  it('cannot be joined in the pentagram', () => {
+    const g = at('PENTAGRAM-ROOM');
+    expect(txt(g, 'enter pentagram')).toContain('forced back by an invisible power');
+    selectGame(1);
+  });
+
+  it('is let out by the black sphere', () => {
+    const g = at('PENTAGRAM-ROOM');
+    g.s.locs['PALANTIR-4'] = 'ADVENTURER';
+    const summon = txt(g, 'put black sphere on pentagram');
+    expect(summon).toContain('a new master');
+    expect(g.s.locs['GENIE']).toBe('PENTAGRAM-ROOM');
+    expect(g.s.locs['PALANTIR-4']).toBe(null);
+    selectGame(1);
+  });
+
+  it('does nothing until his fee is paid', () => {
+    const g = summoned();
+    expect(txt(g, 'demon, give me the wand')).toContain('My fee is not paid');
+    expect(txt(g, 'attack demon')).toContain('laughs uproariously');
+    selectGame(1);
+  });
+
+  // Ten treasures, and he counts what is already in the Wizard's cabinet.
+  it('counts his hoard, and says so each time', () => {
+    const g = summoned();
+    const done = payTheFee(g);
+    expect(done).toContain('This will do for my fee');
+    expect(g.s.gflags['GENIE-READY']).toBe(true);
+    selectGame(1);
+  });
+
+  it('counts the Wizard\'s cabinet towards the fee', () => {
+    const g = summoned();
+    for (const t of ['CROWN', 'PEARL', 'COIN']) g.s.locs[t] = 'WIZARD-CASE';
+    let said = '';
+    for (const t of FEE.slice(3)) {
+      g.s.locs[t] = 'ADVENTURER';
+      said = txt(g, `give ${t === 'GOLD-KEY' ? 'key' : t.toLowerCase()} to demon`);
+    }
+    expect(said, 'seven given plus three banked is his fee').toContain('This will do for my fee');
+    selectGame(1);
+  });
+
+  // The wand is the whole game, and there are two ways to get it.
+  it('takes the wand off the Wizard for you', () => {
+    const g = summoned();
+    payTheFee(g);
+    const handover = txt(g, 'demon, give me the wand');
+    expect(handover).toContain('I hear and obey!');
+    expect(handover).toContain('runs from the room in terror');
+    expect(g.s.locs['WAND']).toBe('PENTAGRAM-ROOM');
+    expect(g.s.locs['WIZARD']).toBe(null);
+    expect(txt(g, 'take wand')).toContain('Taken');
+    selectGame(1);
+  });
+
+  it('will kill the Wizard for you instead', () => {
+    const g = summoned();
+    payTheFee(g);
+    const killed = txt(g, 'demon, kill the wizard');
+    expect(killed).toContain('Nothing remains of the Wizard but his wand');
+    expect(g.s.locs['WAND']).toBe('PENTAGRAM-ROOM');
+    selectGame(1);
+  });
+
+  // And one way to lose it forever.
+  it('keeps the wand if you are foolish enough to offer it', () => {
+    const g = summoned();
+    payTheFee(g);
+    const gone = txt(g, 'demon, take the wand');
+    expect(gone).toContain('vanish forever');
+    expect(g.s.locs['WAND']).toBe(null);
+    selectGame(1);
+  });
+
+  it('brings the Wizard out of hiding once it is loose', () => {
+    const g = at('PENTAGRAM-ROOM');
+    g.s.locs['PALANTIR-4'] = 'ADVENTURER';
+    let seen = '';
+    const summon = txt(g, 'put black sphere on pentagram');
+    if (summon.includes('materializes in the room')) seen = summon;
+    for (let i = 0; i < 12 && !seen; i++) {
+      const said = txt(g, 'wait');
+      if (said.includes('materializes in the room')) seen = said;
+    }
+    expect(seen).toContain('Your wand is powerless');
+    expect(g.s.locs['WIZARD']).toBe('PENTAGRAM-ROOM');
+    selectGame(1);
+  });
+});

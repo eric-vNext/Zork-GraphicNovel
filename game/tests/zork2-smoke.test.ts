@@ -99,7 +99,10 @@ describe('the sweep for Zork I assumptions in shared code', () => {
     const g1 = new Game(1);
     const g2 = new Game(2);
     expect(Object.keys(g1.s.daemons)).toContain('I-THIEF');
-    expect(Object.keys(g2.s.daemons)).toEqual(['I-WIZARD']);
+    // 2dungeon.zil GO queues exactly two: the Wizard, and the lamp (disabled
+    // until it is lit).
+    expect(Object.keys(g2.s.daemons)).toEqual(['I-WIZARD', 'I-LANTERN']);
+    expect(g2.s.daemons['I-LANTERN'].enabled, 'queued but not running').toBe(false);
     expect(Object.keys(g2.s.daemons)).not.toContain('I-THIEF');
     selectGame(1);
   });

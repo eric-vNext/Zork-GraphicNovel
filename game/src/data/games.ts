@@ -42,8 +42,13 @@ export interface GameDef {
   world: WorldData;
   /** Where a new game starts. */
   startRoom: string;
-  /** Daemons enabled from turn one (ZIL's initial `<QUEUE>`/`ENABLE` calls). */
-  initialDaemons: string[];
+  /**
+   * ZIL's initial `<QUEUE>`/`<ENABLE>` calls. A bare name is a daemon that runs
+   * every turn from the start; the object form carries its countdown and
+   * whether it starts enabled — Zork II queues its lamp without enabling it,
+   * so the first wick only starts burning when the lamp is switched on.
+   */
+  initialDaemons: Array<string | { name: string; tick?: number; enabled?: boolean }>;
   /** Starting values for `WorldState.actorRooms`. */
   actorRooms: Record<string, string>;
   /**
@@ -148,7 +153,12 @@ export const ZORK2: GameDef = {
   subtitle: 'The Wizard of Frobozz',
   world: zork2World as unknown as WorldData,
   startRoom: 'INSIDE-BARROW', // 2dungeon.zil GO
-  initialDaemons: ['I-WIZARD'],
+  // 2dungeon.zil GO: the Wizard is on a four-turn beat, and the lamp is queued
+  // for 200 turns but left disabled until it is lit.
+  initialDaemons: [
+    { name: 'I-WIZARD', tick: 4 },
+    { name: 'I-LANTERN', tick: 200, enabled: false },
+  ],
   actorRooms: {},
   // Zork II's afterlife is the Room of Red Mist, and it never stops giving you
   // another chance: JIGS-UP has no death limit.
