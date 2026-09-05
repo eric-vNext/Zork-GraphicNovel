@@ -52,7 +52,7 @@ page. Use it **verbatim**:
 > carved marks are weathered and illegible. Not photorealistic. Edge to edge,
 > corner to corner, filling the entire frame."
 
-**Per-region lighting overrides.** The shared block carries two clauses that
+**Per-room lighting overrides, grouped by region.** The shared block carries two clauses that
 are right for most of Zork II and wrong for specific regions, so those regions
 get a variant. Same linework, palette, composition and prohibitions — only the
 lighting and biology clauses change:
@@ -62,10 +62,18 @@ lighting and biology clauses change:
 | `CAVE` (default) | 82 rooms | "deep underground with rock overhead: no sky, no daylight, no weather, no vegetation except moss and fungus" + single-source chiaroscuro |
 | `GARDEN` | Formal Garden, Garden North, Topiary, Gazebo | Warm even light from every direction, no source, nothing casts a shadow; walled garden with hedges and gravel; rock far overhead where a sky should be. **The chiaroscuro clause is removed** — asking for a single source reinstates the lamp the region must not have |
 | `WONDER` | Tea Room, Tiny Room, Dreary Room, Posts Room, Pool Room, Top of Well, Low Room, Machine Room, Cage | Flat overbright stage lighting, too even and a little too bright for underground, perspective subtly and deliberately wrong. **The chiaroscuro clause is removed** — but for a different reason than the Garden and the Bank: a dramatic source makes a room *ominous*, and these need to be *uncanny*, which is a different feeling |
+| `NODIR` | Oddly-angled Room only | Lit evenly from no discernible direction, casting no shadows that would betray a source. The region design's "lit from no direction at all" is not decoration: the room's unease is that it gives you nothing to orient by, which is what the baseball-diamond movement puzzle does mechanically. A single source would hand the player the orientation cue the puzzle withholds |
+| `BEAST` | Dragon's Lair, Cerberus Room | `CAVE` with "no *human* figures" — both are variant bases whose axis is the creature's state, so the creature has to be in the base panel |
 | `BANK` | the nine ordinary Bank of Zork rooms | Flat, even, institutional light with no dramatic source and only soft shadows; "orderly and municipal, unnervingly tidy for somewhere this deep". **The chiaroscuro clause is removed** for the same reason — a hard directional source turns a bank into a dungeon, and the region is unsettling because it is bland. The Depository is *not* in this set: its curtain of light is a variant axis (§4.11) chained off the anchor, not a base panel |
 
-Four of Zork II's ten regions want something other than the shared block's
-chiaroscuro clause, so treat that clause as the default rather than a constant.
+The override is really **per room**, grouped by region for convenience. Four
+regions happened to be uniform; the Tomb is not — its Oddly-angled Room needs
+`NODIR` and its Cerberus Room needs `BEAST` while its other two rooms take
+`CAVE`. Do not read this table as one block per region, especially for Zork III,
+where the Royal Puzzle, the mirror box and the Scenic Vista all sit inside
+regions whose other rooms are ordinary.
+
+Treat the chiaroscuro clause as the default rather than a constant.
 Expect the same in Zork III, which is flat sourceless grey everywhere except
 the beam and the cliff's sun shaft.
 
