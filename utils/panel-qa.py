@@ -84,6 +84,18 @@ def band_defect(im):
     return worst
 
 
+def pale_ground(im):
+    """Item plates sit on a dark vignette; pale corners mean the object was
+    painted on a white sheet. The straight-boundary bar test cannot see this,
+    because a painted wash edge is irregular rather than straight — 4 of the
+    first 30 Zork II item plates came back this way and scanned clean."""
+    a = np.asarray(im, dtype=np.float32)
+    h, w = a.shape
+    k = max(4, int(min(h, w) * 0.06))
+    corners = [a[:k, :k], a[:k, -k:], a[-k:, :k], a[-k:, -k:]]
+    return float(np.mean([c.mean() for c in corners]))
+
+
 def white_patch(im):
     """Fraction of the interior that is blown out."""
     w, h = im.size
@@ -138,13 +150,19 @@ def main(paths):
         name = p.rsplit("/", 3)[-2] if "/" in p else p
         band = band_defect(im)
         patch = white_patch(im)
+        square = abs(im.size[0] / im.size[1] - 1) < 0.02
         notes = []
+        failed = bool(band)
+        if square and pale_ground(im) > 120:
+            notes.append(f"pale ground (corner mean {pale_ground(im):.0f}) — item plate on a white sheet")
+            failed = True
         if band:
-            notes.append(f"{band[1]} on {band[0]} edge, {band[2]}px")
+            notes.insert(0, f"{band[1]} on {band[0]} edge, {band[2]}px")
+        if failed:
             bad += 1
         if patch > 0.02:
             notes.append(f"blown interior {patch*100:.1f}% (review: may be a highlight)")
-        print(f"{'FAIL' if band else 'ok  '}  {name:34s} {im.size[0]}x{im.size[1]}  "
+        print(f"{'FAIL' if failed else 'ok  '}  {name:34s} {im.size[0]}x{im.size[1]}  "
               f"{'; '.join(notes) if notes else 'clean'}")
     return 1 if bad else 0
 
