@@ -1,0 +1,30 @@
+[
+ {"name":"crypt-door-open","ref":"crypt","prompt":"The iron door in the far wall now stands wide open on darkness beyond.","extra":"The twelve heads on their poles keep their exact spacing, heights and angles; the torch and the carved wall are unchanged."},
+ {"name":"crypt-dim-door","ref":"crypt-door-open","prompt":"Low on the side wall among the stone courses, the faint outline of a concealed door has become visible, a single weathered mark cut into it.","extra":"The heads, the poles, the open iron door and the torchlight are all unchanged."},
+ {"name":"crypt-dark","ref":"crypt","prompt":"The torch has gone out. The chamber is nearly black, the poles and heads only just suggested by the faintest edge light, everything else swallowed in darkness.","extra":"Nothing has moved; only the light is gone."},
+
+ {"name":"guarded-room-sleepy","ref":"guarded-room-sniffing","prompt":"The lizard head embedded in the door has closed its eyes and slackened, plainly asleep.","extra":"The door, its stains and banding, the cobwebs and the dust tracks are unchanged."},
+ {"name":"guarded-room-sleepy-open","ref":"guarded-room-sleepy","prompt":"The heavy door now stands open, swung inward on darkness beyond.","extra":"The sleeping lizard head stays exactly where it is on the moving door."},
+ {"name":"guarded-room-alert-open","ref":["guarded-room","guarded-room-sleepy-open"],"prompt":"Combine the two reference images: the room and the wide-open door from the second reference, but with the lizard head alert and watchful as in the first reference, eyes open and fixed on the viewer.","extra":""},
+
+ {"name":"dragon-lair-princess","ref":"dragon-lair-empty","prompt":"A young woman in a pale gown now stands quietly at the edge of the empty scorched hollow, looking down into it.","extra":"The hollow, the bones, the treasure and the shaft of light are exactly as they were."},
+
+ {"name":"pool-room-muddy","ref":"pool-room-drained","prompt":"The drained basin has filled with thick brown mud, glossy and slumped, its surface pocked and cracking at the edges.","extra":"The basin's outline, the walls, the torch and the arch are unchanged."},
+
+ {"name":"dreary-room-unlocked","ref":"dreary-room","prompt":"The heavy stone lid set into the table's top has been unlocked and shifted a hand's breadth to one side, a dark crescent of opening showing beneath its edge.","extra":"The table's height, position and proportions and the bare room around it are unchanged."},
+ {"name":"dreary-room-lid-lifted","ref":"dreary-room-unlocked","prompt":"The stone lid has been lifted clear and set down leaning against the table's foot; the circular recess in the table top is fully open and dark.","extra":"The table and the room are otherwise unchanged."},
+
+ {"name":"cerberus-room-calm","ref":"cerberus-room-collared","prompt":"The collared three-headed hound has lain down flat on the flagstones, all three heads resting on its paws, entirely docile and half asleep.","extra":"The door, its banding, the gouges and the torchlight are unchanged."},
+
+ {"name":"formal-garden-unicorn","ref":"formal-garden","prompt":"A white unicorn now stands on the gravel beside the fountain, head raised, quite still.","extra":"The hedges, paths, fountain and the flat sourceless shadowless light are unchanged."},
+ {"name":"formal-garden-unicorn-fled","ref":"formal-garden-unicorn","prompt":"The unicorn has bolted: it is gone from the frame, leaving scuffed gravel and a scatter of disturbed stones where it stood.","extra":"The hedges, paths, fountain and light are unchanged."},
+
+ {"name":"gazebo-princess-awake","ref":"gazebo","prompt":"The carved chest on the gazebo floor now stands open, its lid thrown back, and the cushioned bench beside it is rumpled as though someone has just risen from it.","extra":"The white lattice, the boarded floor and the garden beyond are unchanged."},
+
+ {"name":"wizards-workshop-wizard","ref":"wizards-workshop","prompt":"A tall gaunt wizard in a patched robe now stands at the near bench with his back three-quarters to the viewer, one hand raised over the glassware.","extra":"Every bench, instrument and light source keeps its exact position."},
+
+ {"name":"depository-curtain-north","ref":"depository","prompt":"The far wall of the vault is now a flat sheet of cold white light from floor to ceiling, edge to edge, with no frame and no opening — a curtain of light, and the only light source in the room.","extra":"The vault ribs, their spacing, and the flagged floor are unchanged."},
+ {"name":"depository-curtain-east","ref":"depository-curtain-north","prompt":"The curtain of light has moved: the far wall is now ordinary dressed stone, and instead the right-hand wall is the flat sheet of cold white light.","extra":"The curtain itself renders exactly as before; only which wall carries it has changed."},
+ {"name":"depository-curtain-south","ref":"depository-curtain-east","prompt":"The curtain of light has moved again: the right-hand wall is now ordinary stone, and the wall behind the viewer's left shoulder glows, throwing the vault ribs into relief from behind.","extra":"The curtain renders exactly as before."},
+ {"name":"depository-curtain-west","ref":"depository-curtain-south","prompt":"The curtain of light has moved once more and now fills the left-hand wall, floor to ceiling.","extra":"The curtain renders exactly as before; the vault is otherwise identical."}
+]

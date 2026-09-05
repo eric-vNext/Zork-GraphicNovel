@@ -1,0 +1,41 @@
+[
+ {"name":"menhir-room-moved","ref":"menhir-room-tilted",
+  "prompt":"The leaning standing stone has now been moved fully aside and rests against the chamber wall at the right, clearing the floor completely; a broad drag-mark crosses the dust where it travelled.",
+  "extra":"The shaft of light still falls at exactly the same angle onto the same patch of floor, now empty."},
+
+ {"name":"carousel-room-stopped","ref":"carousel-room",
+  "prompt":"The drifting motion-blur and swirling dust that suggested the room was turning are gone. Everything is sharp and dead still, and the dust has settled into a thin even layer across the floor.",
+  "extra":"All eight passage mouths keep their exact spacing and their brass surrounds."},
+
+ {"name":"aquarium-room-broken","ref":"aquarium-room",
+  "prompt":"The great glass wall of the aquarium has shattered: jagged glass teeth remain in the frame, the water has poured out across the floor in a dark flood, and the tank behind is empty and dripping.",
+  "extra":"The frame of the tank, the room's stonework and the lantern keep their exact positions."},
+
+ {"name":"pool-room-drained","ref":"pool-room",
+  "prompt":"The pool has drained away completely. The stone basin it filled is now empty, its floor dark with wet silt and a few shallow puddles, the tide-line clearly marked around the rim.",
+  "extra":"The basin's outline in the floor is exactly as it was."},
+
+ {"name":"machine-room-cage-open","ref":"machine-room",
+  "prompt":"The steel cage's barred door now stands wide open, swung outward on its hinges, the cage interior empty and dark.",
+  "extra":"Every lever, dial and gear keeps its exact position; only the cage door moves."},
+
+ {"name":"low-room-quiet","ref":"low-room",
+  "prompt":"The sweeping curved lines drawn in the iron dust on the floor are gone; the dust now lies flat, even and undisturbed.",
+  "extra":"The low ceiling and every arched exit keep their exact positions."},
+
+ {"name":"topiary-moved","ref":"topiary",
+  "prompt":"The clipped hedge animals have moved: each one now stands in a different place along the path and faces a different way, as though they had all shifted while unobserved. The gravel is scuffed where they passed.",
+  "extra":"The garden walls, the path's line and the flat shadowless light are unchanged; the animals are the same animals."},
+
+ {"name":"dragon-lair-empty","ref":"dragon-lair",
+  "prompt":"The dragon is gone. The scorched hollow it lay in is empty, the bones and dull treasure around it undisturbed, a faint haze of smoke still hanging in the air above the hollow.",
+  "extra":"The hollow's shape, the bone heap, the treasure and the shaft of light are exactly as they were."},
+
+ {"name":"cerberus-room-collared","ref":"cerberus-room",
+  "prompt":"A heavy studded collar has been buckled around one of the three-headed hound's necks, and the beast has settled back on its haunches, all three heads lowered and calm rather than snarling.",
+  "extra":"The door, its iron banding, the gouges in the stone and the torchlight are unchanged."},
+
+ {"name":"guarded-room-sniffing","ref":"guarded-room",
+  "prompt":"The lizard head embedded in the door has turned slightly toward the viewer and its nostrils are flared, sniffing the air with obvious interest.",
+  "extra":"The door's position, its stains and iron banding, the cobwebs and the tracks in the dust are unchanged."}
+]
