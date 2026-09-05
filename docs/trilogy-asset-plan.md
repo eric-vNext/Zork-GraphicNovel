@@ -52,6 +52,22 @@ page. Use it **verbatim**:
 > carved marks are weathered and illegible. Not photorealistic. Edge to edge,
 > corner to corner, filling the entire frame."
 
+**Per-region lighting overrides.** The shared block carries two clauses that
+are right for most of Zork II and wrong for specific regions, so those regions
+get a variant. Same linework, palette, composition and prohibitions — only the
+lighting and biology clauses change:
+
+| Variant | Applies to | What changes |
+|---|---|---|
+| `CAVE` (default) | 82 rooms | "deep underground with rock overhead: no sky, no daylight, no weather, no vegetation except moss and fungus" + single-source chiaroscuro |
+| `GARDEN` | Formal Garden, Garden North, Topiary, Gazebo | Warm even light from every direction, no source, nothing casts a shadow; walled garden with hedges and gravel; rock far overhead where a sky should be. **The chiaroscuro clause is removed** — asking for a single source reinstates the lamp the region must not have |
+
+Two more regions will want their own when they come up: the Bank of Zork's
+depository, lit only by the curtain, and the Palantir mist rooms, which have no
+walls to light. The underground clause was itself added mid-run after Deep Ford
+rendered as a winter riverbank; expect one override per region whose physics
+are unusual, and write it before generating rather than after.
+
 Three deliberate differences from Zork I's block, each forced by a defect the
 anchor pass produced: the full-bleed requirement leads and is restated at the
 end; "panel illustration" is gone, because the word *panel* is what invited the
@@ -408,10 +424,13 @@ Every family below gives:
 
 - **Base:** `z2-menhir-room` (menhir upright).
 - **Gate:** `MENHIR-POSITION` (also visible from `KENNEL`).
-- **Invariants:** camera from the north entrance looking south down the quarry
-  floor; the scatter of rough-hewn and finished limestone blocks and their
-  positions; the south passage mouth at frame centre-left; the quarry face at
-  frame right; lantern light from the camera, raking left to right.
+- **Invariants** (from the generated base, 2026-09-04): camera square to the
+  chamber with the standing stone centred and dominating the frame; the shaft
+  of light falling on the stone from above, and its angle; the scatter of
+  quarried blocks around the base and their positions; the two arched passage
+  mouths, one either side. The shaft is an invariant, not decoration — it is
+  what makes the stone the focal point, and it must fall the same way in all
+  three states even as the stone tilts out of it.
 - **Axis:** menhir — `upright` → `tilted` → `moved aside`.
 - **Chain:** `menhir-room` → `menhir-room-tilted` → `menhir-room-moved`.
 - **Edits:**
