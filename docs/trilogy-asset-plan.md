@@ -61,12 +61,16 @@ lighting and biology clauses change:
 |---|---|---|
 | `CAVE` (default) | 82 rooms | "deep underground with rock overhead: no sky, no daylight, no weather, no vegetation except moss and fungus" + single-source chiaroscuro |
 | `GARDEN` | Formal Garden, Garden North, Topiary, Gazebo | Warm even light from every direction, no source, nothing casts a shadow; walled garden with hedges and gravel; rock far overhead where a sky should be. **The chiaroscuro clause is removed** — asking for a single source reinstates the lamp the region must not have |
+| `BANK` | the nine ordinary Bank of Zork rooms | Flat, even, institutional light with no dramatic source and only soft shadows; "orderly and municipal, unnervingly tidy for somewhere this deep". **The chiaroscuro clause is removed** for the same reason — a hard directional source turns a bank into a dungeon, and the region is unsettling because it is bland. The Depository is *not* in this set: its curtain of light is a variant axis (§4.11) chained off the anchor, not a base panel |
 
-Two more regions will want their own when they come up: the Bank of Zork's
-depository, lit only by the curtain, and the Palantir mist rooms, which have no
-walls to light. The underground clause was itself added mid-run after Deep Ford
-rendered as a winter riverbank; expect one override per region whose physics
-are unusual, and write it before generating rather than after.
+The underground clause was itself added mid-run after Deep Ford rendered as a
+winter riverbank. Expect one override per region whose physics are unusual, and
+write it before generating rather than after — the Garden and the Bank both
+landed every panel first try once their block existed.
+
+The Palantir mist rooms need no base panels and no block: all four are one
+composition in four colour treatments, a variant family chained off the red
+anchor with the edit model.
 
 Three deliberate differences from Zork I's block, each forced by a defect the
 anchor pass produced: the full-bleed requirement leads and is restated at the
