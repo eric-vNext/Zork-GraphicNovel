@@ -13,6 +13,13 @@ Three checks the Zork I build learned to need (docs/generated-asset-review.md):
               rather than failing.
 
     python3 utils/panel-qa.py IMAGE [IMAGE ...]
+    python3 utils/panel-qa.py --fix OUTDIR IMAGE [IMAGE ...]
+
+`--fix` trims the detected bands and re-crops to the panel's target aspect,
+writing the result into OUTDIR. Naming the defect in the prompt does not stop
+it — the Zork II anchor pass produced page borders on 8 of 11 images and again
+on 5 of 8 after the style block was rewritten to forbid them three ways. Zork I
+reached the same conclusion and trimmed programmatically; this is that fix.
 
 Exit status is 1 if any panel has an edge-band or dark-bar defect.
 """
@@ -58,6 +65,45 @@ def white_patch(im):
     return sum(1 for v in px if v > 249) / len(px)
 
 
+def trim(im_rgb, im_l, aspect):
+    """Trim every detected edge band, then re-crop to `aspect` from the centre."""
+    box = [0, 0, im_l.size[0], im_l.size[1]]
+    for _ in range(4):  # one band can hide another behind it
+        sub = im_l.crop(tuple(box))
+        d = band_defect(sub)
+        if not d:
+            break
+        edge, _kind, t = d
+        if edge == "top":
+            box[1] += t
+        elif edge == "bottom":
+            box[3] -= t
+        elif edge == "left":
+            box[0] += t
+        else:
+            box[2] -= t
+    # A drawn frame is textured, so the flat-band loop above stops just inside
+    # it and leaves a hairline of page or ink. Once any band has been found,
+    # take a further fixed inset; the compositions have enough margin to spare.
+    if box != [0, 0, im_l.size[0], im_l.size[1]]:
+        inset_x = round(im_l.size[0] * 0.022)
+        inset_y = round(im_l.size[1] * 0.022)
+        box = [box[0] + inset_x, box[1] + inset_y, box[2] - inset_x, box[3] - inset_y]
+
+    out = im_rgb.crop(tuple(box))
+    w, h = out.size
+    want_w, want_h = aspect
+    if w * want_h > h * want_w:          # too wide, trim the sides
+        nw = round(h * want_w / want_h)
+        x = (w - nw) // 2
+        out = out.crop((x, 0, x + nw, h))
+    else:                                 # too tall, trim top and bottom
+        nh = round(w * want_h / want_w)
+        y = (h - nh) // 2
+        out = out.crop((0, y, w, y + nh))
+    return out
+
+
 def main(paths):
     bad = 0
     for p in paths:
@@ -77,4 +123,19 @@ def main(paths):
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1:]))
+    args = sys.argv[1:]
+    if args and args[0] == "--fix":
+        import os
+        outdir, files = args[1], args[2:]
+        os.makedirs(outdir, exist_ok=True)
+        for f in files:
+            rgb = Image.open(f).convert("RGB")
+            aspect = (16, 9) if abs(rgb.width / rgb.height - 16 / 9) < .05 else (3, 2)
+            fixed = trim(rgb, rgb.convert("L"), aspect)
+            name = f.rsplit("/", 2)[-2].replace("2026-09-04-", "") + ".png"
+            dest = os.path.join(outdir, name)
+            fixed.save(dest)
+            print(f"{name:26s} {rgb.size[0]}x{rgb.size[1]} -> {fixed.size[0]}x{fixed.size[1]}"
+                  f"  ({100 - round(100 * fixed.width * fixed.height / (rgb.width * rgb.height))}% trimmed)")
+        raise SystemExit(0)
+    raise SystemExit(main(args))
