@@ -1286,3 +1286,109 @@ describe('Wonderland', () => {
     selectGame(1);
   });
 });
+
+describe('the door between the palantir rooms', () => {
+  function tiny(): Game {
+    const g = at('TINY-ROOM');
+    g.s.locs['PLACE-MAT'] = 'ADVENTURER';
+    g.s.locs['LETTER-OPENER'] = 'ADVENTURER';
+    return g;
+  }
+
+  it('describes the lock in enough detail to solve it', () => {
+    const g = tiny();
+    const look = txt(g, 'look');
+    expect(look).toContain('A keyhole covered by a thin metal lid lies within the lock');
+    txt(g, 'open lid');
+    expect(txt(g, 'look')).toContain('A keyhole lies within the lock');
+    selectGame(1);
+  });
+
+  // The mat under the door, the key poked out of the far keyhole onto it.
+  it('gets the key out from the other side', () => {
+    const g = tiny();
+    txt(g, 'open lid');
+    expect(txt(g, 'put mat under door')).toContain('fits easily under the door');
+    expect(txt(g, 'look')).toContain('The edge of a place mat is visible under the door');
+
+    expect(txt(g, 'put opener in keyhole')).toContain('a small cloud of dust rises from beneath it');
+    expect(txt(g, 'look')).toContain('Lying on the place mat is a rusty iron key');
+
+    expect(txt(g, 'take mat')).toContain('falls from it and onto the floor');
+    expect(g.s.locs['KEY']).toBe('TINY-ROOM');
+    txt(g, 'take key');
+
+    // The opener is still in the way.
+    expect(txt(g, 'unlock door with key')).toContain('The keyhole is blocked');
+    txt(g, 'take opener');
+    expect(txt(g, 'unlock door with key')).toContain('The door is now unlocked');
+    expect(txt(g, 'open door')).toContain('The door is now open');
+    txt(g, 'north');
+    expect(g.s.here).toBe('DREARY-ROOM');
+    selectGame(1);
+  });
+
+  it('shows light through the keyhole only when both sides are clear', () => {
+    const g = tiny();
+    expect(txt(g, 'look in keyhole')).toContain('No light can be seen');
+    txt(g, 'open lid');
+    txt(g, 'put opener in keyhole');   // pushes the key out of the far side
+    txt(g, 'take opener');
+    expect(txt(g, 'look in keyhole')).toContain('a lighted room at the other end');
+    selectGame(1);
+  });
+
+  it('looks through the barred window into the other room', () => {
+    const g = tiny();
+    const seen = txt(g, 'look in window');
+    expect(seen).toContain('Dreary Room');
+    expect(g.s.here, 'without going there').toBe('TINY-ROOM');
+    selectGame(1);
+  });
+});
+
+describe('the aquarium', () => {
+  function atTank(): Game {
+    const g = at('AQUARIUM-ROOM');
+    g.s.locs['SWORD'] = 'ADVENTURER';
+    g.s.locs['STAMP'] = 'ADVENTURER';
+    return g;
+  }
+
+  it('needs something heavier than a postage stamp', () => {
+    const g = atTank();
+    expect(txt(g, 'look in aquarium')).toContain('baby sea-serpent who eyes you suspiciously');
+    expect(txt(g, 'throw stamp at aquarium')).toContain('bounces harmlessly off the glass');
+    expect(g.s.locs['SERPENT']).toBe('AQUARIUM');
+    selectGame(1);
+  });
+
+  it('gives up the clear sphere when the glass goes', () => {
+    const g = atTank();
+    const smash = txt(g, 'throw sword at aquarium');
+    expect(smash).toContain('shatters the glass wall of the aquarium');
+    expect(smash).toContain('expires mere inches away');
+    expect(g.s.locs['PALANTIR-3']).toBe('AQUARIUM');
+    expect(g.s.locs['DEAD-SERPENT']).toBe('AQUARIUM-ROOM');
+    expect(txt(g, 'take clear sphere')).toContain('Taken');
+    delete g.s.touched['AQUARIUM-ROOM'];
+    expect(txt(g, 'look')).toContain('A shattered aquarium');
+    selectGame(1);
+  });
+
+  it('kills you if you break it by hand, or climb in', () => {
+    const g = atTank();
+    const rent = txt(g, 'break aquarium with sword');
+    expect(rent).toContain('rend you limb from limb');
+
+    const h = atTank();
+    expect(txt(h, 'enter aquarium')).toContain('greedily eats you');
+    selectGame(1);
+  });
+
+  it('will not be reached into', () => {
+    const g = atTank();
+    expect(txt(g, 'take serpent')).toContain('He takes you instead');
+    selectGame(1);
+  });
+});

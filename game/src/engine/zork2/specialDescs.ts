@@ -21,12 +21,23 @@ const DIM_DOOR_TEXT =
 
 type Desc = (s: WorldState, viewRoom?: (target: string) => string) => string | null;
 
-/** P-DOOR: the palantir rooms' shared "there is a door" clause. */
-function palantirDoor(s: WorldState, dir: string, lid: string): string {
-  if (fset$(s, lid, 'OPENBIT')) {
-    return `On the ${dir} side of the room is a stone door which is open.`;
+/**
+ * P-DOOR (2actions.zil). The shared clause describing the door between the
+ * Tiny and Dreary rooms — and it is a description with a puzzle in it: the
+ * lid, whatever is sitting in the keyhole, and the place mat under the door.
+ */
+function palantirDoor(s: WorldState, dir: string, lid: string, keyhole: string): string {
+  let t = `On the ${dir} side of the room is a massive wooden door, which has a small window barred with iron. A formidable bolt lock is set within the door frame. A keyhole `;
+  if (!fset$(s, lid, 'OPENBIT')) t += 'covered by a thin metal lid ';
+  t += 'lies within the lock.';
+  const inHole = contents$(s, keyhole)[0];
+  if (inHole) t += ` A ${objName(inHole)} is in place within the keyhole.`;
+  if (s.gflags['MUD-FLAG']) {
+    t += ' The edge of a place mat is visible under the door.';
+    const onMat = s.gvars['MATOBJ'];
+    if (onMat) t += ` Lying on the place mat is a ${objName(onMat)}.`;
   }
-  return `On the ${dir} side of the room is a stone door with a small keyhole in it.`;
+  return t;
 }
 
 export const ZORK2_ROOM_DESCS: Record<string, Desc> = {
@@ -132,11 +143,19 @@ export const ZORK2_ROOM_DESCS: Record<string, Desc> = {
   'TELLER-EAST': () =>
     'You are in a small room, which was used by a bank officer who retrieved safety deposit boxes for the customer. On the north side of the room is a sign which reads "Viewing Room". On the east side of the room, above an open door, is a sign reading: BANK PERSONNEL ONLY',
 
-  'TINY-ROOM': (s) =>
-    `This is a tiny room carved out of the wall of the ravine. There is an exit down a precarious climb. ${palantirDoor(s, 'north', 'LID-1')}`,
+  'TINY-ROOM': (s) => {
+    const t = 'This is a tiny room carved out of the wall of the ravine. There is an exit down a precarious climb.';
+    // PLOOK-FLAG: having just looked through the window, you are not shown the
+    // door again on the way back.
+    if (s.gflags['PLOOK-FLAG']) return t;
+    return `${t} ${palantirDoor(s, 'north', 'LID-1', 'KEYHOLE-1')}`;
+  },
 
-  'DREARY-ROOM': (s) =>
-    `This is a small and rather dreary room, eerily illuminated by a red glow emanating from a crack in one wall. The light falls upon a dusty wooden table in the center of the room. ${palantirDoor(s, 'south', 'LID-2')}`,
+  'DREARY-ROOM': (s) => {
+    const t = 'This is a small and rather dreary room, eerily illuminated by a red glow emanating from a crack in one wall. The light falls upon a dusty wooden table in the center of the room.';
+    if (s.gflags['PLOOK-FLAG']) return t;
+    return `${t} ${palantirDoor(s, 'south', 'LID-2', 'KEYHOLE-2')}`;
+  },
 };
 
 /**
@@ -276,6 +295,9 @@ export function zork2ObjDesc(s: WorldState, obj: string): string | null {
   // (<PUTP ... P?LDESC ...>), which is the same thing said a different way.
   if (obj === 'PRINCESS' && s.gflags['PRINCESS-AWAKE']) {
     return 'There is a dishevelled and slightly unkempt princess here.';
+  }
+  if (obj === 'AQUARIUM' && s.gflags['AQUARIUM-BROKEN']) {
+    return 'A shattered aquarium fills the northern half of the room.';
   }
   if (obj === 'CERBERUS' && s.gflags['CERBERUS-LEASHED']) {
     return 'An insipidly grinning three-headed dog is wagging its tail here. It is wearing a huge dog collar.';

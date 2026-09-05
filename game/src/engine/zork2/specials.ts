@@ -50,6 +50,11 @@ const DRAGON_ATTACKS = [
   'That did no damage, but he turns his smoky yellow eyes in your direction and sighs.',
 ];
 
+/** PLID (2actions.zil) — the lid on this side of the door. */
+function nearLid(s: import('../types').WorldState): string {
+  return s.locs['LID-1'] === s.here ? 'LID-1' : 'LID-2';
+}
+
 /** `,FATAL-VAPORS` — the flask is not to be opened. */
 const FATAL_VAPORS =
   'A cloud of noxious green vapor rises from the flask, and you fall to the ground, overcome by the fumes.';
@@ -539,6 +544,224 @@ const OBJ_ROUTINES: Record<string, Handler> = {
       return true;
     }
     if (ctx.verb === 'look-in' || ctx.verb === 'examine') return OBJ_ROUTINES['PALANTIR'](ctx);
+    return false;
+  },
+
+  // --- the aquarium ---------------------------------------------------------
+  // AQUARIUM-FCN (2actions.zil). The clear sphere is at the bottom of a tank
+  // with a baby sea serpent in it: throw something heavy enough through the
+  // glass and the serpent drowns in the air trying to reach you.
+  'AQUARIUM-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'enter') { ctx.walk('IN'); return true; }
+    if (ctx.verb === 'look-in' && s.locs['SERPENT'] === 'AQUARIUM') {
+      out.tell('In the aquarium is a baby sea-serpent who eyes you suspiciously. His scaly body writhes about in the huge tank.');
+      return true;
+    }
+    const smashing = ((ctx.verb === 'break' || ctx.verb === 'attack') && ctx.dobj === 'AQUARIUM')
+      || (ctx.verb === 'throw' && ctx.iobj === 'AQUARIUM');
+    if (!smashing) return false;
+    const obj = ctx.dobj === 'AQUARIUM' ? ctx.iobj : ctx.dobj;
+    if (!obj) return false;
+    moveObj(s, obj, s.here);
+    if (s.locs['DEAD-SERPENT'] === s.here) { out.tell('The aquarium is already broken!'); return true; }
+    if (obj === 'FLASK') {
+      jigsUp(ctx, 'The flask shatters, and poison gas fills the room!', {});
+      return true;
+    }
+    if (isBomb(ctx, obj)) { ctx.disable('I-FUSE'); return true; }
+    if (!fset$(s, obj, 'WEAPONBIT') && (objDef(obj).size ?? 5) <= 10) {
+      out.tell(`The ${objDef(obj).desc} bounces harmlessly off the glass.`);
+      return true;
+    }
+    removeObj(s, 'SERPENT');
+    moveObj(s, 'PALANTIR-3', 'AQUARIUM');
+    fclear(s, 'PALANTIR-3', 'NDESCBIT');
+    s.gflags['AQUARIUM-BROKEN'] = true;
+    moveObj(s, 'DEAD-SERPENT', s.here);
+    out.emit({ type: 'sfx', name: 'z2-aquarium-break' });
+    out.tell(`The ${objDef(obj).desc} shatters the glass wall of the aquarium, spilling out an impressive amount of salt water and wet sand. It also spills out an extremely annoyed sea serpent who bites angrily at the ${objDef(obj).desc}, and then at you. He is having difficulty breathing, and he seems to hold you responsible for his current problem.`);
+    if (ctx.verb === 'break') {
+      out.tell('He manages to rend you limb from limb before he drowns in the air.');
+      jigsUp(ctx, 'I guess you were too careless.', {});
+      return true;
+    }
+    out.tell('He tries to slither across the stone floor towards you. Fortunately, he expires mere inches away from biting off your foot. A clear crystal sphere sits amid the sand and broken glass on the bottom of the aquarium.');
+    return true;
+  },
+
+  'SERPENT-FCN': (ctx) => {
+    const { out } = ctx;
+    if (ctx.winner === 'SERPENT') { out.tell('The serpent only stares hungrily at you.'); return true; }
+    if (ctx.verb === 'attack' || ctx.verb === 'break') {
+      out.tell("He swims towards you with a powerful stroke of his flippers, dagger-like teeth dripping. Fortunately, he doesn't want to crash into the aquarium wall, and contents himself with splashing you with water.");
+      return true;
+    }
+    if (ctx.verb === 'put' && ctx.dobj === 'SERPENT') { out.tell('Impossible for many reasons.'); return true; }
+    if (ctx.verb === 'take' || ctx.verb === 'give') {
+      jigsUp(ctx, 'He takes you instead. *Uurrp!*', {});
+      return true;
+    }
+    return false;
+  },
+
+  'DEAD-SERPENT-FCN': (ctx) => {
+    if (ctx.verb !== 'take') return false;
+    ctx.out.tell("This may only be a baby sea serpent, but it's as big as a small whale.");
+    return true;
+  },
+
+  // --- the door between the palantir rooms -----------------------------------
+  // The Tiny Room and the Dreary Room share one locked door with a keyhole on
+  // each side. The key is in the far keyhole: slide the place mat under the
+  // door, poke the key through with the letter opener, and it lands on the mat
+  // on your side.
+
+  'PDOOR-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'look-under' && s.gflags['MUD-FLAG']) {
+      out.tell('The place mat is under the door.');
+      return true;
+    }
+    if (ctx.verb === 'unlock' || ctx.verb === 'lock') {
+      if (ctx.iobj === 'GOLD-KEY') { out.tell("It doesn't fit the lock."); return true; }
+      if (ctx.iobj !== 'KEY') {
+        out.tell(ctx.verb === 'unlock' ? "It can't be unlocked with that." : "It can't be locked with that.");
+        return true;
+      }
+      if (ctx.verb === 'lock') {
+        out.tell('The door is locked.');
+        s.gflags['PUNLOCK-FLAG'] = false;
+        return true;
+      }
+      const blocking = contents(s, nearLid(s) === 'LID-1' ? 'KEYHOLE-1' : 'KEYHOLE-2')[0];
+      if (blocking && blocking !== 'KEY') { out.tell('The keyhole is blocked.'); return true; }
+      out.tell('The door is now unlocked.');
+      s.gflags['PUNLOCK-FLAG'] = true;
+      return true;
+    }
+    if (ctx.verb === 'put' && ctx.prep === 'under') {
+      if (ctx.dobj === 'ROBOT-LABEL') {
+        out.tell('The paper is very small and vanishes under the door.');
+        moveObj(s, ctx.dobj, s.here === 'TINY-ROOM' ? 'DREARY-ROOM' : 'TINY-ROOM');
+        return true;
+      }
+      if (ctx.dobj === 'NEWSPAPER') {
+        out.tell("The newspaper crumples up and won't go under the door.");
+        return true;
+      }
+      return false;
+    }
+    if (ctx.verb === 'open' || ctx.verb === 'close') {
+      if (!s.gflags['PUNLOCK-FLAG']) { out.tell('The door is locked.'); return true; }
+      return openClose(ctx, 'PDOOR', 'The door is now open.', 'The door is now closed.');
+    }
+    return false;
+  },
+
+  'PKEY-FCN': (ctx) => {
+    if (ctx.verb !== 'turn') return false;
+    ctx.perform(ctx.s.gflags['PUNLOCK-FLAG'] ? 'lock' : 'unlock', 'PDOOR', 'KEY');
+    return true;
+  },
+
+  'PKH-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const here = s.here === 'DREARY-ROOM' ? 'KEYHOLE-2' : 'KEYHOLE-1';
+    const far = here === 'KEYHOLE-1' ? 'KEYHOLE-2' : 'KEYHOLE-1';
+    if (ctx.verb === 'look-in') {
+      const other = s.here === 'DREARY-ROOM' ? 'TINY-ROOM' : 'DREARY-ROOM';
+      const clear = fset$(s, 'LID-1', 'OPENBIT') && fset$(s, 'LID-2', 'OPENBIT')
+        && !contents(s, 'KEYHOLE-1').length && !contents(s, 'KEYHOLE-2').length
+        && roomLit(s, other);
+      out.tell(clear
+        ? 'You can see a lighted room at the other end.'
+        : 'No light can be seen through the keyhole.');
+      return true;
+    }
+    if (ctx.verb === 'put') {
+      if (!fset$(s, nearLid(s), 'OPENBIT')) { out.tell('The lid is in the way.'); return true; }
+      if (contents(s, here).length) { out.tell('The keyhole is blocked.'); return true; }
+      if (ctx.dobj !== 'LETTER-OPENER' && ctx.dobj !== 'KEY') {
+        out.tell(`The ${objDef(ctx.dobj ?? '').desc} doesn't fit.`);
+        return true;
+      }
+      // Poking something in pushes whatever is in the far side out — onto the
+      // place mat, if you have thought to put one there.
+      const pushed = contents(s, far)[0];
+      if (pushed) {
+        out.tell('There is a faint noise from behind the door and a small cloud of dust rises from beneath it.');
+        removeObj(s, pushed);
+        if (s.gflags['MUD-FLAG']) s.gvars['MATOBJ'] = pushed;
+        return false;
+      }
+      return false;
+    }
+    return false;
+  },
+
+  'PLID-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const lid = ctx.dobj ?? nearLid(s);
+    if (ctx.verb === 'open' || ctx.verb === 'raise' || ctx.verb === 'move') {
+      out.tell(fset$(s, lid, 'OPENBIT') ? pickOne(ctx, DUMMY) : 'The lid is now open.');
+      fset(s, lid, 'OPENBIT');
+      return true;
+    }
+    if (ctx.verb === 'close' || ctx.verb === 'lower') {
+      const hole = s.here === 'DREARY-ROOM' ? 'KEYHOLE-2' : 'KEYHOLE-1';
+      if (contents(s, hole).length) { out.tell('The keyhole is occupied.'); return true; }
+      out.tell('The lid covers the keyhole.');
+      fclear(s, lid, 'OPENBIT');
+      return true;
+    }
+    if (ctx.verb === 'look-behind') {
+      out.tell("There's a keyhole behind the lid.");
+      return true;
+    }
+    return false;
+  },
+
+  'PWINDOW-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'look-in') {
+      s.gflags['PLOOK-FLAG'] = true;
+      if (fset$(s, 'PDOOR', 'OPENBIT')) { out.tell('The door is open, dummy.'); return true; }
+      out.tell(ctx.viewRoom(s.here === 'DREARY-ROOM' ? 'TINY-ROOM' : 'DREARY-ROOM'));
+      return true;
+    }
+    if (ctx.verb === 'enter') { out.tell('Perhaps if you were diced....'); return true; }
+    return false;
+  },
+
+  'PLACE-MAT-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'put' && ctx.prep === 'under') {
+      if (ctx.iobj === 'PDOOR') {
+        out.tell('The place mat fits easily under the door.');
+        moveObj(s, 'PLACE-MAT', s.here);
+        s.gflags['MUD-FLAG'] = true;
+        return true;
+      }
+      if (ctx.iobj === 'WIZ-DOOR' || ctx.iobj === 'RIDDLE-DOOR' || ctx.iobj === 'CRYPT-DOOR') {
+        out.tell("There's not enough room under this door.");
+        return true;
+      }
+      return false;
+    }
+    if ((ctx.verb === 'take' || ctx.verb === 'move') && s.gvars['MATOBJ']) {
+      const prize = s.gvars['MATOBJ']!;
+      moveObj(s, prize, s.here);
+      out.tell(`As the place mat is moved, a ${objDef(prize).desc} falls from it and onto the floor.`);
+      s.gvars['MATOBJ'] = null;
+      s.gflags['MUD-FLAG'] = false;
+      return true;
+    }
+    return false;
+  },
+
+  'GLOBAL-PALANTIRS': (ctx) => {
+    if (ctx.verb === 'break') { ctx.out.tell('The sphere is unbreakable.'); return true; }
     return false;
   },
 
@@ -1708,6 +1931,23 @@ export function beforeAction(ctx: Ctx): boolean {
   return false;
 }
 
+/** PCHECK (2actions.zil) — housekeeping for the two palantir rooms. */
+function pcheck(ctx: Ctx, phase: 'enter' | 'end' | 'beg'): boolean {
+  const { s } = ctx;
+  if (phase !== 'beg' || ctx.verb === 'look') return false;
+  s.gflags['PLOOK-FLAG'] = false;
+  if (s.locs['KEY'] === 'KEYHOLE-1' || s.locs['KEY'] === 'KEYHOLE-2') fset(s, 'KEY', 'NDESCBIT');
+  else fclear(s, 'KEY', 'NDESCBIT');
+  if (inPlayer(s, 'PLACE-MAT')) s.gflags['MUD-FLAG'] = false;
+  if (s.gflags['MUD-FLAG']) {
+    moveObj(s, 'PLACE-MAT', s.here);
+    fset(s, 'PLACE-MAT', 'NDESCBIT');
+  } else {
+    fclear(s, 'PLACE-MAT', 'NDESCBIT');
+  }
+  return false;
+}
+
 // ============================= ROOM ACTIONS ==================================
 
 /**
@@ -1731,6 +1971,21 @@ export function dimDoorAppears(ctx: Ctx): void {
 }
 
 const ROOM_ROUTINES: Record<string, RoomHandler> = {
+  // IN-AQUARIUM-FCN (2actions.zil) — climbing into the tank is fatal either
+  // way: the serpent eats you, or the broken glass does for you.
+  'IN-AQUARIUM-FCN': (ctx, phase) => {
+    if (phase !== 'enter') return false;
+    jigsUp(ctx, ctx.s.locs['SERPENT'] === 'AQUARIUM'
+      ? 'You drop into the aquarium with a splash (which attracts the serpent). He greedily eats you. He\'s just a baby, after all, and needs all the food he can get.'
+      : "Oh dear, you have cut yourself severely on the broken glass. I'm afraid you've bled to death.", {});
+    return true;
+  },
+
+  // PCHECK (2actions.zil): the key only lists itself when it is out of a
+  // keyhole, and the place mat stays under the door until you pull it back.
+  'TINY-ROOM-FCN': (ctx, phase) => pcheck(ctx, phase),
+  'DREARY-ROOM-FCN': (ctx, phase) => pcheck(ctx, phase),
+
   // POSTS-ROOM-FCN's M-BEG arm: everything in the room is enormous now.
   'POSTS-ROOM-FCN': (ctx, phase) => {
     if (phase !== 'beg' || ctx.verb !== 'take' || !ctx.dobj) return false;
