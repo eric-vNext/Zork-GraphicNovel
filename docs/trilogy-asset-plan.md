@@ -35,8 +35,30 @@ again, and it — not the coding — sets the calendar.
 
 ### The style block
 
-`docs/asset-plan.md` §0's `[STYLE]` string is used **verbatim**, with one
-palette clause appended per game, from
+Zork I's `[STYLE]` string (`docs/asset-plan.md` §0) is superseded for the
+trilogy by the block below. The look is unchanged — this is the same direction,
+reworded after the v1 anchor pass sent 8 of 11 images back as artwork drawn on a
+page. Use it **verbatim**:
+
+> **[STYLE]** = "The artwork bleeds to all four edges of the image: no page, no
+> paper texture, no border, no frame, no mat, no margin, no vignette edge.
+> Graphic novel interior artwork in bold expressive ink linework with painterly
+> gouache shading, muted earthy palette of bone, moss, rust and slate, dramatic
+> single-source chiaroscuro lighting, 1980s New England woods Americana meets
+> subterranean fantasy dungeon gloom, whimsical detail within ominous
+> atmosphere, cinematic composition with one clear focal point and quiet
+> negative space along one edge for captions. No people and no figures anywhere
+> in the image. No text, no lettering, no numerals, no speech bubbles; any
+> carved marks are weathered and illegible. Not photorealistic. Edge to edge,
+> corner to corner, filling the entire frame."
+
+Three deliberate differences from Zork I's block, each forced by a defect the
+anchor pass produced: the full-bleed requirement leads and is restated at the
+end; "panel illustration" is gone, because the word *panel* is what invited the
+page; and the figure and lettering rules are stated to the model rather than
+left in a document it never sees.
+
+One palette clause is appended per game, from
 `docs/trilogy-presentation-concept.md` §1:
 
 - **Zork II:** `"palette warmed toward verdigris, brass and ember, with one saturated accent per region"`
@@ -62,11 +84,25 @@ prefix, and convert to delivery WebP with the existing
 
 - **Player-as-camera.** The adventurer appears only as gloved hands, a
   lamp-bearing forearm, or a cloaked back-of-shoulder at the frame edge. Never a
-  face. This caught a `river-upper` regeneration on the Zork I run.
+  face. This caught a `river-upper` regeneration on the Zork I run, and a Zork II
+  anchor that came back with two visible adventurers in the Ice Room.
+  **A cast shadow is not a figure.** Owner ruling, 2026-09-04, on the Bank of
+  Zork depository anchor: the curtain of light throwing a human shadow across
+  the vault wall reads as the player's own and stays. Do not regenerate a panel
+  to remove a cast shadow, and do not extend this to a body, a face or a
+  reflection.
+- **No figures in room panels**, stated in the prompt rather than left implied.
+  A rule that lives only in a document is a rule the model never sees.
 - **No text, lettering or speech bubbles.** Anything the model paints that looks
   like writing is stylised gibberish and must never carry information.
 - **Quiet negative space** along one edge for captions.
-- **Full-bleed.** No borders baked into the art; the frame is a UI overlay.
+- **Full-bleed, and say it first.** No borders baked into the art; the frame is
+  a UI overlay. The v1 style block opened with *"Graphic novel panel
+  illustration"* and 8 of 11 Zork II anchors came back as artwork drawn on a
+  page — a cream sheet with an inked border, or a pale or dark band down one
+  edge. The word "panel" invites it. The block now opens with the full-bleed
+  requirement and repeats it at the end; "panel illustration" is gone in favour
+  of "interior artwork".
 - Raw and rejected generations stay in the media-gen output folders with their
   `prompt.md` provenance.
 
