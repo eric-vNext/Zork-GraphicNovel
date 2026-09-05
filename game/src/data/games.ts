@@ -16,6 +16,7 @@ import zork1World from './zork1/world.gen.json';
 import zork2World from './zork2/world.gen.json';
 import zork3World from './zork3/world.gen.json';
 import { ZORK1_PRESENTATION } from './zork1/presentation';
+import { ZORK2_PRESENTATION } from './zork2/presentation';
 
 export interface ScoringDef {
   /** `SCORE-MAX` from the source. */
@@ -124,7 +125,7 @@ export const ZORK2: GameDef = {
   version: 'ZORK II: The Wizard of Frobozz\nInfocom interactive fiction - a fantasy story\n'
     + 'Copyright (c) 1981, 1982, 1983, 1986 Infocom, Inc. All rights reserved.\n'
     + 'ZORK is a registered trademark of Infocom, Inc.\nRelease 48 / Serial number 840904',
-  presentation: placeholderPresentation(zork2World.rooms, 'wizard', 'underground'),
+  presentation: ZORK2_PRESENTATION,
   playable: false,
 };
 

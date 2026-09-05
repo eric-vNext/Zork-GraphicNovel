@@ -122,6 +122,39 @@ def white_patch(im):
     return sum(1 for v in px if v > 249) / len(px)
 
 
+def crop_to_artwork(im_rgb, im_l, aspect):
+    """Crop a page-mounted painting down to the painting itself.
+
+    Cheaper and more reliable than rerolling: the artwork is the non-pale
+    region, so its bounding box is the crop. Three rerolls of one event panel
+    failed to shake the white sheet; this fixed it in one pass.
+    """
+    a = np.asarray(im_l, dtype=np.float32)
+    # A row belongs to the artwork if most of it is non-pale. Using .any()
+    # fails: a single ink speck or the printed frame line in the page margin
+    # is enough to claim the row, and the crop then does nothing.
+    mask = a < 205
+    rows = np.where(mask.mean(axis=1) > 0.5)[0]
+    cols = np.where(mask.mean(axis=0) > 0.5)[0]
+    if not len(rows) or not len(cols):
+        return im_rgb
+    pad = 4
+    box = (max(0, int(cols[0]) + pad), max(0, int(rows[0]) + pad),
+           min(im_rgb.width, int(cols[-1]) - pad), min(im_rgb.height, int(rows[-1]) - pad))
+    if box[2] - box[0] < 64 or box[3] - box[1] < 64:
+        return im_rgb
+    out = im_rgb.crop(box)
+    w, h = out.size
+    want_w, want_h = aspect
+    if w * want_h > h * want_w:
+        nw = round(h * want_w / want_h); x = (w - nw) // 2
+        out = out.crop((x, 0, x + nw, h))
+    else:
+        nh = round(w * want_h / want_w); y = (h - nh) // 2
+        out = out.crop((0, y, w, y + nh))
+    return out
+
+
 def trim(im_rgb, im_l, aspect):
     """Trim every detected edge band, then re-crop to `aspect` from the centre."""
     box = [0, 0, im_l.size[0], im_l.size[1]]
