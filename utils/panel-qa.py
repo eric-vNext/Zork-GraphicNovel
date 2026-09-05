@@ -96,6 +96,24 @@ def pale_ground(im):
     return float(np.mean([c.mean() for c in corners]))
 
 
+def page_ground(im):
+    """Largest fraction of any single edge that is pale.
+
+    A painting mounted on a white sheet has at least one edge almost entirely
+    pale; a full-bleed illustration does not, even a bright one. Measured on a
+    labelled set from the Zork II runs: page grounds scored 0.93-1.00, while
+    the brightest legitimate panels — the depository's curtain wall and the
+    marble hall — topped out at 0.62. The threshold sits at 0.80, which is
+    conservative on purpose: it never fires on real artwork, and a thin strip
+    along one edge can still slip under it and needs the eye.
+    """
+    a = np.asarray(im, dtype=np.float32)
+    h, w = a.shape
+    t = max(3, int(min(h, w) * 0.015))
+    edges = (a[:t, :], a[-t:, :], a[:, :t], a[:, -t:])
+    return max(float((e > 205).mean()) for e in edges)
+
+
 def white_patch(im):
     """Fraction of the interior that is blown out."""
     w, h = im.size
@@ -155,6 +173,10 @@ def main(paths):
         failed = bool(band)
         if square and pale_ground(im) > 120:
             notes.append(f"pale ground (corner mean {pale_ground(im):.0f}) — item plate on a white sheet")
+            failed = True
+        pg = page_ground(im)
+        if pg >= 0.80:
+            notes.append(f"page ground ({pg:.2f} of one edge is pale) — artwork mounted on a sheet")
             failed = True
         if band:
             notes.insert(0, f"{band[1]} on {band[0]} edge, {band[2]}px")
