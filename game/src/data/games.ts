@@ -86,7 +86,7 @@ export interface GameDef {
      * room's M-ENTER — the Bank of Zork's depository uses it to remember which
      * way you came in.
      */
-    roomAction: (ctx: any, room: string, phase: 'enter' | 'end', dir?: string) => boolean;
+    roomAction: (ctx: any, room: string, phase: 'enter' | 'end' | 'beg', dir?: string) => boolean;
     specialExit: (ctx: any, per: string, dir?: string) => string | null;
     /**
      * M-BEG on WALK, which in ZIL belongs to the room — or, when the player is

@@ -15,6 +15,8 @@ export interface Command {
   raw: string;
   allBut?: boolean;             // dobjs came from ALL
   num?: number;                 // for 'wait N'
+  /** The actor ordered to do this, if the command was addressed to one. */
+  actor?: string;
   word?: string;                // for 'incant <spell>' — V-INCANT reads it raw
 }
 
@@ -105,6 +107,8 @@ v('wear');
 v('say', 'speak', 'utter');
 v('shout', 'yell', 'scream');
 v('hello', 'hi');
+v('answer', 'reply');
+v('tell', 'ask', 'order', 'command');
 v('diagnose');
 v('score');
 v('save');
@@ -244,6 +248,16 @@ function splitNounPhrase(tokens: string[]): NounPhrase | null {
   return { noun, adjectives: words.slice(0, -1), raw: words.join(' ') };
 }
 
+/** V-TELL: hand `line` to `actor` as an order, or refuse if it is not one. */
+function orderTo(s: WorldState, actor: string, line: string, raw: string): ParseResult {
+  if (!fset$(s, actor, 'ACTORBIT')) {
+    return { error: `You can't talk to the ${DATA.objects[actor]?.desc ?? 'that'}!` };
+  }
+  const inner = parse(s, line);
+  if (!inner.cmd) return inner;
+  return { cmd: { ...inner.cmd, actor, raw } };
+}
+
 // ---------------- main parse ----------------
 export function tokenize(input: string): string[] {
   return input.toLowerCase().replace(/[.,!?;"]/g, ' ').split(/\s+/).filter(Boolean);
@@ -253,6 +267,22 @@ export function tokenize(input: string): string[] {
 export function parse(s: WorldState, input: string): ParseResult {
   vocabulary();
   const raw = input.trim();
+
+  // "robot, go south" — an order addressed to an actor. The parser makes that
+  // actor the WINNER for the rest of the line (gparser.zil:126, V-TELL).
+  const comma = raw.indexOf(',');
+  if (comma > 0) {
+    const who = splitNounPhrase(tokenize(raw.slice(0, comma)));
+    const rest = raw.slice(comma + 1).trim();
+    if (who && rest) {
+      const found = resolveNoun(s, who);
+      if (found.id) return orderTo(s, found.id, rest, raw);
+      // "robot, go east" with no robot in sight is an error, not an attempt to
+      // parse the whole line — but "hello, sailor" is not addressed to anyone.
+      if (found.error && isNounWord(who.noun)) return { error: found.error };
+    }
+  }
+
   let toks = tokenize(raw);
   if (!toks.length) return { error: 'I beg your pardon?' };
 
@@ -261,8 +291,12 @@ export function parse(s: WorldState, input: string): ParseResult {
     return { cmd: { verb: 'walk', dir: DIR_WORDS[toks[0]], raw } };
   }
 
-  // "say xyzzy" / quoted magic words
-  if ((toks[0] === 'say' || toks[0] === 'speak') && toks.length > 1) toks = toks.slice(1);
+  // "say xyzzy" / quoted magic words. A word that is not itself a verb is an
+  // answer to whatever is listening — the stone door's riddle, in Zork II.
+  if ((toks[0] === 'say' || toks[0] === 'speak') && toks.length > 1) {
+    if (!VERBS[toks[1]]) return { cmd: { verb: 'answer', raw, word: toks[1] } };
+    toks = toks.slice(1);
+  }
 
   let verbWord = toks[0];
   let verb = VERBS[verbWord];
@@ -324,6 +358,25 @@ export function parse(s: WorldState, input: string): ParseResult {
   // DIG IN OBJECT: ZIL's syntax table has IN as fixed filler before the
   // object, not a genuine dobj/iobj-splitting preposition (gsyntax.zil:165-167).
   if (verb === 'dig' && (rest[0] === 'in' || rest[0] === 'into')) rest = rest.slice(1);
+
+  // TELL <actor> [TO] <command> is the other way to give an order (V-TELL).
+  if (verb === 'tell') {
+    const toAt = rest.indexOf('to');
+    const whoToks = toAt > 0 ? rest.slice(0, toAt) : rest.slice(0, 1);
+    const cmdToks = toAt > 0 ? rest.slice(toAt + 1) : rest.slice(1);
+    const who = splitNounPhrase(whoToks);
+    if (!who) return { error: 'Tell whom?' };
+    const found = resolveNoun(s, who);
+    if (found.error) return { error: found.error };
+    if (!found.id) return { error: 'Tell whom?' };
+    if (!cmdToks.length) {
+      return { error: `The ${DATA.objects[found.id]?.desc ?? who.raw} pauses for a moment, perhaps thinking that you should reread the manual.` };
+    }
+    return orderTo(s, found.id, cmdToks.join(' '), raw);
+  }
+
+  // ANSWER <word> / SAY <word>: the word is read raw, like INCANT's.
+  if (verb === 'answer' && rest.length) return { cmd: { verb: 'answer', raw, word: rest[0] } };
 
   // V-INCANT takes no object: it reads the next word out of the input buffer
   // raw (<GET ,P-LEXV ,P-CONT>), spell or not.

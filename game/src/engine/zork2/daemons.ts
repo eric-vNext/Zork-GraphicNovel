@@ -705,6 +705,18 @@ export function gardenDaemon(ctx: Ctx): void {
   }
 }
 
+/**
+ * I-SPHERE (2actions.zil:1226). Six turns in the cage and the gas has you —
+ * unless the robot has been walked in and told to lift it.
+ */
+export function sphereDaemon(ctx: Ctx): void {
+  const { s } = ctx;
+  if (s.here !== 'CAGE-ROOM' && s.here !== 'IN-CAGE') return;
+  fset(s, 'PALANTIR-1', 'INVISIBLE');
+  mungRoom(s, 'CAGE-ROOM', 'You are stopped by a cloud of poisonous gas.');
+  jigsUp(ctx, 'Time passes...and you die from some obscure poisoning.', {});
+}
+
 export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   // The player's own spell, and the wand's charge, both time out.
   'I-SPELL': spells.spellTimeout,
@@ -722,4 +734,5 @@ export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   'I-PRINCESS': princessDaemon,
   'I-UNICORN': unicornDaemon,
   'I-GARDEN': gardenDaemon,
+  'I-SPHERE': sphereDaemon,
 };

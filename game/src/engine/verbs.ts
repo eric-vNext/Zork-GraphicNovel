@@ -17,9 +17,9 @@ function objAction(ctx: Ctx, obj?: string): boolean {
   const sp = activeGame().specials;
   return sp ? sp.objAction(ctx, obj) : z1ObjAction(ctx, obj);
 }
-function roomAction(ctx: Ctx, room: string, phase: 'enter' | 'end', dir?: string): boolean {
+function roomAction(ctx: Ctx, room: string, phase: 'enter' | 'end' | 'beg', dir?: string): boolean {
   const sp = activeGame().specials;
-  return sp ? sp.roomAction(ctx, room, phase, dir) : z1RoomAction(ctx, room, phase);
+  return sp ? sp.roomAction(ctx, room, phase, dir) : (phase === 'beg' ? false : z1RoomAction(ctx, room, phase));
 }
 function specialExit(ctx: Ctx, per: string, dir?: string): string | null {
   const sp = activeGame().specials;
@@ -40,6 +40,9 @@ const TREASURE_ROOM_SAFE = 'TREASURE-ROOM';
 
 export function goTo(ctx: Ctx, dir: string): void {
   const { s, out } = ctx;
+  // An actor told to walk moves itself; the player stays where they are and
+  // only hears about it (GOTO's WINNER arm, gverbs.zil).
+  if (ctx.winner !== PLAYER) { walkActor(ctx, dir); return; }
   // "out" / "get out" while riding is V-DISEMBARK, not a compass move: the
   // parser folds both spellings into a walk (gsyntax.zil:481).
   if (dir === 'OUT' && playerVehicle(s) && !roomDef(s.here).exits['OUT']) {
@@ -105,6 +108,26 @@ export function goTo(ctx: Ctx, dir: string): void {
   const throughWindowToKitchen = ex.ifDoor === 'KITCHEN-WINDOW' && ex.to === 'KITCHEN';
   enterRoom(ctx, ex.to!, dir);
   if (throughWindowToKitchen) out.emit({ type: 'panel', key: 'events/window-entry' });
+}
+
+/**
+ * GOTO for anyone but the player. ZIL points HERE at the actor for the rest of
+ * the turn and lets the ordinary code move it; the only thing the player sees
+ * is the actor going, so that is all this does.
+ */
+function walkActor(ctx: Ctx, dir: string): void {
+  const { s, out } = ctx;
+  const actor = ctx.winner;
+  const from = s.locs[actor];
+  const ex = from ? roomDef(from)?.exits[dir] : undefined;
+  let dest = ex?.to ?? null;
+  if (ex?.per) dest = specialExit(ctx, ex.per, dir);
+  if (ex?.ifFlag && !s.gflags[ex.ifFlag]) dest = null;
+  if (ex?.ifDoor && !fset$(s, ex.ifDoor, 'OPENBIT')) dest = null;
+  if (!dest) { if (ex?.msg) out.tell(ex.msg.replace(/\n/g, ' ')); else out.tell("You can't go that way."); return; }
+  moveObj(s, actor, dest);
+  if (s.here === from) out.tell(`The ${objDef(actor)?.desc ?? 'creature'} leaves the room.`);
+  void dest;
 }
 
 /** GOTO's per-game vehicle-stop message (gverbs.zil:2075). */
@@ -208,6 +231,10 @@ export function perform(ctx: Ctx): void {
     out.tell('It\'s too dark to see!');
     return;
   }
+
+  // An order runs the actor's own ACTION first (gmain.zil:211): the robot
+  // answers most of what you tell it itself, and lets the rest through.
+  if (ctx.winner !== PLAYER && objAction(ctx, ctx.winner)) return;
 
   // The M-BEG arm of whatever the player is standing in — the room, or the
   // vehicle when riding one (gmain.zil:212). WALK's is handled in goTo, which
@@ -505,6 +532,13 @@ export function perform(ctx: Ctx): void {
     // V-MELT (gverbs.zil) — only Zork II's glacier has anything to say to it.
     case 'melt':
       out.tell(`It's not clear that a ${objDef(d ?? '')?.desc ?? 'thing'} can be melted.`);
+      return;
+    // V-ANSWER (gverbs.zil): a room's M-BEG arm may be listening; nothing else is.
+    case 'answer':
+      out.tell('Nobody seems to be awaiting your answer.');
+      return;
+    case 'tell':
+      out.tell("You can't talk to that!");
       return;
     case 'cut':
       out.tell(pickOne(ctx, YUKS));

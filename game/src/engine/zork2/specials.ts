@@ -22,7 +22,7 @@ import { spellUsed } from '../spells';
 import world from '../../data/zork2/world.gen.json';
 
 type Handler = (ctx: Ctx) => boolean;
-type RoomHandler = (ctx: Ctx, phase: 'enter' | 'end', dir?: string) => boolean;
+type RoomHandler = (ctx: Ctx, phase: 'enter' | 'end' | 'beg', dir?: string) => boolean;
 
 /** OPEN-CLOSE (2actions.zil:93). */
 function openClose(ctx: Ctx, obj: string, openMsg: string, closeMsg: string): boolean {
@@ -388,6 +388,125 @@ const OBJ_ROUTINES: Record<string, Handler> = {
       default:
         return false;
     }
+  },
+
+  // --- the robot and the cage -----------------------------------------------
+  // ROBOT-FCN (2actions.zil:1237). Everything you say to the robot it answers
+  // itself; the two things it will actually do are walk and lift the cage.
+  'ROBOT-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const here = () => s.locs['ROBOT'] === s.here;
+
+    if (ctx.winner === 'ROBOT') {
+      if (ctx.verb === 'follow') {
+        out.tell('"My memory circuits are not that advanced. I can move as directed, though."');
+        return true;
+      }
+      if ((ctx.verb === 'raise' || ctx.verb === 'take' || ctx.verb === 'move') && ctx.dobj === 'CAGE') {
+        // The one thing it is for.
+        out.tell("The cage shakes and is hurled across the room. It's hard to say, but the robot appears to be smiling.");
+        out.emit({ type: 'sfx', name: 'z2-robot-lift' });
+        out.emit({ type: 'panel', key: 'events/z2-ev-robot-lifts-cage' });
+        ctx.disable('I-SPHERE');
+        moveObj(s, 'MANGLED-CAGE', 'CAGE-ROOM');
+        removeObj(s, 'CAGE');
+        fclear(s, 'ROBOT', 'NDESCBIT');
+        fset(s, 'PALANTIR-1', 'TAKEBIT');
+        moveObj(s, 'ROBOT', 'CAGE-ROOM');
+        s.gflags['CAGE-SOLVE-FLAG'] = true;
+        ctx.moveTo('CAGE-ROOM', true);
+        return true;
+      }
+      if (ctx.verb === 'eat' || ctx.verb === 'drink') {
+        if (here()) out.tell('"I am sorry but that is difficult for a being with no mouth."');
+        return true;
+      }
+      if (prob(ctx, 2) && here()) {
+        out.tell('"Buzz! Buzz! Buzz! My circuits are getting rusty. Try again."');
+        return true;
+      }
+      if (ctx.verb === 'read' || ctx.verb === 'examine') {
+        if (here()) out.tell('"My vision is not sufficiently acute to do that."');
+        return true;
+      }
+      if (ctx.verb === 'drop' || ctx.verb === 'put' || ctx.verb === 'throw') {
+        if (!here()) return false;
+        if (ctx.dobj && s.locs[ctx.dobj] === 'ROBOT') { out.tell('"Whirr, buzz, click!"'); return false; }
+        out.tell('"Click! I don\'t have that. Buzz! Whirr!"');
+        return true;
+      }
+      if (ctx.verb === 'walk'
+          || ((ctx.verb === 'take' || ctx.verb === 'push' || ctx.verb === 'turn')
+              && ctx.dobj && !fset$(s, ctx.dobj, 'ACTORBIT'))) {
+        if (!here()) return false;
+        out.tell(prob(ctx, 80) ? '"Whirr, buzz, click!"' : '"Buzz, click, whirr!"');
+        return false;
+      }
+      if (here()) out.tell('"My programming is insufficient to allow me to perform that task."');
+      return true;
+    }
+
+    if (ctx.verb === 'open' || ctx.verb === 'look-in' || ctx.verb === 'close') {
+      out.tell("There's no access panel or door on the robot.");
+      return true;
+    }
+    if (ctx.verb === 'give' && ctx.iobj === 'ROBOT' && ctx.dobj) {
+      moveObj(s, ctx.dobj, 'ROBOT');
+      out.tell(`The robot gladly takes the ${objDef(ctx.dobj).desc} and nods his head-like appendage in thanks.`);
+      return true;
+    }
+    if (ctx.verb === 'throw' || ctx.verb === 'break') {
+      out.tell('The robot falls to the ground and (being of shoddy construction) disintegrates before your eyes.');
+      removeObj(s, 'ROBOT');
+      return true;
+    }
+    return false;
+  },
+
+  // SPHERE-FCN (2actions.zil:1192). Reaching for the sphere springs the trap;
+  // sending the robot to reach for it kills the robot.
+  'SPHERE-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const grabbing = !s.gflags['CAGE-SOLVE-FLAG']
+      && (ctx.verb === 'take' || ctx.verb === 'move' || ctx.verb === 'put');
+    if (grabbing && ctx.winner !== 'ROBOT') {
+      out.tell('As you reach for the sphere, a solid steel cage falls from the ceiling to entrap you. To make matters worse, poisonous gas starts coming into the room.');
+      out.emit({ type: 'sfx', name: 'z2-chomper' });
+      if (s.locs['ROBOT'] === s.here) {
+        moveObj(s, 'ROBOT', 'IN-CAGE');
+        fset(s, 'ROBOT', 'NDESCBIT');
+      }
+      ctx.queue('I-SPHERE', 6);
+      ctx.moveTo('IN-CAGE', true);
+      moveObj(s, 'CAGE', s.here);
+      fset(s, 'CAGE', 'NDESCBIT');
+      fclear(s, 'CAGE', 'INVISIBLE');
+      return true;
+    }
+    if (grabbing) {
+      fset(s, 'PALANTIR-1', 'INVISIBLE');
+      removeObj(s, 'ROBOT');
+      moveObj(s, 'CAGE', 'CAGE-ROOM');
+      fclear(s, 'CAGE', 'INVISIBLE');
+      jigsUp(ctx, 'As the robot reaches for the sphere, a solid steel cage falls from the ceiling, trapping him. You can faintly hear his last words: "Whirr, buzz, click!" A cloud of smoke rising from beneath the cage confirms your fears about the fate of your brave mechanical friend.', {});
+      return true;
+    }
+    return false;
+  },
+
+  // --- the riddle -----------------------------------------------------------
+  'RIDDLE-DOOR-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const open = fset$(s, 'RIDDLE-DOOR', 'OPENBIT');
+    if (ctx.verb === 'open') {
+      out.tell(open ? 'It is open!' : 'The door can only be opened by answering the riddle.');
+      return true;
+    }
+    if (ctx.verb === 'close') {
+      out.tell(open ? 'Not a chance. The door weighs many tons.' : 'It is closed!');
+      return true;
+    }
+    return false;
   },
 
   // --- Cerberus -------------------------------------------------------------
@@ -1008,7 +1127,8 @@ const OBJ_ROUTINES: Record<string, Handler> = {
  */
 export function beforeAction(ctx: Ctx): boolean {
   const { s, out } = ctx;
-  if (playerVehicle(s) !== 'BALLOON') return false;
+  // In a vehicle it is the vehicle's M-BEG that runs; otherwise the room's.
+  if (playerVehicle(s) !== 'BALLOON') return roomAction(ctx, s.here, 'beg');
 
   if (ctx.verb === 'open' && s.gvars['BINF-FLAG'] && ctx.dobj === 'RECEPTACLE'
       && contents(s, 'RECEPTACLE').length) {
@@ -1056,6 +1176,32 @@ export function dimDoorAppears(ctx: Ctx): void {
 }
 
 const ROOM_ROUTINES: Record<string, RoomHandler> = {
+  // RIDDLE-ROOM-FCN's M-BEG arm (2actions.zil:2007). The answer is a word,
+  // not an object, so it arrives through ANSWER/SAY rather than the verb table.
+  'RIDDLE-ROOM-FCN': (ctx, phase) => {
+    const { s, out } = ctx;
+    if (phase !== 'beg') return false;
+    if (ctx.verb !== 'answer' && ctx.verb !== 'say') return false;
+    if (fset$(s, 'RIDDLE-DOOR', 'OPENBIT')) return false;
+    if ((ctx.word ?? '').toLowerCase() === 'well') {
+      out.tell('There is a deafening clap of thunder and the stone door quietly swings open to reveal a passageway beyond.');
+      out.emit({ type: 'sfx', name: 'z2-riddle-open' });
+      s.counters.score += 5;
+      out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
+      fset(s, 'RIDDLE-DOOR', 'OPENBIT');
+    } else {
+      out.tell('A hollow laugh seems to come from the stone door.');
+    }
+    return true;
+  },
+
+  // IN-CAGE-FCN (2actions.zil:1234) — once the robot has lifted the cage the
+  // room you were trapped in is simply the cage room again.
+  'IN-CAGE-FCN': (ctx, phase) => {
+    if (phase === 'enter' && ctx.s.gflags['CAGE-SOLVE-FLAG']) ctx.s.here = 'CAGE-ROOM';
+    return false;
+  },
+
   // GARDEN-ROOM-FCN (2actions.zil:2624) — the garden's own wandering daemon.
   'GARDEN-ROOM-FCN': (ctx, phase) => {
     if (phase === 'enter') ctx.queue('I-GARDEN', -1);
@@ -1153,7 +1299,7 @@ export function objAction(ctx: Ctx, obj?: string): boolean {
   return OBJ_ACTIONS[obj]?.(ctx) ?? false;
 }
 
-export function roomAction(ctx: Ctx, room: string, phase: 'enter' | 'end', dir?: string): boolean {
+export function roomAction(ctx: Ctx, room: string, phase: 'enter' | 'end' | 'beg', dir?: string): boolean {
   return ROOM_ACTIONS[room]?.(ctx, phase, dir) ?? false;
 }
 

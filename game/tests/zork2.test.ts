@@ -852,3 +852,96 @@ describe('Cerberus and the garden', () => {
     selectGame(1);
   });
 });
+
+describe('the robot and the cage', () => {
+  // The sphere is a trap, and the robot is the way out of it. Both halves need
+  // orders addressed to an actor, which is the parser feature this rests on.
+  function atMagnet(): Game {
+    const g = at('MAGNET-ROOM');
+    return g;
+  }
+
+  it('takes orders and walks where it is told', () => {
+    const g = atMagnet();
+    expect(txt(g, 'robot, go east')).toContain('The robot leaves the room');
+    expect(g.s.locs['ROBOT']).toBe('MACHINE-ROOM');
+    selectGame(1);
+  });
+
+  it('will not be ordered about when it is not there', () => {
+    const g = at('CAGE-ROOM');
+    expect(txt(g, 'robot, go north')).toContain("can't see any robot");
+    selectGame(1);
+  });
+
+  it('answers most of what you tell it with a buzz', () => {
+    const g = atMagnet();
+    expect(txt(g, 'robot, read the paper')).toContain('vision is not sufficiently acute');
+    expect(txt(g, 'robot, follow me')).toContain('memory circuits are not that advanced');
+    selectGame(1);
+  });
+
+  it('lifts the cage off you', () => {
+    const g = atMagnet();
+    txt(g, 'robot, go east');
+    txt(g, 'east');
+    txt(g, 'robot, go south');
+    txt(g, 'south');
+    expect(g.s.locs['ROBOT']).toBe('CAGE-ROOM');
+
+    const trap = txt(g, 'take sphere');
+    expect(trap).toContain('a solid steel cage falls from the ceiling');
+    expect(g.s.here).toBe('IN-CAGE');
+
+    const freed = txt(g, 'robot, lift the cage');
+    expect(freed).toContain('hurled across the room');
+    expect(g.s.here).toBe('CAGE-ROOM');
+    expect(g.s.gflags['CAGE-SOLVE-FLAG']).toBe(true);
+    expect(txt(g, 'take sphere')).toContain('Taken');
+    expect(g.s.locs['PALANTIR-1']).toBe('ADVENTURER');
+    selectGame(1);
+  });
+
+  it('gasses you if nobody lifts it', () => {
+    const g = at('CAGE-ROOM');
+    txt(g, 'take sphere');
+    expect(g.s.here).toBe('IN-CAGE');
+    let dead = '';
+    for (let i = 0; i < 10 && !dead; i++) {
+      const said = txt(g, 'wait');
+      if (said.includes('obscure poisoning')) dead = said;
+    }
+    expect(dead, 'the gas should get you').toContain('obscure poisoning');
+    selectGame(1);
+  });
+
+  // Sending the robot to do it instead is the wrong lesson to draw.
+  it('kills the robot if you send it for the sphere', () => {
+    const g = atMagnet();
+    txt(g, 'robot, go east');
+    txt(g, 'east');
+    txt(g, 'robot, go south');
+    txt(g, 'south');
+    expect(txt(g, 'robot, take the sphere')).toContain('brave mechanical friend');
+    expect(g.s.locs['ROBOT']).toBe(null);
+    selectGame(1);
+  });
+});
+
+describe('the riddle', () => {
+  it('opens its door for one word, and no other', () => {
+    const g = at('RIDDLE-ROOM');
+    const look = txt(g, 'look');
+    expect(look).toContain('tall as a house');
+    expect(look).toContain('great closed door');
+    expect(txt(g, 'open door')).toContain('only be opened by answering the riddle');
+    expect(txt(g, 'answer cup')).toContain('A hollow laugh');
+    const solved = txt(g, 'say well');
+    expect(solved).toContain('deafening clap of thunder');
+    expect(g.s.counters.score).toBe(5);
+    expect(txt(g, 'close door')).toContain('weighs many tons');
+    txt(g, 'east');
+    expect(g.s.here).toBe('PEARL-ROOM');
+    selectGame(1);
+  });
+});

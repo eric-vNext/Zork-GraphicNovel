@@ -9,8 +9,13 @@ export interface Ctx {
   dobj?: string;
   iobj?: string;
   prep?: string;
-  /** The raw word after INCANT, which is not an object (gverbs.zil V-INCANT). */
+  /** The raw word after INCANT or ANSWER, which is not an object. */
   word?: string;
+  /**
+   * `,WINNER` — who is being told to act. The player unless the command was
+   * addressed to an actor ("robot, go south"); the parser resets it every turn.
+   */
+  winner: string;
   rng: () => number;                       // 0..1
   queue: (name: string, ticks: number) => void; // -1 = every turn
   /**

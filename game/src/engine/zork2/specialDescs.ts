@@ -51,6 +51,11 @@ export const ZORK2_ROOM_DESCS: Record<string, Desc> = {
       : `${t} Imbedded in the far wall is a rusty box. It appears to be somewhat damaged, since an oblong hole has been chipped out of the front of it.`;
   },
 
+  'RIDDLE-ROOM': (s) => {
+    const door = fset$(s, 'RIDDLE-DOOR', 'OPENBIT') ? 'open' : 'closed';
+    return `This is a room which is bare on all sides. There is an exit down in the northwest corner of the room. To the east is a great ${door} door made of stone. Above the stone, the following words are written: "No man shall pass this door without solving this riddle:\n\n  What is tall as a house,\n    round as a cup,\n      and all the king's horses\n        can't draw it up?"`;
+  },
+
   'MENHIR-ROOM': () =>
     'This is a large room which was evidently used once as a quarry. Many large limestone chunks lie helter-skelter around the room. Some are rough-hewn and unworked, others smooth and well-finished. One side of the room appears to have been used to quarry building blocks, the other to produce menhirs (standing stones). Obvious passages lead north and south.',
 
