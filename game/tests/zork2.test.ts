@@ -154,3 +154,73 @@ describe('the Wizard of Frobozz', () => {
     selectGame(1);
   });
 });
+
+describe('Zork II dynamic room descriptions', () => {
+  // Most of these rooms are genuinely dark in Zork II, so the player needs a
+  // lit lamp before LOOK says anything but "pitch black".
+  function look(g: Game, room: string): string {
+    g.s.locs['LAMP'] = 'ADVENTURER';
+    g.s.oflags['LAMP'] = { ...(g.s.oflags['LAMP'] ?? {}), ONBIT: true };
+    g.s.here = room;
+    delete g.s.touched[room];
+    return txt(g, 'look');
+  }
+
+  it('the glacier room gains its steaming passage only once melted', () => {
+    const g = new Game(2);
+    expect(look(g, 'GLACIER-ROOM')).not.toContain('still partly full of steam');
+    g.s.gflags['ICE-MELTED'] = true;
+    expect(look(g, 'GLACIER-ROOM')).toContain('still partly full of steam');
+    selectGame(1);
+  });
+
+  it('the safe is chipped before the blast and blown after', () => {
+    const g = new Game(2);
+    expect(look(g, 'SAFE-ROOM')).toContain('oblong hole has been chipped');
+    g.s.gflags['SAFE-FLAG'] = true;
+    const after = look(g, 'SAFE-ROOM');
+    expect(after).toContain('whose door has been blown off');
+    expect(after).not.toContain('oblong hole');
+    selectGame(1);
+  });
+
+  it('the carousel only whirrs while it is turning', () => {
+    const g = new Game(2);
+    expect(look(g, 'CAROUSEL-ROOM')).toContain('loud whirring sound');
+    g.s.gflags['CAROUSEL-FLIP-FLAG'] = true;
+    expect(look(g, 'CAROUSEL-ROOM')).not.toContain('loud whirring sound');
+    selectGame(1);
+  });
+
+  it('the lizard watches, then sniffs the candy, then sleeps', () => {
+    const g = new Game(2);
+    expect(look(g, 'GUARDIAN-ROOM')).toContain('eyes move to watch you');
+    g.s.locs['CANDY'] = 'ADVENTURER';
+    expect(look(g, 'GUARDIAN-ROOM')).toContain('lizard is sniffing at you');
+    g.s.gflags['GUARDIAN-FED'] = true;
+    expect(look(g, 'GUARDIAN-ROOM')).toContain('sleepy-looking lizard head');
+    selectGame(1);
+  });
+
+  it('the crypt reports its door and reveals the secret one', () => {
+    const g = new Game(2);
+    expect(look(g, 'CRYPT-ROOM')).toContain('The door is closed.');
+    g.s.oflags['CRYPT-DOOR'] = { ...(g.s.oflags['CRYPT-DOOR'] ?? {}), OPENBIT: true };
+    expect(look(g, 'CRYPT-ROOM')).toContain('The door is open.');
+    delete g.s.oflags['DIM-DOOR']?.INVISIBLE;
+    expect(look(g, 'CRYPT-ROOM')).toContain('dim outline of a secret door');
+    selectGame(1);
+  });
+
+  // Prose and art are gated by the same flag, so they cannot disagree.
+  it('description state and panel state move together', () => {
+    const g = new Game(2);
+    const no = () => false;
+    expect(look(g, 'SAFE-ROOM')).toContain('chipped');
+    expect(roomArtFor('SAFE-ROOM', g.s.gflags, no)).toBe('z2-dusty-room');
+    g.s.gflags['SAFE-FLAG'] = true;
+    expect(look(g, 'SAFE-ROOM')).toContain('blown off');
+    expect(roomArtFor('SAFE-ROOM', g.s.gflags, no)).toBe('z2-dusty-room-blown');
+    selectGame(1);
+  });
+});

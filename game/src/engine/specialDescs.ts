@@ -20,7 +20,13 @@ export function dynamicObjDesc(s: WorldState, obj: string): string | null {
   }
 }
 
+import { gameNumber } from '../data/games';
+import { zork2RoomDesc } from './zork2/specialDescs';
+
 export function dynamicRoomDesc(s: WorldState, room: string): string | null {
+  // Each game owns its routine-generated descriptions.
+  if (gameNumber() === 2) return zork2RoomDesc(s, room);
+
   const open = (o: string) => fset$(s, o, 'OPENBIT');
   switch (room) {
     case 'LIVING-ROOM': {
