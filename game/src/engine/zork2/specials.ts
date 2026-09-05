@@ -19,6 +19,7 @@ import {
 } from '../world';
 import * as spells from '../spells';
 import { spellUsed } from '../spells';
+import { NEXT_SPHERE, WIZQDESCS, palantirLook } from './specialDescs';
 import world from '../../data/zork2/world.gen.json';
 
 type Handler = (ctx: Ctx) => boolean;
@@ -489,6 +490,27 @@ const OBJ_ROUTINES: Record<string, Handler> = {
       moveObj(s, 'CAGE', 'CAGE-ROOM');
       fclear(s, 'CAGE', 'INVISIBLE');
       jigsUp(ctx, 'As the robot reaches for the sphere, a solid steel cage falls from the ceiling, trapping him. You can faintly hear his last words: "Whirr, buzz, click!" A cloud of smoke rising from beneath the cage confirms your fears about the fate of your brave mechanical friend.', {});
+      return true;
+    }
+    if (ctx.verb === 'look-in' || ctx.verb === 'examine') return OBJ_ROUTINES['PALANTIR'](ctx);
+    return false;
+  },
+
+  // --- the crystal spheres --------------------------------------------------
+  // PALANTIR (2actions.zil). Each sphere is a window onto the room the next
+  // one is in; the black one is a window onto the demon watching all of them.
+  PALANTIR: (ctx) => {
+    const { s, out } = ctx;
+    const d = ctx.dobj;
+    if (!d) return false;
+    if (ctx.verb === 'look-in') {
+      out.tell(palantirLook(s, NEXT_SPHERE[d] ?? 'PALANTIR-4', false, ctx.viewRoom));
+      out.emit({ type: 'panel', key: 'events/z2-ev-palantir-vision' });
+      out.emit({ type: 'sfx', name: 'z2-palantir-hum' });
+      return true;
+    }
+    if (ctx.verb === 'examine') {
+      out.tell('There is something misty in the sphere. Perhaps if you were to look into it...');
       return true;
     }
     return false;
@@ -1192,6 +1214,60 @@ const ROOM_ROUTINES: Record<string, RoomHandler> = {
     } else {
       out.tell('A hollow laugh seems to come from the stone door.');
     }
+    return true;
+  },
+
+  // WIZARD-QUARTERS-FCN (2actions.zil). The room redecorates itself every time
+  // it is described, and never twice the same way running.
+  'WIZARD-QUARTERS-FCN': (ctx, phase) => {
+    const { s } = ctx;
+    if (phase !== 'enter' && !(phase === 'beg' && ctx.verb === 'look')) return false;
+    const last = s.counters.wizQ ?? -1;
+    let pick = Math.floor(ctx.rng() * WIZQDESCS.length);
+    if (pick === last) pick = pick === WIZQDESCS.length - 1 ? pick - 1 : pick + 1;
+    s.counters.wizQ = pick;
+    return false;
+  },
+
+  // ZORK3-FCN (2actions.zil). The landing at the bottom of the Wizard's stair
+  // is the end of the game: with his wand you go down it, and without it the
+  // wards kill you.
+  'ZORK3-FCN': (ctx, phase) => {
+    const { s, out } = ctx;
+    if (phase !== 'enter') return false;
+    out.tell('Beyond the door is a roughly hewn staircase leading down into darkness. The landing on which you stand is covered with carefully drawn magical runes like those sketched upon the workbench of the Wizard of Frobozz. These have been overlaid with sweeping green lines of enormous power, which undulate back and forth across the landing.');
+    if (!inPlayer(s, 'WAND')) {
+      jigsUp(ctx, 'The green curves begin to vibrate toward you, as if searching for something. One by one your possessions glow bright green. Finally, you are attacked by these magical wardens, and destroyed!', {});
+      return true;
+    }
+    out.tell('The wand begins to vibrate in harmony with the motion of the lines. You feel yourself compelled downward, and you yield, stepping onto the staircase. As you pass the green lines, they flare and disappear with a burst of light, and you tumble down the staircase!\n\nAt the bottom, a vast red-lit hall stretches off into the distance. Sinister statues guard the entrance to a dimly visible room far ahead. With courage and cunning you have conquered the Wizard of Frobozz and become the master of his domain, but the final challenge awaits!\n\n(The ultimate adventure concludes in "Zork III: The Dungeon Master".)');
+    out.emit({ type: 'panel', key: 'events/z2-ev-victory-landing' });
+    ctx.winGame();
+    return true;
+  },
+
+  // DEAD-PALANTIR's M-ENTER arm: the black sphere at the end of the afterlife,
+  // and the demon who decides whether you get another go. Three deaths is his
+  // limit, whatever JIGS-UP allows.
+  'DEAD-PALANTIR': (ctx, phase) => {
+    const { s, out } = ctx;
+    if (phase !== 'enter' || s.here !== 'DEAD-PALANTIR-4') return false;
+    out.tell('You follow a corridor of black mist into a black walled spherical room.');
+    if (s.locs['GENIE'] === 'PENTAGRAM-ROOM') {
+      out.tell("The room is empty. A huge face looks down on you from outside and laughs sardonically. It doesn't look like you're getting out of this predicament!");
+      s.dead = true;
+      out.emit({ type: 'death', permanent: true });
+      return true;
+    }
+    out.tell('As you enter, a huge and horrible face materializes out of the mist.\n\n"What brings you here to trouble my imprisonment, wanderer?" it asks. Hearing no immediate answer, it studies you for a moment.');
+    if (s.counters.deaths >= 3) {
+      out.tell('"Not you again! This is getting tedious. You\'ll obviously never be much help to me. Better luck next time, oh wondrous adventurer." The face disappears and everything goes black.');
+      s.dead = true;
+      out.emit({ type: 'death', permanent: true });
+      return true;
+    }
+    out.tell('"Perhaps you may be of some use to me in gaining my freedom from this place. Return to your foolish quest! I shall not destroy you this time. Mayhap you will repay this favor in kind someday." The face vanishes and the mist begins to swirl. When it clears you are returned to the world of life.');
+    ctx.moveTo('INSIDE-BARROW', true);
     return true;
   },
 

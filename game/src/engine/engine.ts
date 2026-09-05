@@ -10,7 +10,7 @@ import { perform, goTo, enterRoom, roomEndAction } from './verbs';
 import { clocker, DAEMONS, candleTicksRemaining } from './daemons';
 import { fightStrength } from './melee';
 import { jigsUp } from './death';
-import { describeRoom } from './describe';
+import { describeRoom, viewRoom } from './describe';
 
 const UNKNOWN_WORD_RE = /^I don't know the word "(.+)"\.$/;
 
@@ -74,6 +74,7 @@ export class Game {
         else { self.s.here = room; out.emit({ type: 'room', room }); }
       },
       walk: (dir) => { goTo(self.makeCtx(out, { verb: 'walk', dir }), dir); },
+      viewRoom: (room) => viewRoom(self.s, room),
       perform: (verb, dobj, iobj) => {
         const sub = this.makeCtx(out, { verb, dobjs: dobj ? [dobj] : undefined, iobj });
         if (verb === 'look') describeRoom(this.s, out, true);

@@ -31,9 +31,13 @@ export function dynamicObjDesc(s: WorldState, obj: string): string | null {
 
 import { zork2RoomDesc } from './zork2/specialDescs';
 
-export function dynamicRoomDesc(s: WorldState, room: string): string | null {
+export function dynamicRoomDesc(
+  s: WorldState,
+  room: string,
+  viewRoom?: (target: string) => string,
+): string | null {
   // Each game owns its routine-generated descriptions.
-  if (gameNumber() === 2) return zork2RoomDesc(s, room);
+  if (gameNumber() === 2) return zork2RoomDesc(s, room, viewRoom);
 
   const open = (o: string) => fset$(s, o, 'OPENBIT');
   switch (room) {

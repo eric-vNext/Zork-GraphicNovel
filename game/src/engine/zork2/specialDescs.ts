@@ -8,7 +8,9 @@
 // panel (see data/zork2/presentation.ts roomArtFor), so prose and art can never
 // disagree about what state the room is in.
 import type { WorldState } from '../types';
-import { fclear, fset$, contents as contents$, objDef } from '../world';
+import {
+  fclear, fset, fset$, contents as contents$, isRoom as isRoom$, objDef, roomLit as roomLit$,
+} from '../world';
 
 const objName = (id: string): string => objDef(id)?.desc ?? 'thing';
 import { litIgnoringRoomBit } from './specials';
@@ -17,7 +19,7 @@ import { litIgnoringRoomBit } from './specials';
 const DIM_DOOR_TEXT =
   'It is dark, but on the south wall is a faint outline of a rectangle, as though light were shining around a doorway. You can also make out a faintly glowing letter in the center of this area. It might be an "F".';
 
-type Desc = (s: WorldState) => string | null;
+type Desc = (s: WorldState, viewRoom?: (target: string) => string) => string | null;
 
 /** P-DOOR: the palantir rooms' shared "there is a door" clause. */
 function palantirDoor(s: WorldState, dir: string, lid: string): string {
@@ -50,6 +52,17 @@ export const ZORK2_ROOM_DESCS: Record<string, Desc> = {
       ? `${t} On the far wall is a rusty box, whose door has been blown off.`
       : `${t} Imbedded in the far wall is a rusty box. It appears to be somewhat damaged, since an oblong hole has been chipped out of the front of it.`;
   },
+
+  'DEAD-PALANTIR-1': (s, view) => deadPalantir(s, 'DEAD-PALANTIR-1', view),
+  'DEAD-PALANTIR-2': (s, view) => deadPalantir(s, 'DEAD-PALANTIR-2', view),
+  'DEAD-PALANTIR-3': (s, view) => deadPalantir(s, 'DEAD-PALANTIR-3', view),
+
+  // WIZARD-QUARTERS-FCN (2actions.zil) picks a description at random and only
+  // avoids repeating the one before, so the room is never twice the same.
+  // The roll itself needs the game's RNG, so it happens in the room's ACTION
+  // (see specials.ts); this only reads which one came up.
+  'WIZARDS-QUARTERS': (s) =>
+    `This is where the Wizard of Frobozz lives. The room is ${WIZQDESCS[s.counters.wizQ ?? 0]}`,
 
   'RIDDLE-ROOM': (s) => {
     const door = fset$(s, 'RIDDLE-DOOR', 'OPENBIT') ? 'open' : 'closed';
@@ -173,6 +186,84 @@ function balloonOutside(s: WorldState): string {
     : '. Dangling from the basket is a piece of braided wire.');
 }
 
+// ------------------------------ the palantirs --------------------------------
+// Each sphere shows you the room the next one is in: red shows blue, blue
+// shows white, white shows red, and the black one shows the demon who is
+// watching all of it. The afterlife is the inside of those same spheres.
+
+export const NEXT_SPHERE: Record<string, string> = {
+  'PALANTIR-1': 'PALANTIR-2', 'PALANTIR-2': 'PALANTIR-3',
+  'PALANTIR-3': 'PALANTIR-1', 'PALANTIR-4': 'PALANTIR-4',
+};
+
+/** Which room an object is really in, however deeply it is nested. */
+function roomOf$(s: WorldState, obj: string): string | null {
+  let p: string | null = s.locs[obj] ?? null;
+  while (p && !isRoom$(p)) p = s.locs[p] ?? null;
+  return p && isRoom$(p) ? p : null;
+}
+
+/**
+ * PALANTIR-LOOK (2actions.zil). `inside` is the afterlife's version, which is
+ * looking *out* through the mist rather than into a sphere in your hands.
+ */
+export function palantirLook(
+  s: WorldState,
+  obj: string,
+  inside: boolean,
+  viewRoom?: (target: string) => string,
+): string {
+  if (obj === 'PALANTIR-4') {
+    return 'As you peer into the sphere, a strange vision takes shape...a huge and fearful face with yellow eyes. The face peers out at you expectantly.';
+  }
+  const rm = roomOf$(s, obj);
+  if (!rm || !roomLit$(s, rm) || !viewRoom) return 'You see only darkness.';
+  const preamble = inside
+    ? 'As you peer through the mist, a strangely colored vision of a huge room takes shape...'
+    : 'As you peer into the sphere, a strange vision takes shape of a distant room, which can be described clearly....';
+  const wasHere = s.here === rm;
+  const hidden = fset$(s, obj, 'INVISIBLE');
+  if (!hidden) fset(s, obj, 'INVISIBLE');
+  const vision = viewRoom(rm);
+  if (!hidden) fclear(s, obj, 'INVISIBLE');
+  const tail = wasHere ? '\nAn astonished adventurer is staring into a crystal sphere.' : '';
+  const fade = inside ? '' : '\nThe vision fades, revealing only an ordinary crystal sphere.';
+  return `${preamble}\n\n${vision}${tail}${fade}`;
+}
+
+/** DEAD-PALANTIR's M-LOOK arm: the inside of a sphere, seen from the inside. */
+function deadPalantir(s: WorldState, room: string, viewRoom?: (t: string) => string): string {
+  const which = room === 'DEAD-PALANTIR-1'
+    ? { mist: 'red', west: 'blue', sphere: 'PALANTIR-1' }
+    : room === 'DEAD-PALANTIR-2'
+      ? { mist: 'blue', west: 'white', sphere: 'PALANTIR-2' }
+      : { mist: 'white', west: 'black', sphere: 'PALANTIR-3' };
+  let t = `You are inside a huge crystalline sphere filled with thin ${which.mist} mist. The mist becomes ${which.west} to the west.`;
+  t += '\nYou strain to look out through the mist... ';
+  if (fset$(s, which.sphere, 'TOUCHBIT')) {
+    return `${t}\n${palantirLook(s, which.sphere, true, viewRoom)}`;
+  }
+  if (which.sphere === 'PALANTIR-1') {
+    return `${t}\nYou see a small room with a sign on the wall, but it is too blurry to read.`;
+  }
+  if (which.sphere === 'PALANTIR-2') {
+    return `${t}\nYou look out into a large, dreary room with a great door and a huge table. There is an odd glow to the mist.`;
+  }
+  return `${t}\nA strange blurry room is barely visible.`;
+}
+
+/** `,WIZQDESCS` — the Wizard's quarters are never the same room twice. */
+export const WIZQDESCS = [
+  'sparsely furnished and almost monkish in its austerity.',
+  'an opulently furnished seraglio out of an Arabian folktale.',
+  'decorated in the Louis XIV style.',
+  'overhung with palm-trees and lianas. The only furniture is a hammock.',
+  'constructed of delicate and wispy cloud-stuffs.',
+  'furnished in plastic and metal and looks like the control deck of a spaceship.',
+  "a suburban bedroom out of the 1950's, complete with bunk beds.",
+  'a dank and dimly lighted cave, its floor piled with furs and old bones.',
+];
+
 /** The balloon's M-LOOK arm, printed after the room you are drifting through. */
 export function zork2VehicleDesc(s: WorldState, obj: string): string | null {
   return obj === 'BALLOON' ? balloonInside(s) : null;
@@ -193,9 +284,13 @@ export function zork2ObjDesc(s: WorldState, obj: string): string | null {
 }
 
 /** The description for `room`, or null to fall back to its extracted LDESC. */
-export function zork2RoomDesc(s: WorldState, room: string): string | null {
+export function zork2RoomDesc(
+  s: WorldState,
+  room: string,
+  viewRoom?: (target: string) => string,
+): string | null {
   const fn = ZORK2_ROOM_DESCS[room];
-  return fn ? fn(s) : null;
+  return fn ? fn(s, viewRoom) : null;
 }
 
 export function hasDesc(room: string): boolean {

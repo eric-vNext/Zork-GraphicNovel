@@ -37,7 +37,7 @@ export function describeRoom(s: WorldState, out: Out, force = false): void {
   out.tell(r.desc + (riding && riding !== s.here ? `, in the ${objDef(riding).desc}` : ''), 'room-name');
   const first = !s.touched[s.here];
   if (force || first || s.verbosity === 'verbose') {
-    const dyn = dynamicRoomDesc(s, s.here);
+    const dyn = dynamicRoomDesc(s, s.here, (target) => viewRoom(s, target));
     if (dyn) out.tell(dyn);
     else if (r.ldesc) out.tell(r.ldesc.replace(/\n/g, ' '));
     const vd = riding && riding !== s.here ? dynamicVehicleDesc(s, riding) : null;
@@ -47,6 +47,26 @@ export function describeRoom(s: WorldState, out: Out, force = false): void {
   // themselves in full on every visit; that disorientation is the puzzle.
   if (gameNumber() === 1 && r.flags.includes('MAZEBIT')) delete s.touched[s.here];
   describeObjects(s, out);
+}
+
+/**
+ * GO&LOOK (2actions.zil) rendered to a string: describe another room as it
+ * stands right now, without going there. Zork II's crystal spheres show you
+ * the room the next sphere is in, and the afterlife shows it through the mist.
+ *
+ * ZIL restores the *old* room's TOUCHBIT afterwards, which reads like a slip;
+ * what matters is that a room you only saw a vision of still describes itself
+ * in full the first time you actually walk in, so that is what is preserved.
+ */
+export function viewRoom(s: WorldState, target: string): string {
+  const tmp = new Out();
+  const here = s.here;
+  const seen = s.touched[target];
+  s.here = target;
+  describeRoom(s, tmp, true);
+  s.here = here;
+  if (!seen) delete s.touched[target];
+  return tmp.events.filter((e) => e.type === 'text').map((e: any) => e.text).join('\n');
 }
 
 /** DESCRIBE-OBJECTS (gverbs.zil:1681) — `<PRINT-CONT ,HERE V? -1>`. */

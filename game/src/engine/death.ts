@@ -6,7 +6,8 @@
 // lamp back to the barrow, and has no death limit at all
 // (2actions.zil:3959 JIGS-UP + RANDOMIZE-OBJECTS).
 import type { Ctx } from './ctx';
-import { contents, moveObj, fset$, fclear, roomDef, PLAYER } from './world';
+import { contents, moveObj, fset$, fclear, PLAYER } from './world';
+import { describeRoom } from './describe';
 import { activeGame } from '../data/games';
 
 export function jigsUp(ctx: Ctx, text: string, opts?: { panel?: string }): void {
@@ -53,7 +54,7 @@ export function jigsUp(ctx: Ctx, text: string, opts?: { panel?: string }): void 
   out.emit({ type: 'death', permanent: false });
   if (rules.panel) out.emit({ type: 'panel', key: rules.panel });
   out.emit({ type: 'room', room: s.here });
-  const r = roomDef(s.here);
-  out.tell(r.desc, 'room-name');
-  if (r.ldesc) out.tell(r.ldesc.replace(/\n/g, ' '));
+  // Zork II's afterlife describes itself by routine, so go through the normal
+  // description path rather than reaching for a static LDESC that isn't there.
+  describeRoom(s, out, true);
 }

@@ -31,6 +31,8 @@ export interface Ctx {
   moveTo: (room: string, describe?: boolean) => void; // teleport + describe
   /** DO-WALK: take an exit as though the player had typed the direction. */
   walk: (dir: string) => void;
+  /** GO&LOOK: what another room looks like right now, without going there. */
+  viewRoom: (room: string) => string;
   perform: (verb: string, dobj?: string, iobj?: string) => void; // re-dispatch
 }
 

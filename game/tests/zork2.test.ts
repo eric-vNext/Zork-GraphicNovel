@@ -945,3 +945,95 @@ describe('the riddle', () => {
     selectGame(1);
   });
 });
+
+describe('the crystal spheres and the end of the game', () => {
+  it('shows the room the next sphere is in', () => {
+    const g = at('CAGE-ROOM');
+    g.s.locs['PALANTIR-2'] = 'ADVENTURER';
+    const vision = txt(g, 'look in blue sphere');
+    expect(vision).toContain('a strange vision takes shape');
+    expect(vision).toContain('The vision fades');
+    expect(txt(g, 'examine blue sphere')).toContain('something misty in the sphere');
+    selectGame(1);
+  });
+
+  it('shows the demon in the black one', () => {
+    const g = at('WIZARDS-WORKSHOP');
+    g.s.locs['PALANTIR-4'] = 'ADVENTURER';
+    expect(txt(g, 'look in black sphere')).toContain('huge and fearful face with yellow eyes');
+    selectGame(1);
+  });
+
+  // Zork II's afterlife is the inside of its own spheres, one colour per room.
+  it('describes the mist rooms, and the demon lets you go the first time', () => {
+    const g = new Game(2);
+    g.s.here = 'DEAD-PALANTIR-1';
+    g.s.touched['DEAD-PALANTIR-1'] = true;
+    expect(txt(g, 'look')).toContain('thin red mist. The mist becomes blue to the west');
+    expect(txt(g, 'west')).toContain('thin blue mist');
+    expect(txt(g, 'west')).toContain('thin white mist');
+    const demon = txt(g, 'west');
+    expect(demon).toContain('huge and horrible face materializes');
+    expect(demon).toContain('I shall not destroy you this time');
+    expect(g.s.here, 'and back to the world of life').toBe('INSIDE-BARROW');
+    selectGame(1);
+  });
+
+  it('gives up on you after three deaths', () => {
+    const g = new Game(2);
+    g.s.here = 'DEAD-PALANTIR-3';
+    g.s.touched['DEAD-PALANTIR-3'] = true;
+    g.s.counters.deaths = 3;
+    const said = txt(g, 'west');
+    expect(said).toContain('Not you again!');
+    expect(g.s.dead).toBe(true);
+    selectGame(1);
+  });
+
+  // The afterlife's description is generated, so dying into it used to print a
+  // room name and nothing else.
+  it('describes the Room of Red Mist when you die into it', () => {
+    const g = new Game(2);
+    g.s.here = 'CRYPT-ROOM';
+    g.s.touched['CRYPT-ROOM'] = true;
+    g.s.gflags['DIM-DOOR-FLAG'] = true;
+    const died = txt(g, 'south');            // the wardens, with no wand
+    expect(g.s.here).toBe('DEAD-PALANTIR-1');
+    expect(died).toContain('crystalline sphere filled with thin red mist');
+    selectGame(1);
+  });
+
+  it("redecorates the Wizard's quarters, never twice the same", () => {
+    const g = at('WIZARDS-QUARTERS');
+    const seen: string[] = [];
+    for (let i = 0; i < 8; i++) seen.push(txt(g, 'look').split('\n')[1]);
+    for (let i = 1; i < seen.length; i++) expect(seen[i]).not.toBe(seen[i - 1]);
+    expect(new Set(seen).size, 'and not always the same one either').toBeGreaterThan(1);
+    selectGame(1);
+  });
+
+  // The staircase down to Zork III is the end of the game, one way or another.
+  it('ends the game on the Wizard\'s staircase', () => {
+    // The landing is reached through the secret door in the crypt.
+    const h = new Game(2);
+    h.s.locs['WAND'] = 'ADVENTURER';
+    h.s.here = 'CRYPT-ROOM';
+    h.s.touched['CRYPT-ROOM'] = true;
+    h.s.gflags['DIM-DOOR-FLAG'] = true;
+    const won = txt(h, 'south');
+    expect(won).toContain('you tumble down the staircase');
+    expect(won).toContain('conquered the Wizard of Frobozz');
+    expect(h.s.won).toBe(true);
+    selectGame(1);
+  });
+
+  it('kills you on that staircase without the wand', () => {
+    const g = new Game(2);
+    g.s.here = 'CRYPT-ROOM';
+    g.s.touched['CRYPT-ROOM'] = true;
+    g.s.gflags['DIM-DOOR-FLAG'] = true;
+    const died = txt(g, 'south');
+    expect(died).toContain('attacked by these magical wardens');
+    selectGame(1);
+  });
+});
