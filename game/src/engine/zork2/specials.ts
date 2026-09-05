@@ -39,6 +39,15 @@ function openClose(ctx: Ctx, obj: string, openMsg: string, closeMsg: string): bo
   return false;
 }
 
+/** `,DRAGON-ATTACKS` (2actions.zil) — he is never hurt, only interested. */
+const DRAGON_ATTACKS = [
+  'Dragon hide is tough as steel, but you have succeeded in annoying him a bit. He looks at you as if deciding whether or not to eat you.',
+  'That captured his interest. He stares at you balefully.',
+  'The dragon is surprised and interested (for the moment).',
+  "You've made him rather angry. You had better be very careful now.",
+  'That did no damage, but he turns his smoky yellow eyes in your direction and sighs.',
+];
+
 /** `,OTHER-PROPERTIES` (2actions.zil) — what the brick does when you light it. */
 export const OTHER_PROPERTIES =
   "Now you've done it. It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.";
@@ -210,6 +219,54 @@ const OBJ_ROUTINES: Record<string, Handler> = {
       default:
         return false;
     }
+  },
+
+  // --- the dragon ----------------------------------------------------------
+  // DRAGON-FCN (2actions.zil:2389). Everything you do to the dragon makes him
+  // angrier, and anger is the only thing that will make him follow you — which
+  // is the entire puzzle, since the glacier is what has to meet him.
+  'DRAGON-FCN': (ctx) => {
+    const { s, out } = ctx;
+    ctx.queue('I-DRAGON', -1);
+    const anger = (n: number) => { s.counters.dragonAnger = (s.counters.dragonAnger ?? 0) + n; };
+    const talkedTo = ctx.verb === 'hello' || ctx.verb === 'say' || ctx.verb === 'answer';
+
+    if (talkedTo) {
+      out.tell('The dragon looks amused. He speaks in a voice so deep you feel it rather than hear it, but the tongue is unknown to you. You find yourself almost hypnotized.');
+      anger(2);
+      return true;
+    }
+    if (ctx.verb === 'examine') {
+      out.tell("He turns and looks back at you, his cat's eyes yellow in the gloom. You start to feel weak, and quickly turn away.");
+      anger(1);
+      return true;
+    }
+    if (ctx.verb === 'attack' || ctx.verb === 'break' || ctx.verb === 'lamp-on') {
+      out.tell(ctx.verb === 'lamp-on' || (ctx.verb === 'attack' && !ctx.iobj)
+        ? 'With your bare hands? I doubt the dragon even noticed.'
+        : pickOne(ctx, DRAGON_ATTACKS));
+      out.emit({ type: 'sfx', name: 'z2-dragon-roar' });
+      anger(4);
+      return true;
+    }
+    if (ctx.verb === 'give' && ctx.iobj === 'DRAGON' && ctx.dobj) {
+      anger(1);
+      if (objDef(ctx.dobj)?.value) {
+        moveObj(s, ctx.dobj, 'CHEST');
+        out.tell('The dragon is pleased by your gift, excuses himself for a moment, and returns without it.');
+      } else if (isBomb(ctx, ctx.dobj)) {
+        anger(2);
+        removeObj(s, 'BRICK');
+        out.tell('The dragon snakes his long red tongue around the bomb and politely swallows it. A few moments later he belches and smoke curls out of his nostrils.');
+      } else {
+        out.tell('The dragon refuses your gift.');
+      }
+      return true;
+    }
+    // The WALK arm is unreachable here: our exits already carry the north exit's
+    // own refusal ("The dragon hisses at you and blocks your way"), and walking
+    // never consults an object's ACTION.
+    return false;
   },
 
   // --- the crypt and the guardian ------------------------------------------

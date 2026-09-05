@@ -279,9 +279,118 @@ export function ledgeDaemon(ctx: Ctx): void {
   mungRoom(s, 'LEDGE-2', 'The ledge has collapsed and cannot be landed on.');
 }
 
+/** Rooms the dragon will not follow you into (2actions.zil I-DRAGON). */
+const DRAGON_WONT_FOLLOW = ['CAROUSEL-ROOM', 'TINY-ROOM', 'RAVINE-LEDGE', 'FRESCO-ROOM'];
+
+/**
+ * FIND-TARGET (2actions.zil). Where the quarry is: this room if they are in it,
+ * otherwise whichever room one of this room's exits leads to that holds them.
+ */
+function findTarget(ctx: Ctx, target: string): string | null {
+  const { s } = ctx;
+  const loc = target === PLAYER ? s.here : s.locs[target];
+  if (loc === s.here) return s.here;
+  for (const ex of Object.values(roomDef(s.here)?.exits ?? {})) {
+    if (ex.to && ex.to === loc) return ex.to;
+  }
+  return null;
+}
+
+/** DRAGON-LEAVES (2actions.zil:2559) — he goes home, and calms down doing it. */
+function dragonLeaves(ctx: Ctx): void {
+  const { s } = ctx;
+  if (s.locs['DEAD-DRAGON']) return;
+  moveObj(s, 'DRAGON', 'DRAGON-ROOM');
+  s.counters.dragonAnger = 0;
+  ctx.disable('I-DRAGON');
+}
+
+/**
+ * I-DRAGON (2actions.zil:2467). Runs every turn once you have got his
+ * attention. Anger above six kills you; anger above zero makes him follow you,
+ * which is the only way to walk him into the one thing in the dungeon that can
+ * kill him — his own reflection in the glacier.
+ */
+export function dragonDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  const fireproof = spells.activeSpell(s) === 'FIREPROOF';
+  const anger = s.counters.dragonAnger ?? 0;
+  const oldHere = s.gvars['OLD-HERE'] ?? 'DRAGON-ROOM';
+
+  if (anger > 6) {
+    out.tell('The dragon tires of this game. With an almost bored yawn, he opens his mouth and ');
+    if (fireproof) {
+      out.tell('blasts you with a great gout of fire, but it washes over you harmlessly.');
+    } else {
+      dragonLeaves(ctx);
+      out.emit({ type: 'panel', key: 'events/z2-ev-death-dragon' });
+      out.emit({ type: 'sfx', name: 'z2-dragon-fire' });
+      jigsUp(ctx, 'incinerates you in a blast of white-hot dragon fire.', {});
+      return;
+    }
+  } else if (s.here === 'DRAGON-ROOM' && s.locs['DRAGON'] !== 'DRAGON-ROOM') {
+    // Sneaking past him only works until he notices.
+    moveObj(s, 'DRAGON', 'DRAGON-ROOM');
+    out.tell('The dragon doubles back and charges into the room, maddened by your attempt to sneak past him. His eyes glow with a white heat of anger.');
+    out.emit({ type: 'panel', key: 'events/z2-ev-death-dragon' });
+    out.emit({ type: 'sfx', name: 'z2-dragon-fire' });
+    jigsUp(ctx, fireproof
+      ? "A huge ball of flame envelops you, but you don't even feel the heat. The dragon is puzzled, but not too puzzled to crush you in his jaws."
+      : 'Worse for you, his mouth opens and a great gout of flame puffs out and consumes you on the spot.', {});
+    return;
+  } else if (anger <= 0) {
+    if (prob(ctx, 50) && s.locs['DRAGON'] === s.here) {
+      out.tell('The dragon looks bored.');
+    } else {
+      dragonLeaves(ctx);
+      if (s.here === 'GLACIER-ROOM') {
+        out.tell('The dragon is no longer around. He must have become bored with you.');
+      } else if (s.here === oldHere) {
+        out.tell(oldHere === 'DRAGON-ROOM'
+          ? 'The dragon seems to have lost interest in you.'
+          : 'The dragon seems to have lost interest in you. He wanders off.');
+      }
+    }
+  } else {
+    const room = findTarget(ctx, PLAYER);
+    if (!room) {
+      if (prob(ctx, 25)) dragonLeaves(ctx);
+    } else if (DRAGON_WONT_FOLLOW.includes(room)) {
+      if (prob(ctx, 25)) dragonLeaves(ctx);
+      out.tell('The dragon will follow no further.');
+    } else if (room === 'GLACIER-ROOM') {
+      // The whole point of him.
+      out.tell('\nAs the dragon enters, he sees his reflection on the icy surface of the glacier at its western end. He becomes enraged: There is another dragon here, behind that glass, he thinks! Dragons are smart, but sometimes naive, and this one has never seen ice before. He rears up to his full height to challenge this intruder into his territory. He roars a challenge! The intruder responds! The dragon takes a deep breath, and out of his mouth pours a massive gout of flame. It washes over the ice, which melts rapidly, sending out torrents of water and a huge cloud of steam! You manage to clamber up to a small shelf, but the dragon is terrified! A huge splash goes down his throat! There is a muffled explosion and the dragon, a puzzled expression on his face, dies. He is carried away by the water.\n\nWhen the flood recedes you climb gingerly down. While no trace of the dragon can be found, the melting of the ice has revealed a passage leading west.');
+      removeObj(s, 'DRAGON');
+      removeObj(s, 'ICE');
+      moveObj(s, 'DEAD-DRAGON', 'DEEP-FORD');
+      ctx.disable('I-DRAGON');
+      s.counters.score += 5;
+      s.gflags['ICE-MELTED'] = true;
+      out.emit({ type: 'panel', key: 'events/z2-ev-glacier-melts' });
+      out.emit({ type: 'sfx', name: 'z2-glacier-melt' });
+      out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
+    } else if (room !== oldHere) {
+      moveObj(s, 'DRAGON', room);
+      out.tell('The dragon follows you, out of mingled curiosity and anger.');
+      out.emit({ type: 'sfx', name: 'z2-dragon-roar' });
+    } else {
+      out.tell('The dragon continues to watch you carefully.');
+      if ((s.counters.dragonAnger ?? 0) <= 0) {
+        s.counters.dragonAnger = 0;
+        ctx.disable('I-DRAGON');
+      }
+    }
+  }
+
+  s.gvars['OLD-HERE'] = s.locs['DRAGON'] ?? null;
+  s.counters.dragonAnger = Math.max(0, (s.counters.dragonAnger ?? 0) - 2);
+}
+
 export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   'I-WIZARD': wizardDaemon,
   'I-FUSE': fuseDaemon,
   'I-SAFE': safeDaemon,
   'I-LEDGE': ledgeDaemon,
+  'I-DRAGON': dragonDaemon,
 };

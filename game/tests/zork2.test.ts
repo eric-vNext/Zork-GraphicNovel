@@ -451,3 +451,56 @@ describe('the quarry and the workshop', () => {
     selectGame(1);
   });
 });
+
+describe('the dragon', () => {
+  function angry(): Game {
+    const g = at('DRAGON-ROOM');
+    txt(g, 'attack dragon');      // bare hands: noticed, but not hurt
+    return g;
+  }
+
+  it('cannot be hurt, only annoyed', () => {
+    const g = at('DRAGON-ROOM');
+    expect(txt(g, 'attack dragon')).toContain('bare hands');
+    expect(g.s.counters.dragonAnger).toBeGreaterThan(0);
+    expect(txt(g, 'examine dragon')).toContain("cat's eyes");
+    selectGame(1);
+  });
+
+  // Anger is the leash: an angry dragon follows you room to room, and the one
+  // room you want him in is the glacier's.
+  it('follows you to the glacier and melts it', () => {
+    const g = angry();
+    g.s.counters.dragonAnger = 6;
+    g.s.here = 'GLACIER-ROOM';
+    const said = txt(g, 'wait');
+    expect(said).toContain('sees his reflection');
+    expect(g.s.gflags['ICE-MELTED']).toBe(true);
+    expect(g.s.locs['DRAGON']).toBe(null);
+    expect(g.s.locs['DEAD-DRAGON']).toBe('DEEP-FORD');
+    expect(g.s.counters.score).toBe(5);
+    // Prose, exits and art all move with the same flag.
+    delete g.s.touched['GLACIER-ROOM'];
+    expect(txt(g, 'look')).toContain('still partly full of steam');
+    selectGame(1);
+  });
+
+  it('incinerates you once you have pushed him too far', () => {
+    const g = at('FRESCO-ROOM');       // not his room, so he cannot charge you
+    g.s.locs['DRAGON'] = 'FRESCO-ROOM';
+    g.s.counters.dragonAnger = 9;
+    g.s.daemons['I-DRAGON'] = { tick: -1, enabled: true };
+    const said = txt(g, 'wait');
+    expect(said).toContain('tires of this game');
+    expect(g.s.dead || said.includes('white-hot dragon fire')).toBe(true);
+    selectGame(1);
+  });
+
+  it('takes a treasure as tribute and puts it in his chest', () => {
+    const g = at('DRAGON-ROOM');
+    g.s.locs['VIOLIN'] = 'ADVENTURER';
+    expect(txt(g, 'give violin to dragon')).toContain('pleased by your gift');
+    expect(g.s.locs['VIOLIN']).toBe('CHEST');
+    selectGame(1);
+  });
+});
