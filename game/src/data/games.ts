@@ -102,6 +102,8 @@ export interface GameDef {
     beforeWalk?: (ctx: any, dir: string) => { dir?: string; stop?: boolean } | null;
     /** M-BEG for every other verb; true means the turn is already handled. */
     beforeAction?: (ctx: any) => boolean;
+    /** M-END for the vehicle the player is riding, if it has one. */
+    vehicleEnd?: (ctx: any, vehicle: string) => boolean;
   };
   /** False until the game's content is ported; the UI refuses to start it. */
   playable: boolean;

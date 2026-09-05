@@ -14,8 +14,8 @@ import type { WorldState } from '../types';
 import { prob, pickOne, DUMMY } from '../ctx';
 import { jigsUp } from '../death';
 import {
-  fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, playerVehicle,
-  roomDef, roomLit, objDef, theName,
+  fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, mungRoom, playerVehicle,
+  roomDef, roomLit, objDef, theName, PLAYER,
 } from '../world';
 import * as spells from '../spells';
 import { spellUsed } from '../spells';
@@ -49,6 +49,30 @@ const DRAGON_ATTACKS = [
   "You've made him rather angry. You had better be very careful now.",
   'That did no damage, but he turns his smoky yellow eyes in your direction and sighs.',
 ];
+
+/** `,FATAL-VAPORS` — the flask is not to be opened. */
+const FATAL_VAPORS =
+  'A cloud of noxious green vapor rises from the flask, and you fall to the ground, overcome by the fumes.';
+
+/** ICEBOOM (2actions.zil:106) — the orange cake goes off like a bomb. */
+function iceBoom(ctx: Ctx): void {
+  ctx.out.emit({ type: 'shake' });
+  mungRoom(ctx.s, ctx.s.here, 'The entrance is blocked by sticky orange rubble. Probably some careless adventurer was playing with blasting cakes.');
+  jigsUp(ctx, 'You have been blasted to smithereens (wherever they are).', {});
+}
+
+/** CAKE-CRUMBLE (2actions.zil:915) — a cake carried out of its own rooms. */
+function cakeCrumble(ctx: Ctx): boolean {
+  const { s, out } = ctx;
+  const SAFE = ['TEA-ROOM', 'POSTS-ROOM', 'POOL-ROOM', 'MACHINE-ROOM', 'MAGNET-ROOM',
+    'CAGE-ROOM', 'WELL-TOP', 'IN-CAGE'];
+  if (SAFE.includes(s.here)) return false;
+  const cake = ctx.dobj && fset$(s, ctx.dobj, 'FOODBIT') ? ctx.dobj : ctx.iobj;
+  if (!cake) return false;
+  removeObj(s, cake);
+  out.tell(`The ${objDef(cake).desc} has crumbled to dust.`);
+  return true;
+}
 
 /** `,OTHER-PROPERTIES` (2actions.zil) — what the brick does when you light it. */
 export const OTHER_PROPERTIES =
@@ -515,6 +539,280 @@ const OBJ_ROUTINES: Record<string, Handler> = {
       return true;
     }
     if (ctx.verb === 'look-in' || ctx.verb === 'examine') return OBJ_ROUTINES['PALANTIR'](ctx);
+    return false;
+  },
+
+  // --- the well -------------------------------------------------------------
+  // BUCKET-FCN (2actions.zil:832). The bucket is a lift, and water is what
+  // makes it go: put water in it and it rises, let the water evaporate and it
+  // comes back down. Riding it is the only way up to the Tea Room.
+  'BUCKET-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'burn' && ctx.dobj === 'BUCKET') {
+      out.tell("The bucket is fireproof, and won't burn.");
+      return true;
+    }
+    if ((ctx.verb === 'drop' || ctx.verb === 'put')
+        && (ctx.dobj === 'WATER' || ctx.dobj === 'SALTY-WATER')
+        && ctx.iobj === 'BUCKET'
+        && s.locs['BUCKET'] === 'WELL-BOTTOM'
+        && playerVehicle(s) !== 'BUCKET') {
+      out.tell('The bucket swiftly rises up, and is gone.');
+      moveObj(s, 'BUCKET', 'WELL-TOP');
+      moveObj(s, ctx.dobj, 'BUCKET');
+      s.gflags['BUCKET-TOP-FLAG'] = true;
+      ctx.queue('I-BUCKET', 100);
+      return true;
+    }
+    if (ctx.verb === 'climb') { ctx.perform('enter', 'BUCKET'); return true; }
+    return false;
+  },
+
+  // WATER-FCN (2actions.zil:760). Water can only be held in the teapot; every
+  // other container leaks, and your hands are worse.
+  'WATER-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const vehicle = playerVehicle(s);
+    const puddle = (av: string, w: string): boolean => {
+      out.tell(`There is now a puddle in the bottom of the ${objDef(av).desc}.`);
+      moveObj(s, w, av);
+      return true;
+    };
+    const real = (o?: string): string =>
+      (o === 'GLOBAL-WATER' ? (s.here === 'POOL-ROOM' ? 'SALTY-WATER' : 'WATER') : (o ?? 'WATER'));
+
+    if (ctx.verb === 'fill' && ctx.iobj) {
+      // "fill teapot with water" is "put water in teapot" (WATER-FCN's FILL arm).
+      ctx.perform('put', real(ctx.dobj), ctx.iobj);
+      return true;
+    }
+    const w = real(ctx.dobj);
+    if (ctx.verb === 'take' || ctx.verb === 'put') {
+      if (vehicle && (ctx.iobj === vehicle || (!ctx.iobj && s.locs[w] !== vehicle))) return puddle(vehicle, w);
+      if (ctx.iobj && ctx.iobj !== 'TEAPOT') {
+        out.tell(`The water leaks out of the ${objDef(ctx.iobj).desc} and evaporates immediately.`);
+        removeObj(s, w);
+        return true;
+      }
+      if (inPlayer(s, 'TEAPOT')) {
+        if (contents(s, 'TEAPOT').length) { out.tell("The teapot isn't currently empty."); return true; }
+        moveObj(s, s.here === 'POOL-ROOM' ? 'SALTY-WATER' : 'WATER', 'TEAPOT');
+        out.tell('The teapot is now full of water.');
+        return true;
+      }
+      if (s.locs[w] === 'TEAPOT' && ctx.verb === 'take' && !ctx.iobj) {
+        ctx.perform('take', 'TEAPOT');
+        return true;
+      }
+      out.tell('The water slips through your fingers.');
+      return true;
+    }
+    // POUR X IN Y is a DROP with an indirect object (gsyntax.zil:370), which
+    // is how the water gets out of the teapot and into the bucket.
+    if (ctx.verb === 'drop' || ctx.verb === 'give' || ctx.verb === 'pour') {
+      if (!inPlayer(s, w)) { out.tell("You don't have any water."); return true; }
+      removeObj(s, w);
+      if (vehicle) return puddle(vehicle, w);
+      out.tell('The water spills to the floor and evaporates.');
+      return true;
+    }
+    if (ctx.verb === 'throw') {
+      out.tell('The water splashes on the walls and evaporates.');
+      removeObj(s, w);
+      return true;
+    }
+    return false;
+  },
+
+  'WELL-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const d = ctx.dobj;
+    if (d && fset$(s, d, 'TAKEBIT') && (ctx.verb === 'throw' || ctx.verb === 'put' || ctx.verb === 'drop')) {
+      out.tell(`The ${objDef(d).desc} is now sitting at the bottom of the well.`);
+      moveObj(s, d, 'WELL-BOTTOM');
+      return true;
+    }
+    if (ctx.verb === 'climb' || ctx.verb === 'climb-down') {
+      out.tell("You can't climb the well.");
+      return true;
+    }
+    return false;
+  },
+
+  'TOP-ETCHINGS-F': (ctx) => {
+    if (ctx.verb !== 'examine' && ctx.verb !== 'read') return false;
+    ctx.out.tell([
+      '       o  b  o',
+      '   r             z',
+      'f   M  A  G  I  C   z',
+      'c    W  E   L  L    y',
+      '   o             n',
+      '       m  p  a',
+    ].join('\n'), 'system');
+    return true;
+  },
+
+  'BOTTOM-ETCHINGS-F': (ctx) => {
+    if (ctx.verb !== 'examine' && ctx.verb !== 'read') return false;
+    ctx.out.tell([
+      '       o  b  o',
+      '',
+      '       A  G  I',
+      '        E   L',
+      '',
+      '       m  p  a',
+    ].join('\n'), 'system');
+    return true;
+  },
+
+  'WISH-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (s.here === 'WELL-BOTTOM' && s.locs['COIN'] === 'WELL-BOTTOM') {
+      out.tell('A whispering voice replies: "Water makes the bucket go." Unfortunately, wishing makes the coin go....');
+      removeObj(s, 'COIN');
+    } else {
+      out.tell('No one is listening.');
+    }
+    return true;
+  },
+
+  'MOSS-FCN': (ctx) => {
+    if (ctx.verb !== 'take' && ctx.verb !== 'touch') return false;
+    ctx.out.tell('Some of the moss rubs off on you, but it stops glowing very quickly once plucked from its environment.');
+    return true;
+  },
+
+  // --- Wonderland -----------------------------------------------------------
+  // EATME-FCN / CAKE-FCN (2actions.zil:894). Eat the green cake and the room
+  // becomes enormous; eat the blue one to come back. The other two kill you,
+  // and the red one, thrown in the pool of tears, evaporates it.
+  'EATME-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb !== 'eat' || ctx.dobj !== 'EAT-ME-CAKE' || s.here !== 'TEA-ROOM') {
+      return cakeCrumble(ctx);
+    }
+    out.tell('Suddenly, the room appears to have become very large (although everything you are carrying seems to be its normal size).');
+    removeObj(s, 'EAT-ME-CAKE');
+    fset(s, 'ROBOT', 'INVISIBLE');
+    fset(s, 'ALICE-TABLE', 'INVISIBLE');
+    // Everything loose in the room is now far too big to pick up.
+    for (const o of contents(s, s.here)) {
+      if (o === PLAYER || !fset$(s, o, 'TAKEBIT')) continue;
+      fset(s, o, 'NONLANDBIT');
+      fset(s, o, 'TRYTAKEBIT');
+      moveObj(s, o, 'POSTS-ROOM');
+    }
+    out.emit({ type: 'sfx', name: 'z2-cake-bite' });
+    out.emit({ type: 'panel', key: 'events/z2-ev-cake-shrink' });
+    ctx.moveTo('POSTS-ROOM', true);
+    return true;
+  },
+
+  'CAKE-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const d = ctx.dobj;
+    if (!d) return false;
+    const WONDERLAND = ['TEA-ROOM', 'POSTS-ROOM', 'POOL-ROOM'];
+
+    if (ctx.verb === 'read') {
+      if (fset$(s, d, 'NONLANDBIT')) {
+        out.tell('The cake is much too tall now for you to read the lettering.');
+      } else if (ctx.iobj === 'FLASK') {
+        // The flask is a lens: only through it are the letters legible.
+        const word = d === 'RED-ICING' ? 'Evaporate' : d === 'ORANGE-ICING' ? 'Explode' : 'Enlarge';
+        out.tell(`The letters, now visible, say "${word}".`);
+      } else if (ctx.iobj) {
+        out.tell("You can't see through that!");
+      } else {
+        out.tell('The first letter is a capital E. The rest is too small to read.');
+      }
+      return true;
+    }
+    if (ctx.verb === 'eat' && WONDERLAND.includes(s.here)) {
+      if (d === 'ORANGE-ICING') { removeObj(s, d); iceBoom(ctx); return true; }
+      if (d === 'RED-ICING') {
+        removeObj(s, d);
+        jigsUp(ctx, 'That was delicious, but your dying memory is of feeling horribly dehydrated and thirsty.', {});
+        return true;
+      }
+      if (d === 'BLUE-ICING') {
+        removeObj(s, d);
+        out.tell('The room around you seems to be getting smaller.');
+        if (s.here !== 'POSTS-ROOM') {
+          jigsUp(ctx, 'The room seems to have become too small to hold you. The walls are not as compressible as your body, which is demolished.', {});
+          return true;
+        }
+        fclear(s, 'ROBOT', 'INVISIBLE');
+        fclear(s, 'ALICE-TABLE', 'INVISIBLE');
+        fset(s, 'POSTS', 'INVISIBLE');
+        for (const o of contents(s, s.here)) {
+          if (o === PLAYER || !fset$(s, o, 'TAKEBIT')) continue;
+          fclear(s, o, 'NONLANDBIT');
+          fclear(s, o, 'TRYTAKEBIT');
+          moveObj(s, o, 'TEA-ROOM');
+        }
+        ctx.moveTo('TEA-ROOM', true);
+        return true;
+      }
+    }
+    if ((ctx.verb === 'throw' || ctx.verb === 'put') && d === 'ORANGE-ICING' && WONDERLAND.includes(s.here)) {
+      removeObj(s, d);
+      iceBoom(ctx);
+      return true;
+    }
+    if ((ctx.verb === 'throw' || ctx.verb === 'put') && ctx.iobj === 'POOL'
+        && (d === 'RED-ICING' || d === 'BLUE-ICING' || d === 'ORANGE-ICING')) {
+      if (d !== 'RED-ICING') {
+        out.tell('The cake sinks majestically into the pool.');
+        removeObj(s, d);
+        return true;
+      }
+      moveObj(s, d, s.here);
+      removeObj(s, 'POOL');
+      s.gflags['EVAPORATED'] = true;
+      out.tell('Most of the pool evaporates, revealing a (slightly damp but still valuable) package of rare candies. The red cake must be pretty strong stuff, since it remains intact!');
+      fclear(s, 'CANDY', 'INVISIBLE');
+      return true;
+    }
+    return cakeCrumble(ctx);
+  },
+
+  'POOL-FCN': (ctx) => {
+    const { out } = ctx;
+    if (ctx.verb === 'drink') { out.tell('The water is extremely salty.'); return true; }
+    if (ctx.verb === 'look-under') {
+      out.tell("You'd probably have to enter the pool to see what's below the surface.");
+      return true;
+    }
+    if (ctx.verb === 'enter' || ctx.verb === 'swim') {
+      jigsUp(ctx, 'You enter the pool, thrash around for a good while, and then drown. Sad, but true.', {});
+      return true;
+    }
+    return false;
+  },
+
+  'FLASK-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'look-in') {
+      out.tell('You notice that objects behind the flask appear to be magnified. You might try looking at something through the flask.');
+      return true;
+    }
+    if (ctx.verb === 'read' && ctx.iobj === 'FLASK') {
+      out.tell(`The flask distorts and magnifies the ${objDef(ctx.dobj ?? '').desc}, showing details not noticed earlier.`);
+      return false; // and then the object's own READ arm runs
+    }
+    if (ctx.verb === 'open') {
+      mungRoom(s, s.here, 'Noxious vapors prevent your entry.');
+      jigsUp(ctx, FATAL_VAPORS, {});
+      return true;
+    }
+    if (ctx.verb === 'break' || ctx.verb === 'throw') {
+      out.tell('The flask breaks into pieces.');
+      removeObj(s, ctx.dobj ?? 'FLASK');
+      out.emit({ type: 'sfx', name: 'z2-aquarium-break' });
+      jigsUp(ctx, FATAL_VAPORS, {});
+      return true;
+    }
     return false;
   },
 
@@ -1433,6 +1731,14 @@ export function dimDoorAppears(ctx: Ctx): void {
 }
 
 const ROOM_ROUTINES: Record<string, RoomHandler> = {
+  // POSTS-ROOM-FCN's M-BEG arm: everything in the room is enormous now.
+  'POSTS-ROOM-FCN': (ctx, phase) => {
+    if (phase !== 'beg' || ctx.verb !== 'take' || !ctx.dobj) return false;
+    if (!fset$(ctx.s, ctx.dobj, 'NONLANDBIT')) return false;
+    ctx.out.tell(`The ${objDef(ctx.dobj).desc} is now much larger than you are. You have no hope of taking it.`);
+    return true;
+  },
+
   // RIDDLE-ROOM-FCN's M-BEG arm (2actions.zil:2007). The answer is a word,
   // not an object, so it arrives through ANSWER/SAY rather than the verb table.
   'RIDDLE-ROOM-FCN': (ctx, phase) => {
@@ -1618,4 +1924,36 @@ export function specialExit(ctx: Ctx, per: string, dir?: string): string | null 
   return SPECIAL_EXITS[per]?.(ctx, dir) ?? null;
 }
 
-export const ZORK2_SPECIALS = { objAction, roomAction, specialExit, beforeWalk, beforeAction };
+/**
+ * BUCKET-FCN's M-END arm (2actions.zil:849). ZIL runs M-END on whatever the
+ * player is standing in, which while riding is the bucket — so the lift only
+ * moves with you aboard.
+ */
+export function vehicleEnd(ctx: Ctx, vehicle: string): boolean {
+  const { s, out } = ctx;
+  if (vehicle !== 'BUCKET') return false;
+  const wet = s.locs['WATER'] === 'BUCKET' || s.locs['SALTY-WATER'] === 'BUCKET';
+  if (wet && !s.gflags['BUCKET-TOP-FLAG']) {
+    out.tell('The bucket rises and comes to a stop.');
+    s.gflags['BUCKET-TOP-FLAG'] = true;
+    s.gflags['EVAPORATED'] = false;
+    moveObj(s, 'BUCKET', 'WELL-TOP');
+    ctx.moveTo('WELL-TOP', true);
+    ctx.queue('I-BUCKET', 100);
+    return true;
+  }
+  if (!wet && s.gflags['BUCKET-TOP-FLAG']) {
+    out.tell(s.gflags['EVAPORATED']
+      ? 'The last of the water evaporates, and the bucket descends.'
+      : 'The bucket descends and comes to a stop.');
+    s.gflags['BUCKET-TOP-FLAG'] = false;
+    moveObj(s, 'BUCKET', 'WELL-BOTTOM');
+    ctx.moveTo('WELL-BOTTOM', true);
+    return true;
+  }
+  return false;
+}
+
+export const ZORK2_SPECIALS = {
+  objAction, roomAction, specialExit, beforeWalk, beforeAction, vehicleEnd,
+};

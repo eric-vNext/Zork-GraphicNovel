@@ -1150,3 +1150,139 @@ describe('the demon', () => {
     selectGame(1);
   });
 });
+
+describe('the well', () => {
+  function atBottom(): Game {
+    const g = at('WELL-BOTTOM');
+    g.s.locs['TEAPOT'] = 'ADVENTURER';
+    g.s.locs['WATER'] = 'TEAPOT';
+    return g;
+  }
+
+  // Water makes the bucket go — which is what the wishing well tells you, for
+  // the price of a priceless zorkmid.
+  it('rises when you pour water in it, and sinks when the water goes', () => {
+    const g = atBottom();
+    txt(g, 'enter bucket');
+    const up = txt(g, 'pour water in bucket');
+    expect(up).toContain('puddle in the bottom of the wooden bucket');
+    expect(up).toContain('The bucket rises and comes to a stop');
+    expect(g.s.here).toBe('WELL-TOP');
+
+    // I-BUCKET dries it out, and the bucket's own M-END arm notices.
+    g.s.daemons['I-BUCKET'] = { tick: 1, enabled: true };
+    const down = txt(g, 'wait');
+    expect(down).toContain('The last of the water evaporates, and the bucket descends');
+    expect(g.s.here).toBe('WELL-BOTTOM');
+    selectGame(1);
+  });
+
+  it('goes up without you if you are not in it', () => {
+    const g = atBottom();
+    expect(txt(g, 'put water in bucket')).toContain('swiftly rises up, and is gone');
+    expect(g.s.here).toBe('WELL-BOTTOM');
+    expect(g.s.locs['BUCKET']).toBe('WELL-TOP');
+    selectGame(1);
+  });
+
+  // The teapot is the only thing in the game that will hold water, which is
+  // why it is sitting on the mad tea party's table.
+  it('will not let you carry water in your hands', () => {
+    const g = at('DEEP-FORD');
+    expect(txt(g, 'take water')).toContain('slips through your fingers');
+    g.s.locs['TEAPOT'] = 'ADVENTURER';
+    expect(txt(g, 'take water')).toContain('The teapot is now full of water');
+    expect(g.s.locs['WATER']).toBe('TEAPOT');
+    expect(txt(g, 'take water')).toContain("isn't currently empty");
+    selectGame(1);
+  });
+
+  it('answers a wish at the bottom, and keeps the coin', () => {
+    const g = at('WELL-BOTTOM');
+    expect(txt(g, 'wish')).toContain('No one is listening');
+    g.s.locs['COIN'] = 'WELL-BOTTOM';
+    const wish = txt(g, 'wish');
+    expect(wish).toContain('Water makes the bucket go');
+    expect(g.s.locs['COIN']).toBe(null);
+    selectGame(1);
+  });
+
+  it('has half its etchings at the bottom', () => {
+    const top = at('WELL-TOP');
+    expect(txt(top, 'read etchings')).toContain('M  A  G  I  C');
+    const bottom = at('WELL-BOTTOM');
+    expect(txt(bottom, 'read etchings')).toContain('A  G  I');
+    expect(txt(bottom, 'read etchings')).not.toContain('M  A  G  I  C');
+    selectGame(1);
+  });
+});
+
+describe('Wonderland', () => {
+  it('shrinks you, leaving behind everything you were not holding', () => {
+    const g = at('TEA-ROOM');
+    txt(g, 'take blue cake');
+    txt(g, 'take red cake');
+    txt(g, 'drop red cake');                 // loose on the floor, not on the table
+    const shrunk = txt(g, 'eat green cake');
+    expect(shrunk).toContain('the room appears to have become very large');
+    expect(g.s.here).toBe('POSTS-ROOM');
+    expect(g.s.locs['BLUE-ICING'], 'what you carried came with you').toBe('ADVENTURER');
+    expect(g.s.locs['RED-ICING'], 'what you left is now enormous').toBe('POSTS-ROOM');
+    expect(txt(g, 'take red cake')).toContain('much larger than you are');
+    selectGame(1);
+  });
+
+  it('reads the cakes only through the flask', () => {
+    const g = at('POOL-ROOM');
+    g.s.locs['RED-ICING'] = 'ADVENTURER';
+    expect(txt(g, 'read red cake')).toContain('The first letter is a capital E');
+    txt(g, 'take flask');
+    expect(txt(g, 'read red cake through flask')).toContain('"Evaporate"');
+    selectGame(1);
+  });
+
+  it('evaporates the pool of tears and uncovers the candy', () => {
+    const g = at('POOL-ROOM');
+    g.s.locs['RED-ICING'] = 'ADVENTURER';
+    const dry = txt(g, 'throw red cake in pool');
+    expect(dry).toContain('package of rare candies');
+    expect(g.s.gflags['EVAPORATED']).toBe(true);
+    expect(g.s.oflags['CANDY']?.INVISIBLE).toBeUndefined();
+    expect(txt(g, 'take candy')).toContain('Taken');
+    selectGame(1);
+  });
+
+  it('grows you back, but only from the posts room', () => {
+    const g = at('POSTS-ROOM');
+    g.s.locs['BLUE-ICING'] = 'ADVENTURER';
+    expect(txt(g, 'eat blue cake')).toContain('getting smaller');
+    expect(g.s.here).toBe('TEA-ROOM');
+
+    const h = at('POOL-ROOM');
+    h.s.locs['BLUE-ICING'] = 'ADVENTURER';
+    expect(txt(h, 'eat blue cake')).toContain('too small to hold you');
+    selectGame(1);
+  });
+
+  it('blows you up if you eat the orange one', () => {
+    const g = at('TEA-ROOM');
+    g.s.locs['ORANGE-ICING'] = 'ADVENTURER';
+    expect(txt(g, 'eat orange cake')).toContain('blasted to smithereens');
+    selectGame(1);
+  });
+
+  it('crumbles a cake carried out of its own rooms', () => {
+    const g = at('MENHIR-ROOM');
+    g.s.locs['RED-ICING'] = 'ADVENTURER';
+    expect(txt(g, 'eat red cake')).toContain('crumbled to dust');
+    expect(g.s.locs['RED-ICING']).toBe(null);
+    selectGame(1);
+  });
+
+  it('kills you for opening the flask', () => {
+    const g = at('POOL-ROOM');
+    txt(g, 'take flask');
+    expect(txt(g, 'open flask')).toContain('overcome by the fumes');
+    selectGame(1);
+  });
+});

@@ -731,6 +731,14 @@ export function sphereDaemon(ctx: Ctx): void {
   jigsUp(ctx, 'Time passes...and you die from some obscure poisoning.', {});
 }
 
+/** I-BUCKET (2actions.zil:754) — a hundred turns and the water is gone. */
+export function bucketDaemon(ctx: Ctx): void {
+  const { s } = ctx;
+  for (const w of ['WATER', 'SALTY-WATER']) {
+    if (s.locs[w] === 'BUCKET') { s.gflags['EVAPORATED'] = true; removeObj(s, w); }
+  }
+}
+
 export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   // The player's own spell, and the wand's charge, both time out.
   'I-SPELL': spells.spellTimeout,
@@ -749,4 +757,5 @@ export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   'I-UNICORN': unicornDaemon,
   'I-GARDEN': gardenDaemon,
   'I-SPHERE': sphereDaemon,
+  'I-BUCKET': bucketDaemon,
 };

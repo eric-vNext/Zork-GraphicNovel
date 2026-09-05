@@ -333,6 +333,9 @@ export class Game {
       this.tick(out, cmd);
       if (out.events.length > before) break;
     }
+    // WAIT is still one command, so the room's (or vehicle's) M-END arm runs
+    // once at the end of it, as it does after any other action.
+    if (!s.dead && !s.won) roomEndAction(this.makeCtx(out, cmd), s.here);
     out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
     return out.events;
   }

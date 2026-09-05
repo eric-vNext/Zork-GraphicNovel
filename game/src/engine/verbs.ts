@@ -143,6 +143,10 @@ function vehicleStopMessage(vehicle: string): string | null {
 
 /** The room's M-END phase, run once per turn after the command (gmain.zil:154). */
 export function roomEndAction(ctx: Ctx, room: string): void {
+  // M-END runs on whatever the player is standing in — the room, or the
+  // vehicle when riding one (gmain.zil:154).
+  const riding = playerVehicle(ctx.s);
+  if (riding && activeGame().specials?.vehicleEnd?.(ctx, riding)) return;
   roomAction(ctx, room, 'end');
 }
 
