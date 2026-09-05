@@ -115,6 +115,25 @@ trophy-case tiers, the flooding maintenance room — were discovered during the
 build, not during planning; generating Zork III's art from a read-only
 enumeration would repeat the mistake this plan exists to prevent.
 
+### What the Zork II anchor pass cost, for budgeting
+
+11 delivered anchors took 26 generations — **2.4 per panel**, not 1:1. Two
+lessons for the volume runs:
+
+- **Prose does not stop the page border.** Naming it ("no border, no frame, no
+  margin") made it *worse*: 8 of 11 in v1, then 5 of 8 after the block was
+  rewritten to forbid it three ways. Trim programmatically and stop fighting it.
+  Budget one extra generation per panel for scene misses only.
+- **Reword twice, then change tactic.** The Ice Room and Volcano Bottom each
+  missed three times on increasingly explicit prose and landed immediately once
+  the prompt led with the *camera* and gave the scene one unambiguous anchor
+  (the ice as the far wall floor-to-ceiling; a bright opening far overhead that
+  makes a shaft read as a shaft). A fourth rewording is a signal the noun is
+  wrong, not the adjectives.
+
+Trim losses are real: 0% on five panels, 23-47% on the rest. Every delivered
+anchor still exceeds the 1536px delivery width, so nothing is upscaled.
+
 ### Generation order
 
 1. **Per-game anchors** — the game's title screen plus one establishing panel
