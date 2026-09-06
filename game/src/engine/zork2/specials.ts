@@ -1285,6 +1285,7 @@ const OBJ_ROUTINES: Record<string, Handler> = {
   // other container leaks, and your hands are worse.
   'WATER-FCN': (ctx) => {
     const { s, out } = ctx;
+    const WATERS = ['WATER', 'SALTY-WATER', 'GLOBAL-WATER'];
     const vehicle = playerVehicle(s);
     const puddle = (av: string, w: string): boolean => {
       out.tell(`There is now a puddle in the bottom of the ${objDef(av).desc}.`);
@@ -1294,9 +1295,13 @@ const OBJ_ROUTINES: Record<string, Handler> = {
     const real = (o?: string): string =>
       (o === 'GLOBAL-WATER' ? (s.here === 'POOL-ROOM' ? 'SALTY-WATER' : 'WATER') : (o ?? 'WATER'));
 
-    if (ctx.verb === 'fill' && ctx.iobj) {
-      // "fill teapot with water" is "put water in teapot" (WATER-FCN's FILL arm).
-      ctx.perform('put', real(ctx.dobj), ctx.iobj);
+    if (ctx.verb === 'fill') {
+      // "fill teapot with water" is "put water in teapot", the other way round
+      // (WATER-FCN's FILL arm swaps PRSO and PRSI).
+      const container = WATERS.includes(ctx.dobj ?? '') ? ctx.iobj : ctx.dobj;
+      const liquid = WATERS.includes(ctx.dobj ?? '') ? ctx.dobj : ctx.iobj;
+      if (!container) return false;
+      ctx.perform('put', real(liquid), container);
       return true;
     }
     const w = real(ctx.dobj);
@@ -1922,6 +1927,9 @@ const OBJ_ROUTINES: Record<string, Handler> = {
   // --- the unicorn ----------------------------------------------------------
   'UNICORN-FCN': (ctx) => {
     const { s, out } = ctx;
+    // The key shares the unicorn's ACTION until the princess hands it over,
+    // at which point I-UNICORN takes the routine off it (<PUTP ... P?ACTION 0>).
+    if (ctx.dobj === 'GOLD-KEY' && s.gflags['GOLD-KEY-FREE']) return false;
     if (ctx.verb === 'hello') {
       out.tell('The unicorn listens distractedly, then goes back to cropping grass.');
       return true;

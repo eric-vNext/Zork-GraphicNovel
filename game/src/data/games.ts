@@ -143,10 +143,9 @@ export const ZORK1: GameDef = {
 };
 
 /**
- * Zork II. World data is extracted; the specials, daemons and art land in
- * phases 4-5 of docs/Prompt-Trilogy.md, so it is not playable yet — but it is
- * selectable, which is what makes the shared library's `,ZORK-NUMBER 2` arms
- * testable before the content exists.
+ * Zork II. Fully ported: all 95 object ACTION routines, all 23 room routines,
+ * its daemons, its spell layer and its art. tests/zork2run.test.ts plays it
+ * through to 400 of 400.
  */
 export const ZORK2: GameDef = {
   number: 2,
@@ -184,7 +183,7 @@ export const ZORK2: GameDef = {
   specials: ZORK2_SPECIALS,
   // gverbs.zil:252 — V-BURN diverts to the burner for anything in the receptacle.
   hooks: { 'balloon-burn': balloonBurn },
-  playable: false,
+  playable: true,
 };
 
 /**

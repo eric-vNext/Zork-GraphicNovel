@@ -653,6 +653,7 @@ export function unicornDaemon(ctx: Ctx): void {
     moveObj(s, 'ROSE', PLAYER);
     fclear(s, 'GOLD-KEY', 'NDESCBIT');
     moveObj(s, 'GOLD-KEY', PLAYER);
+    s.gflags['GOLD-KEY-FREE'] = true;
     if (!s.scoredTakes['GOLD-KEY']) {
       s.scoredTakes['GOLD-KEY'] = true;
       s.counters.score += objDef('GOLD-KEY').value ?? 0;

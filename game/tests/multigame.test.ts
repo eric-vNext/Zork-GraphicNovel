@@ -44,9 +44,10 @@ describe('game registry', () => {
     expect(activeGame().scoring.max).toBe(350);
   });
 
-  it('knows all three games, with II and III not yet playable', () => {
+  it('knows all three games; Zork III is the one still to come', () => {
     expect(selectGame(2).scoring.max).toBe(400);
-    expect(selectGame(2).playable).toBe(false);
+    expect(selectGame(2).playable, 'Zork II is finished').toBe(true);
+    expect(selectGame(3).playable, 'Zork III is not').toBe(false);
     expect(selectGame(3).scoring.max).toBe(7);
     expect(selectGame(3).scoring.ranks).toEqual([]);
     selectGame(1);
