@@ -61,13 +61,16 @@ describe('Zork II presentation', () => {
     expect(roomArtFor('MENHIR-ROOM', { 'MENHIR-MOVED': true }, no)).toBe('z2-menhir-room-moved');
   });
 
-  it('every panel it can select exists on disk', async () => {
+  // Against the shipped art, not the staging directory the panels were
+  // generated in: that one is untracked, so a check against it passes on the
+  // machine that made the pictures and fails everywhere else.
+  it('every panel it can select exists in the build', async () => {
     const { readdirSync } = await import('node:fs');
     const { resolve } = await import('node:path');
     const have = new Set(
-      readdirSync(resolve(__dirname, '../../assets/rooms'))
-        .filter((f) => f.startsWith('z2-') && f.endsWith('.png'))
-        .map((f) => f.slice(0, -4)),
+      readdirSync(resolve(__dirname, '../public/art/rooms'))
+        .filter((f) => f.endsWith('.webp'))
+        .map((f) => f.slice(0, -5)),
     );
     const missing = Object.values(ROOM_PRES).map((p) => p.art).filter((a) => !have.has(a));
     expect([...new Set(missing)]).toEqual([]);

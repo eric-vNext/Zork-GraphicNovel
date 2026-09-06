@@ -18,14 +18,19 @@ interface Manifest {
 const built = existsSync(MANIFEST);
 const manifest: Manifest | null = built ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : null;
 
-// The manifest is a build artefact; skip rather than fail on a clean checkout.
+// The manifest is a build artefact, so these skip on a clean checkout — but
+// `describe.skip` still runs the body to collect the tests inside it, so
+// nothing out here may touch the manifest itself.
 const whenBuilt = built ? describe : describe.skip;
 
 whenBuilt('the offline asset manifest', () => {
-  const m = manifest!;
-  const all = new Set(Object.values(m.groups).flat());
+  const load = () => {
+    const m = manifest!;
+    return { m, all: new Set(Object.values(m.groups).flat()) };
+  };
 
   it('lists every file under art/ and audio/ exactly once', () => {
+    const { m, all } = load();
     const onDisk: string[] = [];
     const walk = (dir: string, prefix: string) => {
       for (const e of readdirSync(join(DIST, dir), { withFileTypes: true })) {
@@ -44,6 +49,7 @@ whenBuilt('the offline asset manifest', () => {
   });
 
   it('puts the app shell — bundles included — in the group that is always kept', () => {
+    const { m } = load();
     const shell = new Set(m.groups.shell);
     expect(shell.has('./index.html')).toBe(true);
     expect(shell.has('./assets.json')).toBe(true);
@@ -55,6 +61,7 @@ whenBuilt('the offline asset manifest', () => {
   });
 
   it('splits the games so one can be downloaded without the other', () => {
+    const { m } = load();
     expect(m.groups.zork1.length).toBeGreaterThan(150);
     expect(m.groups.zork2.length).toBeGreaterThan(150);
     expect(m.groups.zork1.every((f) => !f.split('/').pop()!.startsWith('z2-'))).toBe(true);
@@ -69,6 +76,7 @@ whenBuilt('the offline asset manifest', () => {
   // have to be in that game's own group, or downloading Zork II would still
   // leave holes in it.
   it('covers the panels each game names, in its own group', () => {
+    const { m } = load();
     const panelsOf = (pres: { roomPres: Record<string, { art: string }>; eventPanels: Record<string, string> }) => [
       ...Object.values(pres.roomPres).map((p) => p.art),
       ...Object.values(pres.eventPanels),
@@ -86,12 +94,14 @@ whenBuilt('the offline asset manifest', () => {
   });
 
   it('is versioned by its contents, so a changed asset set invalidates caches', () => {
+    const { m } = load();
     expect(m.version).toMatch(/^v[a-z0-9]+-[a-z0-9]+$/);
     const total = Object.values(m.bytes).reduce((a, b) => a + b, 0);
     expect(total.toString(36)).toBe(m.version.split('-')[1]);
   });
 
   it('names files that are actually there', () => {
+    const { all } = load();
     const sample = [...all].filter((f) => f !== './').slice(0, 40);
     const absent = sample.filter((f) => !existsSync(join(DIST, f.replace(/^\.\//, ''))));
     expect(absent).toEqual([]);
