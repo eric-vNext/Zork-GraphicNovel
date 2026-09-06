@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/build-manifest.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "oracle": "node scripts/oracle.mjs"
+    "oracle": "node scripts/oracle.mjs",
+    "manifest": "node scripts/build-manifest.mjs"
   },
   "dependencies": {
     "framer-motion": "^11.11.0",

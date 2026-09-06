@@ -657,3 +657,25 @@ body {
   .chips { padding-right: calc(12px + env(safe-area-inset-right)); }
   .cmdbar { padding-right: calc(12px + env(safe-area-inset-right)); }
 }
+
+/* Offline downloads: one row per game, size on the right. */
+.offline-list { list-style: none; margin: 14px 0; padding: 0; }
+.offline-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #3a3020;
+}
+.offline-list li:last-child { border-bottom: none; }
+.offline-name { flex: 1; }
+.offline-size { color: #a89468; font-size: 0.9em; min-width: 7em; text-align: right; }
+.offline-list button,
+.modal-close {
+  background: #241f14;
+  color: #e9dfa8;
+  border: 1px solid #c8a24a;
+  padding: 6px 18px;
+  cursor: pointer;
+}
+.offline-list button[disabled] { opacity: 0.5; cursor: default; }

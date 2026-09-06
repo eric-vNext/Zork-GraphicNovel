@@ -4,6 +4,7 @@ import { useStore } from './state/store';
 import { GameScreen } from './components/GameScreen';
 import { SaveLoadModal } from './components/SaveLoadModal';
 import { CaseView } from './components/CaseView';
+import { OfflineModal } from './components/OfflineModal';
 
 const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -43,20 +44,22 @@ export default function App() {
   const screen = useStore((s) => s.screen);
   const slotsOpen = useStore((s) => s.slotsOpen);
   const [help, setHelp] = useState(false);
+  const [offline, setOffline] = useState(false);
   return (
     <div className="app">
       {screen === 'play' && <GameScreen onHelp={() => setHelp(true)} />}
-      {screen === 'title' && <TitleScreen onHelp={() => setHelp(true)} />}
+      {screen === 'title' && <TitleScreen onHelp={() => setHelp(true)} onOffline={() => setOffline(true)} />}
       {screen === 'death' && <DeathScreen />}
       {screen === 'victory' && <VictoryScreen />}
       {help && <HelpModal onClose={() => setHelp(false)} />}
+      {offline && <OfflineModal onClose={() => setOffline(false)} />}
       {slotsOpen && <SaveLoadModal />}
       <CaseView />
     </div>
   );
 }
 
-function TitleScreen({ onHelp }: { onHelp: () => void }) {
+function TitleScreen({ onHelp, onOffline }: { onHelp: () => void; onOffline: () => void }) {
   const begin = useStore((s) => s.begin);
   const openSlots = useStore((s) => s.openSlots);
 
@@ -70,6 +73,7 @@ function TitleScreen({ onHelp }: { onHelp: () => void }) {
           <button onClick={begin}>New Game</button>
           <button onClick={() => openSlots('load')}>Restore</button>
           <button onClick={onHelp}>How to Play</button>
+          <button onClick={onOffline}>Play Offline</button>
         </div>
         <p className="fine">
           A parser-first illustrated port of the 1980 Infocom classic, built from the
@@ -153,7 +157,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
           or you will be eaten by a grue. The thief is not your friend. Save often.
         </p>
         <div className="btns" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ background: '#241f14', color: '#e9dfa8', border: '1px solid #c8a24a', padding: '6px 18px', cursor: 'pointer' }}>Close</button>
+          <button className="modal-close" onClick={onClose}>Close</button>
         </div>
       </div>
     </div>
