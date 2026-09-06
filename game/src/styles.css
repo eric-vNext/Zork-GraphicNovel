@@ -679,3 +679,40 @@ body {
   cursor: pointer;
 }
 .offline-list button[disabled] { opacity: 0.5; cursor: default; }
+
+/* Title-screen game chooser: three plates, the chosen one lit. */
+.screen .games {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 18px 0 22px;
+}
+.screen .game-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  min-width: 9.5em;
+  padding: 10px 16px;
+  font-size: 16px;
+  opacity: 0.7;
+}
+.screen .game-card.chosen {
+  opacity: 1;
+  background: rgba(60,45,18,0.9);
+  box-shadow: 0 0 18px rgba(200,162,74,0.45);
+}
+.screen .game-card[disabled] {
+  opacity: 0.5;
+  cursor: default;
+  border-color: rgba(200,162,74,0.4);
+  background: rgba(20,17,10,0.6);
+}
+.screen .game-title { font-size: 19px; }
+.screen .game-sub {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}

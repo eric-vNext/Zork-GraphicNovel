@@ -352,4 +352,7 @@ export const ZORK2_PRESENTATION: PresentationDef = {
   itemArt: ITEM_ART,
   defaultArt: 'z2-cavern-stream',
   defaultRegion: 'barrow',
+  titleArt: 'ui/z2-title-screen',
+  deathArt: 'ui/z2-ui-death-screen',
+  victoryArt: 'ui/z2-ui-victory-screen',
 };

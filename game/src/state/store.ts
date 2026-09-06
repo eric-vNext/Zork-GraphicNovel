@@ -9,6 +9,8 @@ import { fset$, inventory, DATA, roomLit, contents } from '../engine/world';
 import { Out } from '../engine/world';
 import type { WorldState } from '../engine/types';
 import { readSaveSlot, writeSaveSlot, migrateLegacySave } from '../engine/idbSaves';
+import { GAMES, activeGame } from '../data/games';
+import type { GameNumber } from '../engine/types';
 
 export interface LogLine { id: number; text: string; cls: string }
 export type Screen = 'title' | 'play' | 'death' | 'victory';
@@ -100,6 +102,9 @@ interface GameStore {
   // art is a path under ./art/ without extension, e.g. 'items/jeweled-egg'.
   flashCard: { art: string; caption?: string } | null;
   flashSeq: number;            // keys each flash so repeats remount fresh
+  /** Which game the title screen is offering, and Restore will read slots for. */
+  chosenGame: GameNumber;
+  chooseGame: (n: GameNumber) => void;
   begin: () => void;
   submit: (cmd: string) => void;
   restartGame: () => void;
@@ -117,6 +122,7 @@ let lineId = 0;
 
 export const useStore = create<GameStore>((set, get) => ({
   game: new Game(),
+  chosenGame: 1,
   screen: 'title',
   log: [],
   panel: 'ui/title-screen',
@@ -141,6 +147,17 @@ export const useStore = create<GameStore>((set, get) => ({
   caseView: null,
   flashCard: null,
   flashSeq: 0,
+
+  /**
+   * Pick a game on the title screen. Constructing the Game selects it, which
+   * installs that game's presentation — so the title plate, and the save slots
+   * Restore will look in, both follow the choice.
+   */
+  chooseGame: (n) => {
+    if (!GAMES[n]?.playable || get().chosenGame === n) return;
+    const game = new Game(n);
+    set({ game, chosenGame: n, panel: activeGame().presentation.titleArt, panelSeq: get().panelSeq + 1 });
+  },
 
   begin: () => {
     const g = get().game;
@@ -209,7 +226,7 @@ export const useStore = create<GameStore>((set, get) => ({
   },
 
   restartGame: () => {
-    const game = new Game();
+    const game = new Game(get().game.s.game);
     set({
       game, screen: 'play', log: [], panelSeq: 0, panelIsEvent: false, travelDir: undefined,
       shakeSeq: 0, scorePulseSeq: 0, healthLostSeq: 0, vignette: 'none', vignetteSeq: 0,

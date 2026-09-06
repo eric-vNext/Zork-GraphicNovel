@@ -42,6 +42,10 @@ export interface PresentationDef {
   defaultArt: string;
   /** Region used when a room has no mapping at all. */
   defaultRegion: Region;
+  /** The three full-bleed interface plates, which are painted per game. */
+  titleArt: string;
+  deathArt: string;
+  victoryArt: string;
 }
 
 // Live bindings, replaced wholesale by installPresentation().
@@ -98,5 +102,8 @@ export function placeholderPresentation(
     itemArt: {},
     defaultArt: art,
     defaultRegion: region,
+    titleArt: 'ui/title-screen',
+    deathArt: 'ui/death-screen',
+    victoryArt: 'ui/victory-screen',
   };
 }

@@ -5,6 +5,7 @@ import { GameScreen } from './components/GameScreen';
 import { SaveLoadModal } from './components/SaveLoadModal';
 import { CaseView } from './components/CaseView';
 import { OfflineModal } from './components/OfflineModal';
+import { GAMES } from './data/games';
 
 const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -62,13 +63,33 @@ export default function App() {
 function TitleScreen({ onHelp, onOffline }: { onHelp: () => void; onOffline: () => void }) {
   const begin = useStore((s) => s.begin);
   const openSlots = useStore((s) => s.openSlots);
+  const chosen = useStore((s) => s.chosenGame);
+  const chooseGame = useStore((s) => s.chooseGame);
+  const art = GAMES[chosen]?.presentation.titleArt ?? 'ui/title-screen';
 
   return (
     <div className="screen">
-      <img className="bg" src="./art/ui/title-screen.webp" alt="" />
+      <img className="bg" src={`./art/${art}.webp`} alt="" key={art} />
       <div className="content">
         <img className="logo" src="./art/ui/logotype.webp" alt="ZORK" />
-        <h2>The Great Underground Empire<br />— Graphic Novel Edition —</h2>
+        <h2>{GAMES[chosen]?.subtitle}<br />— Graphic Novel Edition —</h2>
+        <div className="games">
+          {([1, 2, 3] as const).map((n) => {
+            const def = GAMES[n]!;
+            return (
+              <button
+                key={n}
+                className={`game-card${n === chosen ? ' chosen' : ''}`}
+                disabled={!def.playable}
+                aria-pressed={n === chosen}
+                onClick={() => chooseGame(n)}
+              >
+                <span className="game-title">{def.title}</span>
+                <span className="game-sub">{def.playable ? def.subtitle : 'not yet illustrated'}</span>
+              </button>
+            );
+          })}
+        </div>
         <div className="btns">
           <button onClick={begin}>New Game</button>
           <button onClick={() => openSlots('load')}>Restore</button>
@@ -76,8 +97,8 @@ function TitleScreen({ onHelp, onOffline }: { onHelp: () => void; onOffline: () 
           <button onClick={onOffline}>Play Offline</button>
         </div>
         <p className="fine">
-          A parser-first illustrated port of the 1980 Infocom classic, built from the
-          open-source historical ZIL release. Type commands — or tap the compass and chips.
+          A parser-first illustrated port of the Infocom classics, built from the
+          open-source historical ZIL releases. Type commands — or tap the compass and chips.
           All artwork and audio are original.
         </p>
       </div>
@@ -90,9 +111,10 @@ function DeathScreen() {
   const openSlots = useStore((s) => s.openSlots);
   const score = useStore((s) => s.score);
   const moves = useStore((s) => s.moves);
+  const art = useStore((s) => GAMES[s.game.s.game]?.presentation.deathArt) ?? 'ui/death-screen';
   return (
     <div className="screen">
-      <TheatricalBg src="./art/ui/death-screen.webp" />
+      <TheatricalBg src={`./art/${art}.webp`} />
       <TheatricalContent>
         <h2>Your adventuring days are over.<br />Score: {score} in {moves} moves.</h2>
         <div className="btns">
@@ -108,14 +130,22 @@ function VictoryScreen() {
   const restartGame = useStore((s) => s.restartGame);
   const score = useStore((s) => s.score);
   const moves = useStore((s) => s.moves);
+  const played = useStore((s) => s.game.s.game);
+  const art = GAMES[played]?.presentation.victoryArt ?? 'ui/victory-screen';
+  // Each game hands you on to the next one.
+  const coda = played === 1
+    ? 'The Great Underground Empire awaits your return... in Zork II.'
+    : played === 2
+      ? 'The Wizard is undone, but the final challenge awaits... in Zork III.'
+      : 'The Dungeon Master has met his match.';
   return (
     <div className="screen">
-      <TheatricalBg src="./art/ui/victory-screen.webp" />
+      <TheatricalBg src={`./art/${art}.webp`} />
       <TheatricalContent>
         <img className="logo" src="./art/ui/logotype.webp" alt="ZORK" />
         <h2>
-          Master Adventurer — {score} points in {moves} moves.<br />
-          The Great Underground Empire awaits your return... in Zork II.
+          {score} points in {moves} moves.<br />
+          {coda}
         </h2>
         <div className="btns">
           <button onClick={restartGame}>Play Again</button>

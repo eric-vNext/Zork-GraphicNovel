@@ -199,4 +199,7 @@ export const ZORK1_PRESENTATION: PresentationDef = {
   itemArt: ITEM_ART,
   defaultArt: 'passage',
   defaultRegion: 'underground',
+  titleArt: 'ui/title-screen',
+  deathArt: 'ui/death-screen',
+  victoryArt: 'ui/victory-screen',
 };
