@@ -1489,3 +1489,59 @@ describe('the machine room and the volcano gnome', () => {
     selectGame(1);
   });
 });
+
+describe('scenery and small change', () => {
+  it("will not let you near the Wizard's cabinet", () => {
+    const g = at('TROPHY-ROOM');
+    expect(txt(g, 'open case')).toContain('protected by a fearful spell');
+    selectGame(1);
+  });
+
+  it('counts its matches and burns them two turns at a time', () => {
+    const g = at('GAZEBO-ROOM');
+    g.s.locs['MATCH'] = 'ADVENTURER';
+    expect(txt(g, 'count matches')).toContain('5 matches');
+    expect(txt(g, 'light match')).toContain('One of the matches starts to burn');
+    expect(txt(g, 'examine match')).toContain('A match is burning');
+    expect(txt(g, 'count matches')).toContain('4 matches');
+    selectGame(1);
+  });
+
+  it('punishes tampering with the Flatheads', () => {
+    const g = at('CRYPT-ROOM');
+    expect(txt(g, 'hello heads')).toContain('they do not respond');
+    expect(txt(g, 'take heads')).toContain('took steps to punish such actions');
+    selectGame(1);
+  });
+
+  it('keeps the grue off while the repellent lasts', () => {
+    const g = at('POOL-ROOM');
+    g.s.locs['REPELLENT'] = 'ADVENTURER';
+    expect(txt(g, 'shake repellent')).toContain('sloshing sound');
+    expect(txt(g, 'spray repellent on me')).toContain('old socks and burning rubber');
+    expect(g.s.gflags['SPRAYED']).toBe(true);
+    txt(g, 'turn off lamp');
+    expect(txt(g, 'look'), 'no grue warning while it lasts').toBe('It is pitch black.');
+    let faded = '';
+    for (let i = 0; i < 12 && !faded; i++) {
+      const said = txt(g, 'wait');
+      if (said.includes('less pungent')) faded = said;
+    }
+    expect(faded).toContain('That horrible smell is much less pungent now');
+    expect(g.s.gflags['SPRAYED']).toBe(false);
+    // And with it gone the darkness is dangerous again.
+    const h = at('POOL-ROOM');
+    txt(h, 'turn off lamp');
+    expect(txt(h, 'look')).toContain('likely to be eaten by a grue');
+    selectGame(1);
+  });
+
+  it('reads the vault cube and plays the violin', () => {
+    const g = at('DEPOSITORY');
+    expect(txt(g, 'read cube')).toContain('Frobozz Magic Vault Company');
+    const h = at('CAROUSEL-ROOM');
+    h.s.locs['VIOLIN'] = 'ADVENTURER';
+    expect(txt(h, 'play violin')).toContain('amazingly offensive noise');
+    selectGame(1);
+  });
+});

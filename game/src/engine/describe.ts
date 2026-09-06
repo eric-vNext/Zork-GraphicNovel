@@ -17,7 +17,10 @@
 // from a table that is itself never mentioned, and it is why the shipped
 // single-pass version dropped both objects entirely.
 import type { WorldState } from './types';
-import { Out, DATA, roomDef, objDef, contents, fset$, roomLit, seeInside, theName, aName, PLAYER, playerVehicle } from './world';
+import {
+  Out, DATA, roomDef, objDef, contents, fset$, grueRepelled, roomLit, seeInside, theName,
+  aName, PLAYER, playerVehicle,
+} from './world';
 import { dynamicRoomDesc, dynamicObjDesc, dynamicVehicleDesc } from './specialDescs';
 import { gameNumber } from '../data/games';
 import * as spells from './spells';
@@ -28,7 +31,9 @@ const indent = (level: number): string => INDENTS[Math.min(Math.max(level, 0), I
 export function describeRoom(s: WorldState, out: Out, force = false): void {
   const r = roomDef(s.here);
   if (!roomLit(s)) {
-    out.tell('It is pitch black. You are likely to be eaten by a grue.');
+    out.tell(grueRepelled(s)
+      ? 'It is pitch black.'
+      : 'It is pitch black. You are likely to be eaten by a grue.');
     return;
   }
   // DESCRIBE-ROOM names the vehicle you are riding on the room line, and

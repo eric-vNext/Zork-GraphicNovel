@@ -11,7 +11,7 @@
 // them by accident.
 import type { Ctx } from '../ctx';
 import type { WorldState } from '../types';
-import { prob, pickOne, DUMMY } from '../ctx';
+import { prob, pickOne, DUMMY, YUKS } from '../ctx';
 import { jigsUp } from '../death';
 import {
   fset, fclear, fset$, moveObj, removeObj, contents, inPlayer, mungRoom, playerVehicle,
@@ -636,6 +636,320 @@ const OBJ_ROUTINES: Record<string, Handler> = {
     if (ctx.verb === 'look-in' || ctx.verb === 'examine') return OBJ_ROUTINES['PALANTIR'](ctx);
     return false;
   },
+
+  // --- kit, scenery and small change ----------------------------------------
+  // The last of 2actions.zil: objects with one or two things to say, and the
+  // scenery that has to refuse politely rather than fall through to a default
+  // written for Zork I.
+
+  // WIZARD-CASE-FCN (2actions.zil). His trophy cabinet cannot be opened, only
+  // filched from — or smashed by the demon, contents and all.
+  'WIZARD-CASE-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.winner === 'GENIE' && (ctx.verb === 'break' || ctx.verb === 'open')) {
+      removeObj(s, 'WIZARD-CASE');
+      moveObj(s, 'BROKEN-CASE', 'TROPHY-ROOM');
+      for (const o of contents(s, 'WIZARD-CASE')) removeObj(s, o);
+      out.tell('The demon smashes the case into smithereens. Everything in it smashes as well.');
+      return true;
+    }
+    if (ctx.verb === 'enchant' && spells.spellUsedWord(s) === 'FILCH') {
+      for (const o of contents(s, 'WIZARD-CASE')) moveObj(s, o, s.here);
+      spells.setSpellHandled(s, true);
+      out.tell('The contents of the case are arrayed at your feet.');
+      return true;
+    }
+    if (['open', 'break', 'close', 'take'].includes(ctx.verb)) {
+      out.tell('The case is protected by a fearful spell. You cannot touch it in any way.');
+      return true;
+    }
+    return false;
+  },
+
+  // SWORD-FCN: picking it up starts the glow that warns of what is near.
+  'SWORD-FCN': (ctx) => {
+    if (ctx.verb === 'take' && ctx.winner === PLAYER) ctx.queue('I-SWORD', -1);
+    return false;
+  },
+
+  // MATCH-FCN (2actions.zil). Five matches, two turns each.
+  'MATCH-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if ((ctx.verb === 'lamp-on' || ctx.verb === 'light' || ctx.verb === 'burn') && ctx.dobj === 'MATCH') {
+      if ((s.counters.matches ?? 0) > 0) s.counters.matches -= 1;
+      if ((s.counters.matches ?? 0) <= 0) {
+        out.tell("I'm afraid you have run out of matches.");
+        return true;
+      }
+      fset(s, 'MATCH', 'FLAMEBIT');
+      fset(s, 'MATCH', 'ONBIT');
+      ctx.queue('I-MATCH', 2);
+      out.tell('One of the matches starts to burn.');
+      return true;
+    }
+    if ((ctx.verb === 'lamp-off' || ctx.verb === 'extinguish') && fset$(s, 'MATCH', 'FLAMEBIT')) {
+      out.tell('The match is out.');
+      fclear(s, 'MATCH', 'FLAMEBIT');
+      fclear(s, 'MATCH', 'ONBIT');
+      ctx.disable('I-MATCH');
+      return true;
+    }
+    if (ctx.verb === 'count') {
+      const n = (s.counters.matches ?? 1) - 1;
+      out.tell(`You have ${n} match${n === 1 ? '' : 'es'}.`);
+      return true;
+    }
+    if (ctx.verb === 'examine') {
+      out.tell(fset$(s, 'MATCH', 'ONBIT') ? 'A match is burning.' : 'No match is burning.');
+      return true;
+    }
+    return false;
+  },
+
+  'TEAPOT-F': (ctx) => {
+    if (ctx.verb !== 'close') return false;
+    ctx.out.tell('The teapot has no lid.');
+    return true;
+  },
+
+  'VIOLIN-FCN': (ctx) => {
+    if (ctx.verb !== 'play') return false;
+    ctx.out.tell('An amazingly offensive noise issues from the violin.');
+    return true;
+  },
+
+  'ROSE-F': (ctx) => {
+    if (ctx.verb === 'smell') {
+      ctx.out.tell('Unlike your efforts here, it comes out smelling like a rose.');
+      return true;
+    }
+    if (ctx.verb === 'examine') { ctx.out.tell('A rose is a rose is a rose....'); return true; }
+    return false;
+  },
+
+  'ROSE-BUSH-FCN': (ctx) => {
+    if (ctx.verb !== 'take') return false;
+    ctx.out.tell('You prick your finger trying to take a rose, and jump back annoyed. The rose almost seemed to move its thorns into your path.');
+    return true;
+  },
+
+  // The four books on the Wizard's shelf: the purple one has a stamp pressed
+  // in it, and handling any of them counts as having handled all four.
+  'PURPLE-BOOK-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'read' && s.locs['STAMP'] === 'PURPLE-BOOK' && !fset$(s, 'PURPLE-BOOK', 'OPENBIT')) {
+      const text = objDef('PURPLE-BOOK').text;
+      if (text) out.tell(text.replace(/\n/g, ' '));
+      ctx.perform('open', 'PURPLE-BOOK');
+      return true;
+    }
+    return OBJ_ROUTINES['RANDOM-BOOK'](ctx);
+  },
+
+  'RANDOM-BOOK': (ctx) => {
+    if (!['take', 'move', 'put'].includes(ctx.verb)) return false;
+    for (const b of ['WHITE-BOOK', 'PURPLE-BOOK', 'GREEN-BOOK', 'BLUE-BOOK']) {
+      fset(ctx.s, b, 'TOUCHBIT');
+    }
+    return false;
+  },
+
+  'CRYPT-OBJECT': (ctx) => {
+    if (ctx.verb === 'open') { ctx.out.tell('The crypt is sealed for all time.'); return true; }
+    if (ctx.verb === 'touch') { ctx.out.tell('The marble is cool.'); return true; }
+    return false;
+  },
+
+  'HEAD-FCN': (ctx) => {
+    if (ctx.verb === 'hello') {
+      ctx.out.tell('The Flatheads are dead; therefore they do not respond.');
+      return true;
+    }
+    if (['attack', 'touch', 'open', 'take', 'burn', 'break'].includes(ctx.verb)) {
+      jigsUp(ctx, 'Although the Flatheads are dead, they foresaw that some cretin might tamper with their remains. Therefore, they took steps to punish such actions.', {});
+      return true;
+    }
+    return false;
+  },
+
+  'CUBE-F': (ctx) => {
+    if (ctx.verb !== 'examine' && ctx.verb !== 'read') return false;
+    ctx.out.tell([
+      '              Bank of Zork',
+      '                   VAULT',
+      '                 *722 GUE*',
+      '        Frobozz Magic Vault Company',
+    ].join('\n'), 'system');
+    return true;
+  },
+
+  PLEAK: (ctx) => {
+    if (ctx.verb === 'take') { ctx.out.tell(pickOne(ctx, YUKS)); return true; }
+    return false;
+  },
+
+  'STREAM-FCN': (ctx) => {
+    if (ctx.verb === 'swim' || ctx.verb === 'enter') {
+      ctx.out.tell("You can't swim in the stream.");
+      return true;
+    }
+    if (ctx.verb === 'cross') { ctx.out.tell("You'll have to find a ford or a bridge."); return true; }
+    return false;
+  },
+
+  'BRIDGE-FCN': (ctx) => {
+    if (ctx.verb === 'cross') { ctx.walk('CROSS'); return true; }
+    if (ctx.verb === 'jump') {
+      jigsUp(ctx, 'You execute a perfect swan-dive into the depths below.', {});
+      return true;
+    }
+    return false;
+  },
+
+  'CHASM-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'jump' || (ctx.verb === 'put' && ctx.dobj === 'ME')) {
+      out.tell('For a change, you look before leaping. You realize you would never survive.');
+      return true;
+    }
+    if (ctx.verb === 'cross') { out.tell("You'll have to find a bridge."); return true; }
+    if (ctx.verb === 'throw' && ctx.iobj === 'CHASM' && ctx.dobj) {
+      out.tell(`The ${objDef(ctx.dobj).desc} drops out of sight into the chasm.`);
+      removeObj(s, ctx.dobj);
+      return true;
+    }
+    return false;
+  },
+
+  'TUNNEL-OBJECT': (ctx) => {
+    if (ctx.verb === 'enter' && roomDef(ctx.s.here).exits['IN']) { ctx.walk('IN'); return true; }
+    return OBJ_ROUTINES['PATH-OBJECT'](ctx);
+  },
+
+  'PATH-OBJECT': (ctx) => {
+    if (ctx.verb === 'take' || ctx.verb === 'follow') {
+      ctx.out.tell('You must specify a direction to go.');
+      return true;
+    }
+    if (ctx.verb === 'dig') { ctx.out.tell('Not a chance.'); return true; }
+    return false;
+  },
+
+  'STAIRS-F': (ctx) => {
+    if (ctx.verb !== 'enter') return false;
+    ctx.out.tell('You should say whether you want to go up or down.');
+    return true;
+  },
+
+  'HEDGES-F': (ctx) => {
+    if (ctx.verb !== 'examine') return false;
+    ctx.out.tell('The hedges are shaped like various animals: dogs, serpents, dragons, and the like, and they are vaguely troubling to look at.');
+    return true;
+  },
+
+  'COMPASS-F': (ctx) => {
+    const { out } = ctx;
+    switch (ctx.verb) {
+      case 'drop': case 'throw':
+        out.tell("You can't get rid of it. It is an extension of yourself.");
+        return true;
+      case 'examine':
+        out.tell("It's one of those gizmos with a needle and a card with the eight major compass directions. Simple, but effective.");
+        return true;
+      case 'read':
+        out.tell("It doesn't make very interesting reading - just the compass directions.");
+        return true;
+      default:
+        out.tell("You can't do that. And don't bother to ask why.");
+        return true;
+    }
+  },
+
+  'FOOTPAD-F': (ctx) => {
+    if (ctx.verb !== 'examine') return false;
+    ctx.out.tell('A footpad is a thief.');
+    return true;
+  },
+
+  'ZORKMID-FUNCTION': (ctx) => {
+    if (ctx.verb !== 'examine') return false;
+    ctx.out.tell('The zorkmid is the unit of currency of the Great Underground Empire.');
+    return true;
+  },
+
+  // GRUE-FUNCTION / GROUND-FUNCTION / CRETIN-FCN (gglobals.zil). Shared
+  // scenery, but the dispatch is per game, so Zork II needs its own copies.
+  'GRUE-FUNCTION': (ctx) => {
+    const { out } = ctx;
+    if (ctx.verb === 'examine') {
+      out.tell('The grue is a sinister, lurking presence in the dark places of the earth. Its favorite diet is adventurers, but its insatiable appetite is tempered by its fear of light. No grue has ever been seen by the light of day, and few have survived its fearsome jaws to tell the tale.');
+      return true;
+    }
+    if (ctx.verb === 'listen') {
+      out.tell('It makes no sound but is always lurking in the darkness nearby.');
+      return true;
+    }
+    return false;
+  },
+
+  'GROUND-FUNCTION': (ctx) => {
+    if (ctx.verb === 'put' && ctx.iobj === 'GROUND' && ctx.dobj) {
+      ctx.perform('drop', ctx.dobj);
+      return true;
+    }
+    if (ctx.verb === 'dig') { ctx.out.tell('The ground is too hard for digging here.'); return true; }
+    return false;
+  },
+
+  'CRETIN-FCN': (ctx) => {
+    const { s, out } = ctx;
+    switch (ctx.verb) {
+      case 'give':
+        if (ctx.iobj !== 'ME' || !ctx.dobj) return false;
+        ctx.perform('take', ctx.dobj);
+        return true;
+      case 'exit': out.tell("You'll have to do that on your own."); return true;
+      case 'eat': out.tell('Auto-cannibalism is not the answer.'); return true;
+      case 'attack': case 'break':
+        if (ctx.iobj && fset$(s, ctx.iobj, 'WEAPONBIT')) {
+          jigsUp(ctx, "If you insist.... Poof, you're dead!", {});
+        } else out.tell('Suicide is not the answer.');
+        return true;
+      case 'throw':
+        if (ctx.dobj !== 'ME') return false;
+        out.tell("Why don't you just walk like normal people?");
+        return true;
+      case 'take': out.tell('How romantic!'); return true;
+      default: return false;
+    }
+  },
+
+  // REPELLENT-FCN (2actions.zil) — one can of grue repellent, one use.
+  'REPELLENT-FCN': (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb === 'shake') {
+      out.tell(s.gflags['SPRAY-USED'] ? 'The can seems empty.' : 'There is a sloshing sound from inside.');
+      return true;
+    }
+    if ((ctx.verb !== 'put' && ctx.verb !== 'spray') || ctx.dobj !== 'REPELLENT') return false;
+    if (s.gflags['SPRAY-USED']) { out.tell('The repellent is all gone.'); return true; }
+    if (!ctx.iobj) {
+      s.gflags['SPRAY-USED'] = true;
+      out.tell('The spray stinks amazingly for a few moments, then drifts away.');
+      return true;
+    }
+    if (ctx.iobj === 'ME') {
+      ctx.queue('I-SPRAY', 8);
+      s.gflags['SPRAYED'] = true;
+    }
+    s.gflags['SPRAY-USED'] = true;
+    out.tell("The spray smells like a mixture of old socks and burning rubber. If I were a grue I'd sure stay clear!");
+    return true;
+  },
+
+  // The two "you are thinking of something that isn't here" globals.
+  'GLOBAL-MENHIR-F': (ctx) => { ctx.out.tell("It's not here."); return true; },
+  'GLOBAL-CERBERUS-F': (ctx) => { ctx.out.tell("He's not here."); return true; },
 
   // --- the machine room and the volcano gnome --------------------------------
   // BUTTONS (2actions.zil:1160). Three buttons behind a HIGH VOLTAGE sign:

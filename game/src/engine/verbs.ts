@@ -33,7 +33,7 @@ import * as spells from './spells';
 import {
   DATA, roomDef, objDef, fset, fclear, fset$, moveObj, removeObj, contents, locOf,
   inPlayer, roomOf, roomLit, reachable, loadWeight, objWeight, theName, aName,
-  PLAYER, inventory, roomMunged, playerVehicle, vehicleType, roomFlag,
+  PLAYER, inventory, roomMunged, playerVehicle, vehicleType, roomFlag, grueRepelled,
 } from './world';
 
 const TREASURE_ROOM_SAFE = 'TREASURE-ROOM';
@@ -180,7 +180,9 @@ export function enterRoom(ctx: Ctx, room: string, dir?: string): void {
   // grue check when stepping from dark to dark
   if (!wasLit && !roomLit(s)) {
     s.grueTurns += 1;
-    if (s.grueTurns >= 2 && ctx.rng() < 0.5) {
+    if (grueRepelled(s)) {
+      out.tell('There are sinister gurgling noises in the darkness all around you!');
+    } else if (s.grueTurns >= 2 && ctx.rng() < 0.5) {
       out.emit({ type: 'panel', key: 'events/grue-death' });
       out.emit({ type: 'shake' });
       jigsUp(ctx, 'Oh, no! You have walked into the slavering fangs of a lurking grue!', {});
@@ -212,7 +214,9 @@ export function enterRoom(ctx: Ctx, room: string, dir?: string): void {
   if (!roomLit(s)) {
     out.emit({ type: 'panel', key: 'events/grue-warning' });
     out.emit({ type: 'sfx', name: 'grue-growl' });
-    out.tell('It is pitch black. You are likely to be eaten by a grue.');
+    out.tell(grueRepelled(s)
+      ? 'It is pitch black.'
+      : 'It is pitch black. You are likely to be eaten by a grue.');
     s.touched[room] = true;
     return;
   }
@@ -533,6 +537,13 @@ export function perform(ctx: Ctx): void {
       out.tell(`You can't burn ${theName(d)}.`);
       return;
     }
+    // V-PLAY / V-SPRAY (gverbs.zil): only one object in Zork II answers each.
+    case 'play':
+      out.tell(d ? `Playing with a ${objDef(d)?.desc ?? 'thing'}${pickOne(ctx, HO_HUM)}` : 'Play what?');
+      return;
+    case 'spray':
+      out.tell("You can't spray that.");
+      return;
     // V-MELT (gverbs.zil) — only Zork II's glacier has anything to say to it.
     case 'melt':
       out.tell(`It's not clear that a ${objDef(d ?? '')?.desc ?? 'thing'} can be melted.`);

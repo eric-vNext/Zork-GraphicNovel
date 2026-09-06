@@ -765,6 +765,12 @@ export function nervousDaemon(ctx: Ctx): void {
   removeObj(s, 'GNOME');
 }
 
+/** I-SPRAY (2actions.zil) — the grue repellent wears off. */
+export function sprayDaemon(ctx: Ctx): void {
+  ctx.s.gflags['SPRAYED'] = false;
+  ctx.out.tell('That horrible smell is much less pungent now.');
+}
+
 export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   // The player's own spell, and the wand's charge, both time out.
   'I-SPELL': spells.spellTimeout,
@@ -786,4 +792,5 @@ export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   'I-BUCKET': bucketDaemon,
   'I-GNOME': gnomeDaemon,
   'I-NERVOUS': nervousDaemon,
+  'I-SPRAY': sprayDaemon,
 };

@@ -98,6 +98,10 @@ v('burn', 'incinerate', 'ignite');
 // gsyntax.zil:328,538 — both are shared vocabulary, but MELT only matters to
 // Zork II's glacier and WAKE only to Zork I's sleeping thief.
 v('melt', 'liquify', 'liquefy');
+// gsyntax.zil:356,454 — PLAY has something to say only to Zork II's violin,
+// and SPRAY only to its can of grue repellent.
+v('play');
+v('spray', 'squirt');
 v('alarm', 'wake', 'awake', 'awaken', 'rouse', 'surprise', 'startle');
 v('cut', 'slice');
 v('break', 'smash', 'destroy', 'damage');

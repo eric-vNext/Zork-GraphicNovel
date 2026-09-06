@@ -183,6 +183,15 @@ export function roomFlag(s: WorldState, room: string, flag: string): boolean {
   return roomDef(room).flags.includes(flag) || fset$(s, room, flag);
 }
 
+/**
+ * `,SPRAYED?` — Zork II's grue repellent. While it lasts the darkness is
+ * merely dark: DESCRIBE-ROOM drops the warning and GOTO's grue does not bite
+ * (gverbs.zil).
+ */
+export function grueRepelled(s: WorldState): boolean {
+  return gameNumber() === 2 && !!s.gflags['SPRAYED'];
+}
+
 // ---- vehicles ---------------------------------------------------------------
 /**
  * Zork II sets the balloon's and the bucket's VTYPE at run time

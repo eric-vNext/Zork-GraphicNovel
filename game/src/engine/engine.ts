@@ -11,6 +11,7 @@ import { clocker, DAEMONS, candleTicksRemaining } from './daemons';
 import { fightStrength } from './melee';
 import { jigsUp } from './death';
 import { describeRoom, viewRoom } from './describe';
+import { grueRepelled } from './world';
 
 const UNKNOWN_WORD_RE = /^I don't know the word "(.+)"\.$/;
 
@@ -354,7 +355,7 @@ export class Game {
     const s = this.s;
     if (!roomLit(s)) {
       s.grueTurns += 1;
-      if (s.grueTurns >= 3 && this.rng() < 0.4) {
+      if (!grueRepelled(s) && s.grueTurns >= 3 && this.rng() < 0.4) {
         out.emit({ type: 'panel', key: 'events/grue-death' });
         out.emit({ type: 'shake' });
         jigsUp(ctx, 'Oh, no! You have walked into the slavering fangs of a lurking grue!', {});
