@@ -19,7 +19,7 @@ import {
 } from '../world';
 import * as spells from '../spells';
 import { spellUsed } from '../spells';
-import { NEXT_SPHERE, WIZQDESCS, palantirLook } from './specialDescs';
+import { NEXT_SPHERE, WIZQDESCS, diamondWindow, palantirLook } from './specialDescs';
 import world from '../../data/zork2/world.gen.json';
 
 type Handler = (ctx: Ctx) => boolean;
@@ -113,6 +113,10 @@ export function beforeWalk(ctx: Ctx, dir: string): WalkIntercept {
   // In a vehicle it is the vehicle's M-BEG that runs, not the room's
   // (gmain.zil:212).
   if (playerVehicle(s) === 'BALLOON') return balloonWalk(ctx, dir);
+
+  // The Oddly-Angled Rooms are a baseball diamond, and running the bases in
+  // order is the only way through them.
+  if (s.here.startsWith('DIAMOND-') && !s.gflags['DIAMOND-SOLVE']) return diamondWalk(ctx, dir);
 
   if (s.here !== 'CAROUSEL-ROOM' || s.gflags['CAROUSEL-FLIP-FLAG']) return null;
   if (dir === 'UP' || dir === 'DOWN') return null;
@@ -311,6 +315,92 @@ function curtainAction(ctx: Ctx, wall?: string): boolean {
     default:
       return false;
   }
+}
+
+// ------------------------------ the diamond maze -----------------------------
+// DIAMOND-MOTION (2actions.zil:2196). Nine rooms laid out as a baseball
+// diamond. From a base, leaving in the right direction takes you to the next
+// base and brightens the window in the floor; leaving any other way, or from
+// anywhere but a base, throws you back into the maze. Round all four and the
+// floor of the middle room swings open.
+
+/** `,DIDIRS` — the way out of each base in turn. */
+const DIDIRS = ['SE', 'NE', 'NW', 'SW'];
+
+/** Where the correct move from each base leads. */
+const NEXT_BASE: Record<string, string> = {
+  'DIAMOND-2': 'DIAMOND-4', 'DIAMOND-4': 'DIAMOND-8',
+  'DIAMOND-8': 'DIAMOND-6', 'DIAMOND-6': 'DIAMOND-2',
+};
+
+/** `,DIAMOND-ROOMS` — the four bases, then the five rooms between them. */
+const BASES = ['DIAMOND-2', 'DIAMOND-4', 'DIAMOND-6', 'DIAMOND-8'];
+const OFF_BASE = ['DIAMOND-8', 'DIAMOND-1', 'DIAMOND-3', 'DIAMOND-5', 'DIAMOND-7'];
+
+/** `,BASES` — how far the Wizard thinks you have got. */
+const BASE_NAMES = ['first', 'first', 'first', 'second', 'third', 'home'];
+
+/** DIAMOND-LOSS (2actions.zil:2277) — thrown back into the maze. */
+function diamondLoss(ctx: Ctx): void {
+  const { s, out } = ctx;
+  s.counters.diamondMoves = (s.counters.diamondMoves ?? 0) + 1;
+  if (s.counters.diamondMoves === 20) {
+    const far = BASE_NAMES[Math.min(s.counters.diamondBase ?? 0, BASE_NAMES.length - 1)];
+    out.tell(`As you thrash about in the maze, the mirthful voice of the Wizard taunts you: "Fool! You'll never get past ${far} base at this rate!"`);
+  }
+  ctx.moveTo(OFF_BASE[Math.floor(ctx.rng() * OFF_BASE.length)], true);
+}
+
+/** Record progress, and remember the best you have ever managed. */
+function diamondAdvance(ctx: Ctx, to: number): void {
+  const { s } = ctx;
+  s.counters.diamondCount = to;
+  if (to > (s.counters.diamondBase ?? 0)) {
+    s.counters.diamondBase = to;
+    s.counters.diamondMoves = 0;
+  }
+}
+
+function diamondWalk(ctx: Ctx, dir: string): WalkIntercept {
+  const { s, out } = ctx;
+  const count = s.counters.diamondCount ?? 0;
+
+  if (BASES.includes(s.here)) {
+    if (dir === DIDIRS[Math.max(count - 1, 0)]) {
+      diamondAdvance(ctx, count + 1);
+      if (s.counters.diamondCount === 5) {
+        out.tell('You hear a strange rusty squeal echoing in the distance.');
+        out.emit({ type: 'sfx', name: 'z2-riddle-open' });
+        delete s.touched['DIAMOND-5'];
+        s.counters.score += 5;
+        out.emit({ type: 'score', score: s.counters.score, moves: s.counters.moves });
+        s.gflags['DIAMOND-SOLVE'] = true;
+      }
+      ctx.moveTo(NEXT_BASE[s.here], true);
+    } else {
+      diamondLoss(ctx);
+    }
+    return { stop: true };
+  }
+  // The middle room's stairway up is the one honest exit in the maze.
+  if (s.here === 'DIAMOND-5' && dir === 'UP') return null;
+
+  s.counters.diamondCount = 0;
+  if (prob(ctx, 33)) {
+    out.tell('There is no way to go in that direction.');
+  } else if (prob(ctx, 25)) {
+    diamondLoss(ctx);
+  } else {
+    diamondAdvance(ctx, 1);
+    const rm = BASES[Math.floor(ctx.rng() * BASES.length)];
+    // Babe Flathead's bat turns up the first time you blunder onto a base.
+    if (fset$(s, 'BAT', 'INVISIBLE')) {
+      fclear(s, 'BAT', 'INVISIBLE');
+      moveObj(s, 'BAT', rm);
+    }
+    ctx.moveTo(rm, true);
+  }
+  return { stop: true };
 }
 
 // ============================ OBJECT ACTIONS =================================
@@ -544,6 +634,92 @@ const OBJ_ROUTINES: Record<string, Handler> = {
       return true;
     }
     if (ctx.verb === 'look-in' || ctx.verb === 'examine') return OBJ_ROUTINES['PALANTIR'](ctx);
+    return false;
+  },
+
+  // --- the machine room and the volcano gnome --------------------------------
+  // BUTTONS (2actions.zil:1160). Three buttons behind a HIGH VOLTAGE sign:
+  // pressing one yourself is fatal, which is what the robot is for.
+  BUTTONS: (ctx) => {
+    const { s, out } = ctx;
+    if (ctx.verb !== 'push') return false;
+    if (ctx.winner !== 'ROBOT') {
+      out.emit({ type: 'shake' });
+      jigsUp(ctx, 'There is a giant spark and you are fried to a crisp.', {});
+      return true;
+    }
+    if (ctx.dobj === 'SQUARE-BUTTON') {
+      if (s.gflags['CAROUSEL-ZOOM-FLAG']) out.tell('Nothing seems to happen.');
+      else {
+        s.gflags['CAROUSEL-ZOOM-FLAG'] = true;
+        out.tell('The whirring increases in intensity.');
+      }
+      return true;
+    }
+    if (ctx.dobj === 'ROUND-BUTTON') {
+      if (s.gflags['CAROUSEL-ZOOM-FLAG']) {
+        s.gflags['CAROUSEL-ZOOM-FLAG'] = false;
+        out.tell('The whirring decreases in intensity.');
+      } else out.tell('Nothing seems to happen.');
+      return true;
+    }
+    if (ctx.dobj === 'TRIANGULAR-BUTTON') {
+      // The one that matters: it stops the carousel spinning.
+      s.gflags['CAROUSEL-FLIP-FLAG'] = !s.gflags['CAROUSEL-FLIP-FLAG'];
+      out.emit({ type: 'sfx', name: 'z2-carousel-stop' });
+      if (s.locs['IRON-BOX'] === 'CAROUSEL-ROOM') {
+        out.tell('A dull thump is heard in the distance.');
+        if (fset$(s, 'IRON-BOX', 'INVISIBLE')) {
+          fclear(s, 'IRON-BOX', 'INVISIBLE');
+          delete s.touched['CAROUSEL-ROOM'];
+        } else {
+          fset(s, 'IRON-BOX', 'INVISIBLE');
+        }
+      } else out.tell('Click.');
+      return true;
+    }
+    return false;
+  },
+
+  // GNOME-FCN (2actions.zil). Stranded on a volcano ledge, a gnome offers you
+  // the way out for a fee — and he is in a hurry.
+  'GNOME-FCN': (ctx) => {
+    const { s, out } = ctx;
+    const nervous = (): boolean => {
+      out.tell('The gnome appears increasingly nervous.');
+      if (!s.gflags['GNOME-FLAG']) ctx.queue('I-NERVOUS', 5);
+      s.gflags['GNOME-FLAG'] = true;
+      return true;
+    };
+    if ((ctx.verb === 'give' || ctx.verb === 'throw') && ctx.iobj === 'GNOME' && ctx.dobj) {
+      const gift = ctx.dobj;
+      if (objDef(gift)?.value) {
+        out.tell(`"Thank you very much for the ${objDef(gift).desc}. I don't believe I've ever seen one as beautiful. Follow me," he says, and a door appears on the west end of the ledge. Through the door, you can see a narrow chimney sloping steeply downward. The gnome moves quickly, and disappears from sight.`);
+        removeObj(s, gift);
+        removeObj(s, 'GNOME');
+        s.gflags['GNOME-DOOR-FLAG'] = true;
+        return true;
+      }
+      if (isBomb(ctx, gift)) {
+        moveObj(s, 'BRICK', s.here);
+        removeObj(s, 'GNOME');
+        ctx.disable('I-GNOME');
+        ctx.disable('I-NERVOUS');
+        out.tell('"That certainly wasn\'t what I had in mind," he says, and disappears.');
+        return true;
+      }
+      removeObj(s, gift);
+      out.tell(`"That wasn't quite what I had in mind," he says, crunching the ${objDef(gift).desc} in his rock-hard hands.`);
+      return true;
+    }
+    return nervous();
+  },
+
+  'DWINDOW-FCN': (ctx) => {
+    const { out } = ctx;
+    if (ctx.verb === 'take') { out.tell('The window is an integral part of the floor.'); return true; }
+    if (ctx.verb === 'break') { out.tell('The window is diamond-hard and cannot be broken.'); return true; }
+    if (ctx.verb === 'examine' || ctx.verb === 'look-in') { out.tell(diamondWindow(ctx.s)); return true; }
     return false;
   },
 

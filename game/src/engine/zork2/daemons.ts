@@ -739,6 +739,32 @@ export function bucketDaemon(ctx: Ctx): void {
   }
 }
 
+/**
+ * I-GNOME (2actions.zil). Queued when the balloon drifts off a ledge without
+ * you: a volcano gnome turns up to sell you the way down, unless he spots the
+ * Wizard's wand in your hands.
+ */
+export function gnomeDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  if (s.here !== 'LEDGE-1' && s.here !== 'LEDGE-2') { ctx.queue('I-GNOME', 1); return; }
+  out.emit({ type: 'sfx', name: 'z2-gnome-cough' });
+  if (inPlayer(s, 'WAND')) {
+    out.tell('A volcano gnome seems to walk straight out of the wall and noticing the wand, straight back in.');
+    return;
+  }
+  out.tell('A volcano gnome seems to walk straight out of the wall and says "I have a busy appointment schedule and little time to waste on trespassers, but for a small fee I\'ll show you the way out." You notice the gnome nervously glancing at his watch.');
+  moveObj(s, 'GNOME', s.here);
+}
+
+/** I-NERVOUS (2actions.zil) — he has an appointment. */
+export function nervousDaemon(ctx: Ctx): void {
+  const { s, out } = ctx;
+  if (s.locs['GNOME'] === s.here) {
+    out.tell('The gnome glances at his watch. "Oops. I\'m late for an appointment!" He disappears, leaving you alone on the ledge.');
+  }
+  removeObj(s, 'GNOME');
+}
+
 export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   // The player's own spell, and the wand's charge, both time out.
   'I-SPELL': spells.spellTimeout,
@@ -758,4 +784,6 @@ export const ZORK2_DAEMONS: Record<string, (ctx: Ctx) => void> = {
   'I-GARDEN': gardenDaemon,
   'I-SPHERE': sphereDaemon,
   'I-BUCKET': bucketDaemon,
+  'I-GNOME': gnomeDaemon,
+  'I-NERVOUS': nervousDaemon,
 };

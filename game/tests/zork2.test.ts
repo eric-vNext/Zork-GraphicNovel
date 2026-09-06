@@ -1392,3 +1392,100 @@ describe('the aquarium', () => {
     selectGame(1);
   });
 });
+
+describe('the Oddly-Angled Rooms', () => {
+  // Nine rooms laid out as a baseball diamond. Run the bases in order and the
+  // window in the floor brightens a step each time; the fifth opens the floor.
+  function onBase(): Game {
+    const g = at('DIAMOND-2');
+    g.s.counters.diamondCount = 1;
+    return g;
+  }
+
+  it('brightens its window as you round the bases', () => {
+    const g = onBase();
+    expect(txt(g, 'look')).toContain('window which is flickering dimly');
+    txt(g, 'se');
+    expect(g.s.here).toBe('DIAMOND-4');
+    expect(txt(g, 'look')).toContain('dimly glowing');
+    txt(g, 'ne');
+    expect(g.s.here).toBe('DIAMOND-8');
+    txt(g, 'nw');
+    expect(g.s.here).toBe('DIAMOND-6');
+    expect(txt(g, 'look')).toContain('glowing brightly');
+
+    const home = txt(g, 'sw');
+    expect(home).toContain('strange rusty squeal');
+    expect(g.s.gflags['DIAMOND-SOLVE']).toBe(true);
+    expect(g.s.counters.score).toBe(5);
+    expect(txt(g, 'examine window')).toContain('glowing serenely');
+    selectGame(1);
+  });
+
+  it('throws you back out for a wrong turn', () => {
+    const g = onBase();
+    txt(g, 'nw');                      // not the way from first base
+    expect(g.s.here).not.toBe('DIAMOND-4');
+    expect(g.s.counters.diamondMoves).toBe(1);
+    selectGame(1);
+  });
+
+  it('opens the middle room once the circuit is run', () => {
+    const g = at('DIAMOND-5');
+    expect(txt(g, 'look')).not.toContain('secret passage');
+    g.s.gflags['DIAMOND-SOLVE'] = true;
+    delete g.s.touched['DIAMOND-5'];
+    const open = txt(g, 'look');
+    expect(open).toContain('The floor has swung down');
+    txt(g, 'down');
+    expect(g.s.here).toBe('CERBERUS-ROOM');
+    selectGame(1);
+  });
+});
+
+describe('the machine room and the volcano gnome', () => {
+  it('fries you if you press the buttons yourself', () => {
+    const g = at('MACHINE-ROOM');
+    expect(txt(g, 'press the triangular button')).toContain('fried to a crisp');
+    selectGame(1);
+  });
+
+  // The robot is fireproof, and stopping the carousel is what it is for.
+  it('stops the carousel when the robot presses the triangular one', () => {
+    const g = at('MAGNET-ROOM');
+    txt(g, 'robot, go east');
+    txt(g, 'east');
+    expect(txt(g, 'robot, press the triangular button')).toContain('dull thump');
+    expect(g.s.gflags['CAROUSEL-FLIP-FLAG']).toBe(true);
+    expect(txt(g, 'robot, press the square button')).toContain('whirring increases');
+    expect(txt(g, 'robot, press the round button')).toContain('whirring decreases');
+    selectGame(1);
+  });
+
+  it('sells you the way off the ledge for a treasure', () => {
+    const g = at('LEDGE-2');
+    g.s.locs['GNOME'] = 'LEDGE-2';
+    expect(txt(g, 'gnome, hello')).toContain('increasingly nervous');
+    g.s.locs['STAMP'] = 'ADVENTURER';
+    const paid = txt(g, 'give stamp to gnome');
+    expect(paid).toContain('a door appears on the west end of the ledge');
+    expect(g.s.gflags['GNOME-DOOR-FLAG']).toBe(true);
+    txt(g, 'west');
+    expect(g.s.here).toBe('VOLCANO-BOTTOM');
+    selectGame(1);
+  });
+
+  it('has an appointment to get to', () => {
+    const g = at('LEDGE-2');
+    g.s.locs['GNOME'] = 'LEDGE-2';
+    txt(g, 'gnome, hello');
+    let gone = '';
+    for (let i = 0; i < 10 && !gone; i++) {
+      const said = txt(g, 'wait');
+      if (said.includes('late for an')) gone = said;
+    }
+    expect(gone).toContain("I'm late for an appointment!");
+    expect(g.s.locs['GNOME']).toBe(null);
+    selectGame(1);
+  });
+});

@@ -75,6 +75,21 @@ export const ZORK2_ROOM_DESCS: Record<string, Desc> = {
   'WIZARDS-QUARTERS': (s) =>
     `This is where the Wizard of Frobozz lives. The room is ${WIZQDESCS[s.counters.wizQ ?? 0]}`,
 
+  // DIAMOND-MOTION's M-LOOK arm. The window in the floor is the only feedback
+  // the maze gives you: it brightens one step for every base you round.
+  ...Object.fromEntries([1, 2, 3, 4, 6, 7, 8, 9].map((n) => [
+    `DIAMOND-${n}`,
+    (s: WorldState) =>
+      `This is a room with oddly angled walls and passages in all directions. The walls are made of some glassy substance. ${diamondWindow(s)}`,
+  ])),
+
+  'DIAMOND-5': (s) => {
+    const t = 'This is a room with oddly angled walls and passages in all directions. The walls are made of some glassy substance. A marble stairway leads upward.';
+    return s.gflags['DIAMOND-SOLVE']
+      ? `${t} The floor has swung down at the end of the stairway to reveal a secret passage leading down into unrelieved darkness.`
+      : t;
+  },
+
   'RIDDLE-ROOM': (s) => {
     const door = fset$(s, 'RIDDLE-DOOR', 'OPENBIT') ? 'open' : 'closed';
     return `This is a room which is bare on all sides. There is an exit down in the northwest corner of the room. To the east is a great ${door} door made of stone. Above the stone, the following words are written: "No man shall pass this door without solving this riddle:\n\n  What is tall as a house,\n    round as a cup,\n      and all the king's horses\n        can't draw it up?"`;
@@ -269,6 +284,17 @@ function deadPalantir(s: WorldState, room: string, viewRoom?: (t: string) => str
     return `${t}\nYou look out into a large, dreary room with a great door and a huge table. There is an odd glow to the mist.`;
   }
   return `${t}\nA strange blurry room is barely visible.`;
+}
+
+/** `,DWDESCS` — how brightly the window in the floor is glowing. */
+const DWDESCS = ['dark', 'flickering dimly', 'dimly glowing', 'glowing', 'glowing brightly'];
+
+/** DWINDOW-DESC (2actions.zil:2188). */
+export function diamondWindow(s: WorldState): string {
+  const state = s.gflags['DIAMOND-SOLVE']
+    ? 'glowing serenely'
+    : DWDESCS[Math.min(s.counters.diamondCount ?? 0, DWDESCS.length - 1)];
+  return `On the floor is a very small diamond shaped window which is ${state}.`;
 }
 
 /** `,WIZQDESCS` — the Wizard's quarters are never the same room twice. */
